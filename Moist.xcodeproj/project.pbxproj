@@ -6,6 +6,15 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F9878A013094D0D500FD8EE0 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = F9878A003094D0D500FD8EE0 /* Auth */; };
+		F9878A033094D0D500FD8EE0 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = F9878A023094D0D500FD8EE0 /* Functions */; };
+		F9878A053094D0D500FD8EE0 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = F9878A043094D0D500FD8EE0 /* PostgREST */; };
+		F9878A073094D0D500FD8EE0 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = F9878A063094D0D500FD8EE0 /* Realtime */; };
+		F9878A093094D0D500FD8EE0 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = F9878A083094D0D500FD8EE0 /* Storage */; };
+		F9878A0B3094D0D500FD8EE0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = F9878A0A3094D0D500FD8EE0 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		F98789E53094A0E600FD8EE0 /* Moist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Moist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -22,6 +31,12 @@
 		F98789E23094A0E600FD8EE0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				F9878A053094D0D500FD8EE0 /* PostgREST in Frameworks */,
+				F9878A033094D0D500FD8EE0 /* Functions in Frameworks */,
+				F9878A0B3094D0D500FD8EE0 /* Supabase in Frameworks */,
+				F9878A013094D0D500FD8EE0 /* Auth in Frameworks */,
+				F9878A093094D0D500FD8EE0 /* Storage in Frameworks */,
+				F9878A073094D0D500FD8EE0 /* Realtime in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -60,6 +75,14 @@
 				F98789E73094A0E600FD8EE0 /* Moist */,
 			);
 			name = Moist;
+			packageProductDependencies = (
+				F9878A003094D0D500FD8EE0 /* Auth */,
+				F9878A023094D0D500FD8EE0 /* Functions */,
+				F9878A043094D0D500FD8EE0 /* PostgREST */,
+				F9878A063094D0D500FD8EE0 /* Realtime */,
+				F9878A083094D0D500FD8EE0 /* Storage */,
+				F9878A0A3094D0D500FD8EE0 /* Supabase */,
+			);
 			productName = Moist;
 			productReference = F98789E53094A0E600FD8EE0 /* Moist.app */;
 			productType = "com.apple.product-type.application";
@@ -88,6 +111,9 @@
 			);
 			mainGroup = F98789DC3094A0E600FD8EE0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F98789E63094A0E600FD8EE0 /* Products */;
 			projectDirPath = "";
@@ -168,7 +194,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -226,7 +252,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -251,6 +277,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -283,6 +310,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -320,6 +348,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F9878A003094D0D500FD8EE0 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		F9878A023094D0D500FD8EE0 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		F9878A043094D0D500FD8EE0 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		F9878A063094D0D500FD8EE0 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		F9878A083094D0D500FD8EE0 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		F9878A0A3094D0D500FD8EE0 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F98789FF3094D0D500FD8EE0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F98789DD3094A0E600FD8EE0 /* Project object */;
 	validationLevel = 1;
