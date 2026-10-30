@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct WelcomeView: View {
+    @ObservedObject var authViewModel: AuthViewModel
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
@@ -22,7 +24,7 @@ struct WelcomeView: View {
                 Spacer()
                 
                 NavigationLink("Create account") {
-                    SignUpView()
+                    SignUpView(authViewModel: authViewModel)
                 }
                 .buttonStyle(.borderedProminent)
                 .frame(maxWidth: .infinity)

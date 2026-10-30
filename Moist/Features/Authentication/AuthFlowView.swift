@@ -17,7 +17,9 @@ struct AuthFlowView: View {
             case .loading:
                 ProgressView("Loading Moist...")
             case .signedOut:
-                WelcomeView()
+                NavigationStack {
+                    WelcomeView(authViewModel: authViewModel)
+                }
             case .signedIn:
                 HomeView()
             }
