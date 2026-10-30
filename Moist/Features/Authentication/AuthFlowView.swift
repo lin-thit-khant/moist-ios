@@ -24,5 +24,27 @@ struct AuthFlowView: View {
                 HomeView()
             }
         }
+        .onOpenURL { url in
+            Task {
+                await authViewModel.handleAuthCallback(url: url)
+            }
+        }
+        .alert(
+            "Email confirmation",
+            isPresented: Binding(
+                get: { authViewModel.callBackError != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        authViewModel.clearCallbackError()
+                    }
+                }
+            )) {
+                Button("OK", role: .cancel) {
+                    authViewModel.clearCallbackError()
+                }
+            } message: {
+                Text(authViewModel.callBackError ?? "")
+            }
+
     }
 }

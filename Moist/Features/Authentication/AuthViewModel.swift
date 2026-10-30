@@ -15,6 +15,7 @@ final class AuthViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var statusMessage: String?
+    @Published private(set) var callBackError: String?
     
     enum AuthState {
         case loading
@@ -42,7 +43,8 @@ final class AuthViewModel: ObservableObject {
         do {
             let response = try await SupabaseManager.client.auth.signUp(
                 email: email,
-                password: password
+                password: password,
+                redirectTo: URL(string: "moist://login-callback")
             )
             
             if response.session == nil {
@@ -53,6 +55,20 @@ final class AuthViewModel: ObservableObject {
         } catch {
             errorMessage = "Sign-up failed. Please check your details and try again."
         }
+    }
+    
+    func handleAuthCallback(url: URL) async {
+        callBackError = nil
+        
+        do {
+            _ = try await SupabaseManager.client.auth.session(from: url)
+        } catch {
+            callBackError = "We couldn't complete email confirmation. Please try again."
+        }
+    }
+    
+    func clearCallbackError() {
+        callBackError = nil
     }
     
     private func observeAuthState() {
