@@ -67,6 +67,12 @@ struct LoginView: View {
                 }
             }
             
+            NavigationLink("Forgot password?") {
+                ForgotPasswordView(authViewModel: authViewModel)
+            }
+            .font(.footnote)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            
             Section {
                 Button {
                     Task {

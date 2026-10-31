@@ -92,6 +92,33 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    func resetPassword(email: String) async {
+        errorMessage = nil
+        statusMessage = nil
+        isLoading = true
+        
+        defer {
+            isLoading = false
+        }
+        
+        do {
+            try await SupabaseManager.client.auth.resetPasswordForEmail(
+                email,
+                redirectTo: URL(string: "moist://login-callback")
+            )
+            
+            statusMessage = """
+                If an account exists for this email, \
+                you'll receive a password reset link.
+                """
+        } catch {
+            errorMessage = """
+                We couldn't send the reset request. \
+                Please try again later.
+                """
+        }
+    }
+    
     func handleAuthCallback(url: URL) async {
         callBackError = nil
         
