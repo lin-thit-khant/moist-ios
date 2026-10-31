@@ -121,13 +121,29 @@ final class AuthViewModel: ObservableObject {
     }
     
     func updatePassword(newPassword: String) async {
+        errorMessage = nil
+        statusMessage = nil
+        isLoading = true
         
+        defer {
+            isLoading = false
+        }
+        
+        do {
+            try await SupabaseManager.client.auth.update(
+                user: UserAttributes(password: newPassword)
+            )
+            
+            statusMessage = "Your password has been updated successfully."
+        } catch {
+            errorMessage = "We couldn't update your password. Please try again."
+        }
     }
     
     func handleAuthCallback(url: URL) async {
         callBackError = nil
         
-        await SupabaseManager.client.auth.handle(url)
+        SupabaseManager.client.auth.handle(url)
     }
     
     func clearCallbackError() {
@@ -142,8 +158,10 @@ final class AuthViewModel: ObservableObject {
                 guard let self else { return }
                 
                 switch event {
-                case .initialSession, .signedIn, .signedOut, .tokenRefreshed:
+                case .initialSession, .signedIn, .tokenRefreshed:
                     self.state = session == nil ? .signedOut : .signedIn
+                case .signedOut:
+                    self.state = .signedOut
                 case .passwordRecovery:
                     self.state = .passwordRecovery
                 default: break
