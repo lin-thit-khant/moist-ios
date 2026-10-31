@@ -21,7 +21,7 @@ struct AuthFlowView: View {
                     WelcomeView(authViewModel: authViewModel)
                 }
             case .signedIn:
-                HomeView()
+                HomeView(authViewModel: authViewModel)
             }
         }
         .onOpenURL { url in

@@ -76,6 +76,22 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    func signOut() async {
+        errorMessage = nil
+        statusMessage = nil
+        isLoading = true
+        
+        defer {
+            isLoading = false
+        }
+        
+        do {
+            try await SupabaseManager.client.auth.signOut(scope: .local)
+        } catch {
+            errorMessage = "We couldn't log you out. Please try again."
+        }
+    }
+    
     func handleAuthCallback(url: URL) async {
         callBackError = nil
         
