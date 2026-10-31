@@ -30,7 +30,7 @@ struct WelcomeView: View {
                 .frame(maxWidth: .infinity)
                 
                 NavigationLink("Log in") {
-                    LoginView()
+                    LoginView(authViewModel: authViewModel)
                 }
                 .buttonStyle(.bordered)
                 .frame(maxWidth: .infinity)

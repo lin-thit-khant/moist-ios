@@ -57,6 +57,25 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    func signIn(email: String, password: String) async {
+        errorMessage = nil
+        statusMessage = nil
+        isLoading = true
+        
+        defer {
+            isLoading = false
+        }
+        
+        do {
+            try await SupabaseManager.client.auth.signIn(
+                email: email,
+                password: password
+            )
+        } catch {
+            errorMessage = "Login failed. Check your email password, then try again."
+        }
+    }
+    
     func handleAuthCallback(url: URL) async {
         callBackError = nil
         
