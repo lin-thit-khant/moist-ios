@@ -21,6 +21,7 @@ final class AuthViewModel: ObservableObject {
         case loading
         case signedOut
         case signedIn
+        case passwordRecovery
     }
     
     @Published private(set) var state: AuthState = .loading
@@ -119,14 +120,14 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    func updatePassword(newPassword: String) async {
+        
+    }
+    
     func handleAuthCallback(url: URL) async {
         callBackError = nil
         
-        do {
-            _ = try await SupabaseManager.client.auth.session(from: url)
-        } catch {
-            callBackError = "We couldn't complete email confirmation. Please try again."
-        }
+        await SupabaseManager.client.auth.handle(url)
     }
     
     func clearCallbackError() {
@@ -143,7 +144,8 @@ final class AuthViewModel: ObservableObject {
                 switch event {
                 case .initialSession, .signedIn, .signedOut, .tokenRefreshed:
                     self.state = session == nil ? .signedOut : .signedIn
-                    
+                case .passwordRecovery:
+                    self.state = .passwordRecovery
                 default: break
                 }
             }

@@ -22,6 +22,8 @@ struct AuthFlowView: View {
                 }
             case .signedIn:
                 HomeView(authViewModel: authViewModel)
+            case .passwordRecovery:
+                Text("Password recovery detected")
             }
         }
         .onOpenURL { url in
