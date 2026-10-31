@@ -9,8 +9,17 @@ import Foundation
 import Supabase
 
 enum SupabaseManager {
+    private static func requiredConfigValue(forKey key: String) -> String {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
+              !value.isEmpty,
+              !value.hasPrefix("$(") else {
+            fatalError("Missing or invalid build setting: \(key)")
+        }
+        return value
+    }
+    
     static let client = SupabaseClient(
-        supabaseURL: URL(string: "https://swfkgdozbjcdpjfqzjqe.supabase.co")!,
-        supabaseKey: "sb_publishable_0UqTJ11QINwZ58e0NMjS9Q_xLEaAg8c"
+        supabaseURL: URL(string: requiredConfigValue(forKey: "SUPABASE_URL"))!,
+        supabaseKey: requiredConfigValue(forKey: "SUPABASE_KEY")
     )
 }
