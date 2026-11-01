@@ -16,6 +16,8 @@ final class AuthViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var statusMessage: String?
     @Published private(set) var callBackError: String?
+    private var isHandlingPasswordRecovery = false
+    private let passwordRecoveryPendingKey = "moist.passwordRecoveryPending"
     
     enum AuthState {
         case loading
@@ -108,6 +110,11 @@ final class AuthViewModel: ObservableObject {
                 redirectTo: URL(string: "moist://login-callback")
             )
             
+            UserDefaults.standard.set(
+                true,
+                forKey: passwordRecoveryPendingKey
+            )
+            
             statusMessage = """
                 If an account exists for this email, \
                 you'll receive a password reset link.
@@ -134,6 +141,13 @@ final class AuthViewModel: ObservableObject {
                 user: UserAttributes(password: newPassword)
             )
             
+            isHandlingPasswordRecovery = false
+            
+            UserDefaults.standard.removeObject(
+                forKey: passwordRecoveryPendingKey
+            )
+            
+            state = .signedIn
             statusMessage = "Your password has been updated successfully."
         } catch {
             errorMessage = "We couldn't update your password. Please try again."
@@ -142,6 +156,20 @@ final class AuthViewModel: ObservableObject {
     
     func handleAuthCallback(url: URL) async {
         callBackError = nil
+        
+        let isPendingRecovery = UserDefaults.standard.bool(
+            forKey: passwordRecoveryPendingKey
+        )
+        
+        guard url.scheme == "moist",
+              url.host == "login-callback" else {
+            return
+        }
+        
+        if isPendingRecovery {
+            isHandlingPasswordRecovery = true
+            state = .passwordRecovery
+        }
         
         SupabaseManager.client.auth.handle(url)
     }
@@ -157,15 +185,23 @@ final class AuthViewModel: ObservableObject {
                 guard !Task.isCancelled else { return }
                 guard let self else { return }
                 
+                print("Supabase auth event: \(event)")
+                print("Has session: \(session != nil)")
+
                 switch event {
-                case .initialSession, .signedIn, .tokenRefreshed:
-                    self.state = session == nil ? .signedOut : .signedIn
+                case .initialSession, .signedIn, .tokenRefreshed, .passwordRecovery:
+                    if self.isHandlingPasswordRecovery {
+                        self.state = .passwordRecovery
+                    } else {
+                        self.state = session == nil ? .signedOut : .signedIn
+                    }
                 case .signedOut:
                     self.state = .signedOut
-                case .passwordRecovery:
-                    self.state = .passwordRecovery
-                default: break
+                default:
+                    break
                 }
+
+                print("Moist AuthState: \(self.state)")
             }
         }
     }

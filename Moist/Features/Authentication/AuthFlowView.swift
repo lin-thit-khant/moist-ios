@@ -23,7 +23,7 @@ struct AuthFlowView: View {
             case .signedIn:
                 HomeView(authViewModel: authViewModel)
             case .passwordRecovery:
-                Text("Password recovery detected")
+                ResetPasswordView(authViewModel: authViewModel)
             }
         }
         .onOpenURL { url in
@@ -32,7 +32,7 @@ struct AuthFlowView: View {
             }
         }
         .alert(
-            "Email confirmation",
+            "Authentication",
             isPresented: Binding(
                 get: { authViewModel.callBackError != nil },
                 set: { isPresented in
