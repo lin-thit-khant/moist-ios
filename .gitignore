@@ -64,3 +64,8 @@ fastlane/test_output
 # Local Supabase configuration
 Local.xcconfig
 Hosted.xcconfig
+
+# macOS system files
+.DS_Store
+.DS_Store?
+._*
