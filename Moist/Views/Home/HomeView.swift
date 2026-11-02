@@ -11,34 +11,51 @@ struct HomeView: View {
     @ObservedObject var authViewModel: AuthViewModel
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Welcome to Moist!")
-                .font(.title)
-            
-            Button {
-                Task {
-                    await authViewModel.signOut()
+        NavigationStack {
+            VStack(spacing: 20) {
+                Text("Welcome to Moist!")
+                    .font(.title)
+                    .fontWeight(.bold)
+                
+                Text("To be socially awkward.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
+                NavigationLink {
+                    ProfileView()
+                } label: {
+                    Label("My Profile", systemImage: "person.crop.circle")
+                        .frame(maxWidth: .infinity)
                 }
-            } label: {
-                HStack {
-                    if authViewModel.isLoading {
-                        ProgressView()
+                .buttonStyle(.borderedProminent)
+                
+                Button {
+                    Task {
+                        await authViewModel.signOut()
                     }
-                    
-                    Text(
-                        authViewModel.isLoading
-                        ? "Logging out..."
-                        : "Log out"
-                    )
+                } label: {
+                    HStack {
+                        if authViewModel.isLoading {
+                            ProgressView()
+                        }
+                        
+                        Text(
+                            authViewModel.isLoading
+                            ? "Logging out..."
+                            : "Log out"
+                        )
+                    }
+                }
+                .disabled(authViewModel.isLoading)
+                
+                if let errorMessage = authViewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
                 }
             }
-            .disabled(authViewModel.isLoading)
-            
-            if let errorMessage = authViewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
-            }
+            .padding()
+            .navigationTitle("Moist")
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .padding()
     }
 }
