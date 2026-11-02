@@ -9,10 +9,13 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var authViewModel: AuthViewModel
+    @State private var isShowingCreatePost = false
+    @State private var recentlyCreatedPost: Post?
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
+                
                 Text("Welcome to Moist!")
                     .font(.title)
                     .fontWeight(.bold)
@@ -28,6 +31,30 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                
+                Button {
+                    isShowingCreatePost = true
+                } label: {
+                    Label("Create Post", systemImage: "square.and.pencil")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                
+                if let post = recentlyCreatedPost {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Your post was published!")
+                            .font(.headline)
+
+                        Text(post.content)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(.thinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
                 
                 Button {
                     Task {
@@ -56,6 +83,11 @@ struct HomeView: View {
             .padding()
             .navigationTitle("Moist")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $isShowingCreatePost) {
+                CreatePostView { post in
+                    recentlyCreatedPost = post
+                }
+            }
         }
     }
 }
