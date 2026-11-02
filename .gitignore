@@ -60,3 +60,12 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Local Supabase configuration
+Local.xcconfig
+Hosted.xcconfig
+
+# macOS system files
+.DS_Store
+.DS_Store?
+._*
