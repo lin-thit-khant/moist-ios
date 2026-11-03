@@ -35,6 +35,17 @@ struct PostService {
             .execute()
             .value
     }
+    
+    func fetchPosts() async throws -> [Post] {
+        
+        return try await client
+            .from("posts")
+            .select()
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+    
 }
 
 private struct NewPost: Encodable {
