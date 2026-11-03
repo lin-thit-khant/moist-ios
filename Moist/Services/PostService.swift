@@ -60,6 +60,24 @@ struct PostService {
             .value
     }
     
+    func fetchPosts(userId: UUID) async throws -> [Post] {
+        
+        return try await client
+            .from("posts")
+            .select("""
+                *,
+                author: profiles!posts_profile_fkey(
+                    id,
+                    display_name,
+                    username
+                )
+                """)
+            .eq("user_id", value: userId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+    
 }
 
 private struct NewPost: Encodable {
