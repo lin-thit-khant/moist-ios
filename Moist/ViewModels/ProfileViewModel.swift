@@ -22,8 +22,10 @@ final class ProfileViewModel: ObservableObject {
         self.profileService = profileService
     }
     
-    func loadProfile() async {
-        guard !isLoading else { return }
+    func loadProfile(userId: UUID? = nil) async {
+        guard !isLoading else {
+            return
+        }
         
         isLoading = true
         errorMessage = nil
@@ -34,7 +36,13 @@ final class ProfileViewModel: ObservableObject {
         }
         
         do {
-            profile = try await profileService.fetchCurrentProfile()
+            if let userId {
+                profile = try await profileService.fetchProfile(
+                    userId: userId
+                )
+            } else {
+                profile = try await profileService.fetchCurrentProfile()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

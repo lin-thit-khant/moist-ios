@@ -45,6 +45,17 @@ struct ProfileService {
         
         return try await fetchCurrentProfile()
     }
+    
+    func fetchProfile(userId: UUID) async throws -> Profile {
+        
+        return try await client
+            .from("profiles")
+            .select()
+            .eq("id", value: userId)
+            .single()
+            .execute()
+            .value
+    }
 }
 
 private struct ProfileUpdate: Encodable {
