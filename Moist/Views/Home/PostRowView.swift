@@ -11,6 +11,20 @@ struct PostRowView: View {
     
     let post: Post
     
+    private var authorDisplayName: String {
+        let name = post.author?.displayName.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        return (name?.isEmpty == false) ? name!: "Moist User"
+    }
+    
+    private var authorUsername: String {
+        if let username = post.author?.username {
+            return "@\(username)"
+        }
+        return "@unknown"
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             
@@ -19,11 +33,15 @@ struct PostRowView: View {
                     .font(.system(size: 40))
                     .foregroundStyle(.secondary)
                 
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 3) {
                     
-                    Text("Moist User")
+                    Text(authorDisplayName)
                         .font(.subheadline)
                         .fontWeight(.semibold)
+                    
+                    Text(authorUsername)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     
                     Text(post.createdAt, style: .relative)
                         .font(.caption)

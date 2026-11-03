@@ -22,4 +22,21 @@ enum SupabaseManager {
         supabaseURL: URL(string: requiredConfigValue(forKey: "SUPABASE_URL"))!,
         supabaseKey: requiredConfigValue(forKey: "SUPABASE_KEY")
     )
+    
+    static func debugConfiguration() {
+        print("=== MOIST SUPABASE DEBUG ===")
+
+        print(
+            "Supabase URL:",
+            requiredConfigValue(forKey: "SUPABASE_URL")
+        )
+
+        print(
+            "Environment:",
+            Bundle.main.object(
+                forInfoDictionaryKey: "SUPABASE_ENV"
+            ) ?? "Not configured"
+        )
+    }
 }
+

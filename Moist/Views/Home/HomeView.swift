@@ -43,6 +43,9 @@ struct HomeView: View {
                 FeedView(viewModel: feedViewModel)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .onAppear {
+                SupabaseManager.debugConfiguration()
+            }
             .navigationTitle("Moist")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -30,7 +30,14 @@ struct PostService {
         return try await client
             .from("posts")
             .insert(newPost)
-            .select()
+            .select("""
+                *,
+                author: profiles!posts_profile_fkey(
+                    id,
+                    display_name,
+                    username
+                )
+                """)
             .single()
             .execute()
             .value
@@ -40,7 +47,14 @@ struct PostService {
         
         return try await client
             .from("posts")
-            .select()
+            .select("""
+                *,
+                author: profiles!posts_profile_fkey(
+                    id,
+                    display_name,
+                    username
+                )
+                """)
             .order("created_at", ascending: false)
             .execute()
             .value
