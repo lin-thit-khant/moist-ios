@@ -30,10 +30,15 @@ struct HomeView: View {
                         Text("Your post was published!")
                             .font(.headline)
                         
-                        Text(post.content)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(3)
+                        
+                        Text(
+                            feedViewModel.posts.first(where: { $0.id == post.id })?.content
+                            ?? post.content
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
