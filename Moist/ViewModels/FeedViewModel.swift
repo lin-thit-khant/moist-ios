@@ -15,6 +15,9 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     
+    @Published private(set) var deletingPostId: UUID?
+    @Published private(set) var deletionErrorMessage: String?
+    
     private let postService: PostService
     
     init(postService: PostService = PostService()) {
@@ -50,7 +53,34 @@ final class FeedViewModel: ObservableObject {
         posts.insert(post, at: 0)
     }
     
+    func deletePost(postId: UUID) async {
+        
+        guard deletingPostId == nil else {
+            return
+        }
+        
+        deletingPostId = postId
+        deletionErrorMessage = nil
+        
+        defer {
+            deletingPostId = nil
+        }
+        
+        do {
+            try await postService.deletePosts(postId: postId)
+            
+            posts.removeAll { $0.id == postId }
+            
+        } catch {
+            deletionErrorMessage = error.localizedDescription
+        }
+    }
+    
     func clearError() {
         errorMessage = nil
+    }
+    
+    func clearDeletionError() {
+        deletionErrorMessage = nil
     }
 }

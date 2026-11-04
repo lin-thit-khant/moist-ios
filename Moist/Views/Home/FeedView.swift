@@ -11,6 +11,8 @@ import SwiftUI
 struct FeedView: View {
 
     @ObservedObject var viewModel: FeedViewModel
+    
+    let currentUserId: UUID?
 
     var body: some View {
         Group {
@@ -63,7 +65,17 @@ struct FeedView: View {
 
                         VStack(spacing: 0) {
 
-                            PostRowView(post: post)
+                            PostRowView(
+                                post: post,
+                                currentUserId: currentUserId,
+                                onDelete: {
+                                    Task {
+                                        await viewModel.deletePost(
+                                            postId: post.id
+                                        )
+                                    }
+                                }
+                            )
 
                             Divider()
                                 .padding(.horizontal)
@@ -87,6 +99,25 @@ struct FeedView: View {
         }
         .task {
             await viewModel.loadPosts()
+        }
+        .alert(
+            "Couldn't delete post",
+            isPresented: Binding(
+                get: {
+                    viewModel.deletionErrorMessage != nil
+                },
+                set: { isPresented in
+                    if !isPresented {
+                        viewModel.clearDeletionError()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                viewModel.clearDeletionError()
+            }
+        } message: {
+            Text(viewModel.deletionErrorMessage ?? "")
         }
     }
 }

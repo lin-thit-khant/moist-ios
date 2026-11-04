@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct HomeView: View {
     @ObservedObject var authViewModel: AuthViewModel
@@ -14,6 +15,7 @@ struct HomeView: View {
     
     @State private var isShowingCreatePost = false
     @State private var recentlyCreatedPost: Post?
+    @State private var currentUserId: UUID?
     
     var body: some View {
         
@@ -40,11 +42,35 @@ struct HomeView: View {
                     .padding(.horizontal)
                 }
                 
-                FeedView(viewModel: feedViewModel)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                FeedView(
+                    viewModel: feedViewModel,
+                    currentUserId: currentUserId
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onChange(of: feedViewModel.posts.map(\.id)) { _, postIds in
+                    
+                    guard let recentlyCreatedPost else {
+                        return
+                    }
+                    
+                    if !postIds.contains(recentlyCreatedPost.id) {
+                        self.recentlyCreatedPost = nil
+                    }
+                }
             }
             .onAppear {
                 SupabaseManager.debugConfiguration()
+            }
+            .task {
+                do {
+                    let user = try await SupabaseManager.client.auth.session.user
+                    
+                    currentUserId = user.id
+                    
+                } catch {
+                    currentUserId = nil
+                    print("Couldn't retrieve current user: \(error)")
+                }
             }
             .navigationTitle("Moist")
             .navigationBarTitleDisplayMode(.inline)

@@ -78,6 +78,20 @@ struct PostService {
             .value
     }
     
+    func deletePosts(postId: UUID) async throws {
+        
+        let user = try await client.auth.session.user
+        
+        try await client
+            .from("posts")
+            .delete()
+            .eq("id", value: postId)
+            .eq("user_id", value: user.id)
+            .select("id")
+            .single()
+            .execute()
+    }
+    
 }
 
 private struct NewPost: Encodable {

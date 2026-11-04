@@ -11,7 +11,21 @@ import SwiftUI
 struct PostRowView: View {
 
     let post: Post
+    let currentUserId: UUID?
+    let onDelete: (() -> Void)?
+    
+    @State private var isShowingDeleteConfirmation = false
 
+    init(
+        post: Post,
+        currentUserId: UUID? = nil,
+        onDelete: (() -> Void)? = nil
+    ) {
+        self.post = post
+        self.currentUserId = currentUserId
+        self.onDelete = onDelete
+    }
+    
     private var authorDisplayName: String {
         let name = post.author?.displayName.trimmingCharacters(
             in: .whitespacesAndNewlines
@@ -65,6 +79,25 @@ struct PostRowView: View {
                 }
 
                 Spacer()
+                
+                if let currentUserId,
+                   currentUserId == post.userId,
+                   onDelete != nil {
+                    
+                    Menu {
+                        Button(role: .destructive) {
+                            isShowingDeleteConfirmation = true
+                        } label: {
+                            Label("Delete Post", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                    }
+                    .accessibilityLabel("Post options")
+                }
             }
 
             Text(post.content)
@@ -84,5 +117,20 @@ struct PostRowView: View {
             maxWidth: .infinity,
             alignment: .leading
         )
+        .confirmationDialog(
+            "Delete this post?",
+            isPresented: $isShowingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                onDelete?()
+            }
+            
+            Button("Cancel", role: .cancel) {
+                
+            }
+        } message: {
+            Text("This cannot be undone.")
+        }
     }
 }
