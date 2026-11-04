@@ -13,6 +13,8 @@ struct FeedView: View {
     @ObservedObject var viewModel: FeedViewModel
     
     let currentUserId: UUID?
+    
+    @State private var selectedPostForEditing: Post?
 
     var body: some View {
         Group {
@@ -68,6 +70,9 @@ struct FeedView: View {
                             PostRowView(
                                 post: post,
                                 currentUserId: currentUserId,
+                                onEdit: {
+                                    selectedPostForEditing = post
+                                },
                                 onDelete: {
                                     Task {
                                         await viewModel.deletePost(
@@ -99,6 +104,12 @@ struct FeedView: View {
         }
         .task {
             await viewModel.loadPosts()
+        }
+        .sheet(item: $selectedPostForEditing) { post in
+            EditPostView(
+                post: post,
+                viewModel: viewModel
+            )
         }
         .alert(
             "Couldn't delete post",

@@ -18,6 +18,9 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var deletingPostId: UUID?
     @Published private(set) var deletionErrorMessage: String?
     
+    @Published private(set) var editingPostId: UUID?
+    @Published private(set) var editErrorMessage: String?
+    
     private let postService: PostService
     
     init(postService: PostService = PostService()) {
@@ -67,12 +70,59 @@ final class FeedViewModel: ObservableObject {
         }
         
         do {
-            try await postService.deletePosts(postId: postId)
+            try await postService.deletePost(postId: postId)
             
             posts.removeAll { $0.id == postId }
             
         } catch {
             deletionErrorMessage = error.localizedDescription
+        }
+    }
+    
+    func updatePost(postId: UUID, content: String) async -> Bool {
+            
+        guard editingPostId == nil,
+              deletingPostId != postId else {
+            return false
+        }
+        
+        let trimmedContent = content.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        
+        editErrorMessage = nil
+        
+        guard !trimmedContent.isEmpty else {
+            editErrorMessage = "Post content cannot be empty."
+            return false
+        }
+        
+        guard trimmedContent.count <= 500 else {
+            editErrorMessage = "Post cannot exceed 500 characters."
+            return false
+        }
+        
+        editingPostId = postId
+        
+        defer {
+            editingPostId = nil
+        }
+        
+        do {
+            let updatedPost = try await postService.updatePost(
+                postId: postId,
+                content: trimmedContent
+            )
+            
+            if let index = posts.firstIndex(where: { $0.id == postId }) {
+                posts[index] = updatedPost
+            }
+            
+            return true
+            
+        } catch {
+            editErrorMessage = error.localizedDescription
+            return false
         }
     }
     
@@ -82,5 +132,9 @@ final class FeedViewModel: ObservableObject {
     
     func clearDeletionError() {
         deletionErrorMessage = nil
+    }
+    
+    func clearEditError() {
+        editErrorMessage = nil
     }
 }

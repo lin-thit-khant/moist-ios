@@ -1,8 +1,6 @@
 
-SELECT
-    schemaname,
-    tablename,
-    rowsecurity
-FROM pg_tables
-WHERE schemaname = 'public'
-AND tablename = 'posts';
+SELECT has_table_privilege(
+    'authenticated',
+    'public.posts',
+    'UPDATE'
+) AS can_update_posts;

@@ -78,7 +78,7 @@ struct PostService {
             .value
     }
     
-    func deletePosts(postId: UUID) async throws {
+    func deletePost(postId: UUID) async throws {
         
         let user = try await client.auth.session.user
         
@@ -90,6 +90,32 @@ struct PostService {
             .select("id")
             .single()
             .execute()
+    }
+    
+    func updatePost(postId: UUID, content: String) async throws -> Post {
+    
+        let user = try await client.auth.session.user
+        
+        let trimmedContent = content.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        
+        return try await client
+            .from("posts")
+            .update(["content": trimmedContent])
+            .eq("id", value: postId)
+            .eq("user_id", value: user.id)
+            .select("""
+                *,
+                author: profiles!posts_profile_fkey(
+                    id,
+                    display_name,
+                    username
+                )
+                """)
+            .single()
+            .execute()
+            .value
     }
     
 }

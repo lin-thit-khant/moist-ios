@@ -12,6 +12,7 @@ struct PostRowView: View {
 
     let post: Post
     let currentUserId: UUID?
+    let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
     
     @State private var isShowingDeleteConfirmation = false
@@ -19,10 +20,12 @@ struct PostRowView: View {
     init(
         post: Post,
         currentUserId: UUID? = nil,
+        onEdit: (() -> Void)? = nil,
         onDelete: (() -> Void)? = nil
     ) {
         self.post = post
         self.currentUserId = currentUserId
+        self.onEdit = onEdit
         self.onDelete = onDelete
     }
     
@@ -82,14 +85,25 @@ struct PostRowView: View {
                 
                 if let currentUserId,
                    currentUserId == post.userId,
-                   onDelete != nil {
+                   (onEdit != nil || onDelete != nil) {
                     
                     Menu {
-                        Button(role: .destructive) {
-                            isShowingDeleteConfirmation = true
-                        } label: {
-                            Label("Delete Post", systemImage: "trash")
+                        if let onEdit {
+                            Button {
+                                onEdit()
+                            } label: {
+                                Label("Edit Post", systemImage: "pencil")
+                            }
                         }
+                        
+                        if onDelete != nil {
+                            Button(role: .destructive) {
+                                isShowingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete Post", systemImage: "trash")
+                            }
+                        }
+                        
                     } label: {
                         Image(systemName: "ellipsis")
                             .font(.subheadline)
