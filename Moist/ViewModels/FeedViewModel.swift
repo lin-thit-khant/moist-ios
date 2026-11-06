@@ -51,6 +51,26 @@ final class FeedViewModel: ObservableObject {
         await loadPosts()
     }
     
+    func loadPosts(userId: UUID) async {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        defer {
+            isLoading = false
+        }
+        
+        do {
+            posts = try await postService.fetchPosts(userId: userId)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+    
     func addPost(_ post: Post) {
         posts.removeAll { $0.id == post.id }
         posts.insert(post, at: 0)
