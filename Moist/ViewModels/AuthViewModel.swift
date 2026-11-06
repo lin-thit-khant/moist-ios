@@ -47,7 +47,7 @@ final class AuthViewModel: ObservableObject {
             let response = try await SupabaseManager.client.auth.signUp(
                 email: email,
                 password: password,
-                redirectTo: URL(string: "moist://login-callback")
+                redirectTo: URL(string: "rawdea://login-callback")
             )
             
             if response.session == nil {
@@ -107,7 +107,7 @@ final class AuthViewModel: ObservableObject {
         do {
             try await SupabaseManager.client.auth.resetPasswordForEmail(
                 email,
-                redirectTo: URL(string: "moist://login-callback")
+                redirectTo: URL(string: "rawdea://login-callback")
             )
             
             UserDefaults.standard.set(
@@ -156,21 +156,22 @@ final class AuthViewModel: ObservableObject {
     
     func handleAuthCallback(url: URL) async {
         callBackError = nil
-        
+
         let isPendingRecovery = UserDefaults.standard.bool(
             forKey: passwordRecoveryPendingKey
         )
-        
-        guard url.scheme == "moist",
-              url.host == "login-callback" else {
+
+        guard let scheme = url.scheme?.lowercased(),
+              ["moist", "rawdea"].contains(scheme),
+              url.host?.lowercased() == "login-callback" else {
             return
         }
-        
+
         if isPendingRecovery {
             isHandlingPasswordRecovery = true
             state = .passwordRecovery
         }
-        
+
         SupabaseManager.client.auth.handle(url)
     }
     
@@ -201,7 +202,7 @@ final class AuthViewModel: ObservableObject {
                     break
                 }
 
-                print("Moist AuthState: \(self.state)")
+                print("Rawdea AuthState: \(self.state)")
             }
         }
     }

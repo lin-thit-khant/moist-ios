@@ -15,7 +15,7 @@ struct AuthFlowView: View {
         Group {
             switch authViewModel.state {
             case .loading:
-                ProgressView("Loading Moist...")
+                ProgressView("Loading Rawdea...")
             case .signedOut:
                 NavigationStack {
                     WelcomeView(authViewModel: authViewModel)
