@@ -77,7 +77,7 @@ struct HomeView: View {
                     print("Couldn't retrieve current user: \(error)")
                 }
             }
-            .navigationTitle("Moist")
+            .navigationTitle("Rawdea")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 

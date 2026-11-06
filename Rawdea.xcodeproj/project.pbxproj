@@ -18,18 +18,18 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		F98789E53094A0E600FD8EE0 /* Moist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Moist.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F98789E53094A0E600FD8EE0 /* Rawdea.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rawdea.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F9878A2A30964C0D00FD8EE0 /* Hosted.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Hosted.xcconfig; sourceTree = "<group>"; };
 		F9878A2B30964C0D00FD8EE0 /* Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F9878A263094F10400FD8EE0 /* Exceptions for "Moist" folder in "Moist" target */ = {
+		F9878A263094F10400FD8EE0 /* Exceptions for "Moist" folder in "Rawdea" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = F98789E43094A0E600FD8EE0 /* Moist */;
+			target = F98789E43094A0E600FD8EE0 /* Rawdea */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -37,7 +37,7 @@
 		F98789E73094A0E600FD8EE0 /* Moist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				F9878A263094F10400FD8EE0 /* Exceptions for "Moist" folder in "Moist" target */,
+				F9878A263094F10400FD8EE0 /* Exceptions for "Moist" folder in "Rawdea" target */,
 			);
 			path = Moist;
 			sourceTree = "<group>";
@@ -72,7 +72,7 @@
 		F98789E63094A0E600FD8EE0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F98789E53094A0E600FD8EE0 /* Moist.app */,
+				F98789E53094A0E600FD8EE0 /* Rawdea.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,9 +80,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F98789E43094A0E600FD8EE0 /* Moist */ = {
+		F98789E43094A0E600FD8EE0 /* Rawdea */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F98789F03094A0E700FD8EE0 /* Build configuration list for PBXNativeTarget "Moist" */;
+			buildConfigurationList = F98789F03094A0E700FD8EE0 /* Build configuration list for PBXNativeTarget "Rawdea" */;
 			buildPhases = (
 				F98789E13094A0E600FD8EE0 /* Sources */,
 				F98789E23094A0E600FD8EE0 /* Frameworks */,
@@ -93,7 +93,7 @@
 			fileSystemSynchronizedGroups = (
 				F98789E73094A0E600FD8EE0 /* Moist */,
 			);
-			name = Moist;
+			name = Rawdea;
 			packageProductDependencies = (
 				F9878A003094D0D500FD8EE0 /* Auth */,
 				F9878A023094D0D500FD8EE0 /* Functions */,
@@ -103,7 +103,7 @@
 				F9878A0A3094D0D500FD8EE0 /* Supabase */,
 			);
 			productName = Moist;
-			productReference = F98789E53094A0E600FD8EE0 /* Moist.app */;
+			productReference = F98789E53094A0E600FD8EE0 /* Rawdea.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -121,7 +121,7 @@
 					};
 				};
 			};
-			buildConfigurationList = F98789E03094A0E600FD8EE0 /* Build configuration list for PBXProject "Moist" */;
+			buildConfigurationList = F98789E03094A0E600FD8EE0 /* Build configuration list for PBXProject "Rawdea" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -138,7 +138,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F98789E43094A0E600FD8EE0 /* Moist */,
+				F98789E43094A0E600FD8EE0 /* Rawdea */,
 			);
 		};
 /* End PBXProject section */
@@ -162,7 +162,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		F98789EE3094A0E700FD8EE0 /* Debug configuration for PBXProject "Moist" */ = {
+		F98789EE3094A0E700FD8EE0 /* Debug configuration for PBXProject "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -226,7 +226,7 @@
 			};
 			name = Debug;
 		};
-		F98789EF3094A0E700FD8EE0 /* Release configuration for PBXProject "Moist" */ = {
+		F98789EF3094A0E700FD8EE0 /* Release configuration for PBXProject "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -283,7 +283,7 @@
 			};
 			name = Release;
 		};
-		F98789F13094A0E700FD8EE0 /* Debug configuration for PBXNativeTarget "Moist" */ = {
+		F98789F13094A0E700FD8EE0 /* Debug configuration for PBXNativeTarget "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -294,6 +294,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moist/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Rawdea;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -320,7 +321,7 @@
 			};
 			name = Debug;
 		};
-		F98789F23094A0E700FD8EE0 /* Release configuration for PBXNativeTarget "Moist" */ = {
+		F98789F23094A0E700FD8EE0 /* Release configuration for PBXNativeTarget "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -331,6 +332,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moist/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Rawdea;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -357,7 +359,7 @@
 			};
 			name = Release;
 		};
-		F9878A2E30964D1D00FD8EE0 /* Local configuration for PBXProject "Moist" */ = {
+		F9878A2E30964D1D00FD8EE0 /* Local configuration for PBXProject "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = F9878A2B30964C0D00FD8EE0 /* Local.xcconfig */;
 			buildSettings = {
@@ -422,7 +424,7 @@
 			};
 			name = Local;
 		};
-		F9878A2F30964D1D00FD8EE0 /* Local configuration for PBXNativeTarget "Moist" */ = {
+		F9878A2F30964D1D00FD8EE0 /* Local configuration for PBXNativeTarget "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = F9878A2B30964C0D00FD8EE0 /* Local.xcconfig */;
 			buildSettings = {
@@ -434,6 +436,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moist/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Rawdea;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -457,7 +460,7 @@
 			};
 			name = Local;
 		};
-		F9878A3030964D6B00FD8EE0 /* Hosted configuration for PBXProject "Moist" */ = {
+		F9878A3030964D6B00FD8EE0 /* Hosted configuration for PBXProject "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = F9878A2A30964C0D00FD8EE0 /* Hosted.xcconfig */;
 			buildSettings = {
@@ -522,7 +525,7 @@
 			};
 			name = Hosted;
 		};
-		F9878A3130964D6B00FD8EE0 /* Hosted configuration for PBXNativeTarget "Moist" */ = {
+		F9878A3130964D6B00FD8EE0 /* Hosted configuration for PBXNativeTarget "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = F9878A2A30964C0D00FD8EE0 /* Hosted.xcconfig */;
 			buildSettings = {
@@ -534,6 +537,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moist/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Rawdea;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -560,23 +564,23 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F98789E03094A0E600FD8EE0 /* Build configuration list for PBXProject "Moist" */ = {
+		F98789E03094A0E600FD8EE0 /* Build configuration list for PBXProject "Rawdea" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F98789EE3094A0E700FD8EE0 /* Debug configuration for PBXProject "Moist" */,
-				F9878A2E30964D1D00FD8EE0 /* Local configuration for PBXProject "Moist" */,
-				F9878A3030964D6B00FD8EE0 /* Hosted configuration for PBXProject "Moist" */,
-				F98789EF3094A0E700FD8EE0 /* Release configuration for PBXProject "Moist" */,
+				F98789EE3094A0E700FD8EE0 /* Debug configuration for PBXProject "Rawdea" */,
+				F9878A2E30964D1D00FD8EE0 /* Local configuration for PBXProject "Rawdea" */,
+				F9878A3030964D6B00FD8EE0 /* Hosted configuration for PBXProject "Rawdea" */,
+				F98789EF3094A0E700FD8EE0 /* Release configuration for PBXProject "Rawdea" */,
 			);
 			defaultConfigurationName = Release;
 		};
-		F98789F03094A0E700FD8EE0 /* Build configuration list for PBXNativeTarget "Moist" */ = {
+		F98789F03094A0E700FD8EE0 /* Build configuration list for PBXNativeTarget "Rawdea" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F98789F13094A0E700FD8EE0 /* Debug configuration for PBXNativeTarget "Moist" */,
-				F9878A2F30964D1D00FD8EE0 /* Local configuration for PBXNativeTarget "Moist" */,
-				F9878A3130964D6B00FD8EE0 /* Hosted configuration for PBXNativeTarget "Moist" */,
-				F98789F23094A0E700FD8EE0 /* Release configuration for PBXNativeTarget "Moist" */,
+				F98789F13094A0E700FD8EE0 /* Debug configuration for PBXNativeTarget "Rawdea" */,
+				F9878A2F30964D1D00FD8EE0 /* Local configuration for PBXNativeTarget "Rawdea" */,
+				F9878A3130964D6B00FD8EE0 /* Hosted configuration for PBXNativeTarget "Rawdea" */,
+				F98789F23094A0E700FD8EE0 /* Release configuration for PBXNativeTarget "Rawdea" */,
 			);
 			defaultConfigurationName = Release;
 		};

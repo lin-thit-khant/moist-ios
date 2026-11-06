@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct MoistApp: App {
+struct RawdeaApp: App {
     var body: some Scene {
         WindowGroup {
             AuthFlowView()

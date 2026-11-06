@@ -15,11 +15,13 @@ struct WelcomeView: View {
             VStack(spacing: 20) {
                 Spacer()
                 
-                Text("moist")
-                    .font(.system(size: 48, weight: .bold))
-                
-                Text("be socially awkward.")
-                    .font(.title3)
+                Text("Rawdea")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+
+                Text("A quiet space for unfinished ideas.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 
                 Spacer()
                 
