@@ -18,6 +18,7 @@ struct ProfileView: View {
     @State private var isShowingCreateProject = false
     @State private var newProjectName = ""
     @State private var selectedPostForEditing: Post?
+    @State private var selectedPostForMoving: Post?
     
     var body: some View {
         Group {
@@ -109,6 +110,9 @@ struct ProfileView: View {
                                                         postId: post.id
                                                     )
                                                 }
+                                            },
+                                            onMove: {
+                                                selectedPostForMoving = post
                                             }
                                         )
                                         
@@ -153,13 +157,28 @@ struct ProfileView: View {
                                 
                             } else {
                                 ForEach(projectsViewModel.projects) { project in
-                                    Text(project.name)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    NavigationLink {
+                                        ProjectDetailView(
+                                            project: project,
+                                            projects: projectsViewModel.projects
+                                        )
+                                    } label: {
+                                        HStack {
+                                            Text(project.name)
+                                                .foregroundStyle(.primary)
+                                            
+                                            Spacer()
+                                            
+                                            Image(systemName: "chevron.right")
+                                                .foregroundStyle(.secondary)
+                                        }
                                         .padding()
                                         .background(
                                             Color(.secondarySystemBackground),
                                             in: RoundedRectangle(cornerRadius: 12)
                                         )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -241,6 +260,19 @@ struct ProfileView: View {
                 viewModel: postsViewModel
             )
         }
+        .sheet(item: $selectedPostForMoving, content: { post in
+            MovePostToProjectView(
+                post: post,
+                projects: projectsViewModel.projects,
+                onMoved: {
+                    if let userId = viewModel.profile?.id {
+                        await postsViewModel.loadPosts(
+                            userId: userId
+                        )
+                    }
+                }
+            )
+        })
         .alert(
             "Couldn't delete post",
             isPresented: Binding(

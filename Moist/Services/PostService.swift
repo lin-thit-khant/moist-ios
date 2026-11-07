@@ -93,7 +93,7 @@ struct PostService {
     }
     
     func updatePost(postId: UUID, content: String) async throws -> Post {
-    
+        
         let user = try await client.auth.session.user
         
         let trimmedContent = content.trimmingCharacters(
@@ -118,6 +118,41 @@ struct PostService {
             .value
     }
     
+    func fetchPosts(projectId: UUID) async throws -> [Post] {
+        
+        try await client
+            .from("posts")
+            .select("""
+                *,
+                author: profiles!posts_profile_fkey(
+                    id,
+                    display_name,
+                    username
+                )
+                """)
+            .eq("project_id", value: projectId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+    
+    func movePost(
+        postId: UUID,
+        to projectId: UUID?
+    ) async throws {
+        
+        let user = try await client.auth.session.user
+        
+        try await client
+            .from("posts")
+            .update(PostProjectChange(projectId: projectId))
+            .eq("id", value: postId)
+            .eq("user_id", value: user.id)
+            .select("id")
+            .single()
+            .execute()
+    }
+    
 }
 
 private struct NewPost: Encodable {
@@ -128,5 +163,28 @@ private struct NewPost: Encodable {
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case content
+    }
+}
+
+private struct PostProjectChange: Encodable {
+    
+    let projectId: UUID?
+    
+    enum CodingKeys: String, CodingKey {
+        case projectId = "project_id"
+    }
+    
+    func encode(to encoder: any Encoder) throws {
+        
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        if let projectId {
+            try container.encode(
+                projectId,
+                forKey: .projectId
+            )
+        } else {
+            try container.encodeNil(forKey: .projectId)
+        }
     }
 }

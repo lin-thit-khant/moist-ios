@@ -146,6 +146,29 @@ final class FeedViewModel: ObservableObject {
         }
     }
     
+    func loadPosts(projectId: UUID) async {
+        
+        guard !isLoading else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        defer {
+            isLoading = false
+        }
+        
+        do {
+            posts = try await postService.fetchPosts(
+                projectId: projectId
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+    
     func clearError() {
         errorMessage = nil
     }

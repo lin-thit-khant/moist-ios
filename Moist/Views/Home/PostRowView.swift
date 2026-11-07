@@ -14,6 +14,7 @@ struct PostRowView: View {
     let currentUserId: UUID?
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
+    let onMove: (() -> Void)?
     
     @State private var isShowingDeleteConfirmation = false
 
@@ -21,12 +22,14 @@ struct PostRowView: View {
         post: Post,
         currentUserId: UUID? = nil,
         onEdit: (() -> Void)? = nil,
-        onDelete: (() -> Void)? = nil
+        onDelete: (() -> Void)? = nil,
+        onMove: (() -> Void)? = nil
     ) {
         self.post = post
         self.currentUserId = currentUserId
         self.onEdit = onEdit
         self.onDelete = onDelete
+        self.onMove = onMove
     }
     
     private var authorDisplayName: String {
@@ -85,7 +88,7 @@ struct PostRowView: View {
                 
                 if let currentUserId,
                    currentUserId == post.userId,
-                   (onEdit != nil || onDelete != nil) {
+                   (onEdit != nil || onDelete != nil || onMove != nil) {
                     
                     Menu {
                         if let onEdit {
@@ -101,6 +104,14 @@ struct PostRowView: View {
                                 isShowingDeleteConfirmation = true
                             } label: {
                                 Label("Delete Post", systemImage: "trash")
+                            }
+                        }
+                        
+                        if let onMove {
+                            Button {
+                                onMove()
+                            } label: {
+                                Label("Move to Project", systemImage: "folder")
                             }
                         }
                         
