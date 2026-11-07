@@ -69,3 +69,9 @@ Hosted.xcconfig
 .DS_Store
 .DS_Store?
 ._*
+
+# Supabase SQL Editor snippets
+supabase/snippets/
+
+# Local schema snapshots
+rawdea_public_schema_snapshot.sql
