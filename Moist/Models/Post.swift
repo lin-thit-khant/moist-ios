@@ -15,6 +15,7 @@ struct Post: Identifiable, Codable {
     let createdAt: Date
     var author: PostAuthor?
     var projectId: UUID? = nil
+    var project: PostProject? = nil
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -23,6 +24,7 @@ struct Post: Identifiable, Codable {
         case createdAt = "created_at"
         case author
         case projectId = "project_id"
+        case project
     }
 }
 
@@ -37,4 +39,9 @@ struct PostAuthor: Codable {
         case displayName = "display_name"
         case username 
     }
+}
+
+struct PostProject:  Codable, Identifiable {
+    let id: UUID
+    let name: String
 }

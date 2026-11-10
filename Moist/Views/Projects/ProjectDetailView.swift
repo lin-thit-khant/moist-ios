@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct ProjectDetailView: View {
     
@@ -16,6 +17,7 @@ struct ProjectDetailView: View {
     
     @State private var selectedPostForEditing: Post?
     @State private var selectedPostForMoving: Post?
+    @State private var currentUserId: UUID?
     
     var body: some View {
         Group {
@@ -57,7 +59,7 @@ struct ProjectDetailView: View {
                     ForEach(viewModel.posts) { post in
                         PostRowView(
                             post: post,
-                            currentUserId: project.userId,
+                            currentUserId: currentUserId,
                             onEdit: {
                                 selectedPostForEditing = post
                             },
@@ -89,6 +91,12 @@ struct ProjectDetailView: View {
             await viewModel.loadPosts(
                 projectId: project.id
             )
+        }
+        .task {
+            if let user = try? await SupabaseManager
+                .client.auth.session.user {
+                currentUserId = user.id
+            }
         }
         .sheet(item: $selectedPostForEditing) { post in
             EditPostView(

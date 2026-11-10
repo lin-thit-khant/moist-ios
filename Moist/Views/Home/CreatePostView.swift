@@ -14,6 +14,8 @@ struct CreatePostView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var content = ""
+    @State private var selectedProject: Project?
+    @State private var isShowingProjectPicker = false
     
     let onPostCreated: (Post) -> Void
     
@@ -60,6 +62,17 @@ struct CreatePostView: View {
                         )
                 }
                 
+                Button {
+                    isShowingProjectPicker = true
+                } label: {
+                    Label(
+                        selectedProject?.name ?? "Add to Project",
+                        systemImage: "folder"
+                    )
+                    .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
+                
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .font(.subheadline)
@@ -84,7 +97,8 @@ struct CreatePostView: View {
                     Button {
                         Task {
                             let success = await viewModel.publish(
-                                content: trimmedContent
+                                content: trimmedContent,
+                                projectId: selectedProject?.id
                             )
                             
                             if success, let post = viewModel.publishedPost {
@@ -112,6 +126,11 @@ struct CreatePostView: View {
             }
             
             viewModel.clearError()
+        }
+        .sheet(isPresented: $isShowingProjectPicker) {
+            ProjectPickerView(
+                selectedProject: $selectedProject
+            )
         }
     }
 }

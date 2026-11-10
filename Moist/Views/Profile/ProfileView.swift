@@ -19,6 +19,8 @@ struct ProfileView: View {
     @State private var newProjectName = ""
     @State private var selectedPostForEditing: Post?
     @State private var selectedPostForMoving: Post?
+    @State private var projectToRename: Project?
+    @State private var projectNameDraft = ""
     
     var body: some View {
         Group {
@@ -69,7 +71,7 @@ struct ProfileView: View {
                         
                         VStack(alignment: .leading, spacing: 12) {
                             
-                            Text("Your posts")
+                            Text("Free posts")
                                 .font(.headline)
                             
                             if postsViewModel.isLoading && postsViewModel.posts.isEmpty {
@@ -87,7 +89,7 @@ struct ProfileView: View {
                                     }
                                 }
                                 
-                            } else if postsViewModel.posts.isEmpty {
+                            } else if postsViewModel.posts.allSatisfy({ $0.projectId != nil }) {
                                 
                                 Text("Your thoughts will appear here.")
                                     .foregroundStyle(.secondary)
@@ -96,7 +98,9 @@ struct ProfileView: View {
                                 
                                 LazyVStack(spacing: 0) {
                                     
-                                    ForEach(postsViewModel.posts) { post in
+                                    ForEach(
+                                        postsViewModel.posts.filter { $0.projectId == nil }
+                                    ) { post in
                                         
                                         PostRowView(
                                             post: post,
@@ -156,30 +160,25 @@ struct ProfileView: View {
                                 }
                                 
                             } else {
-                                ForEach(projectsViewModel.projects) { project in
-                                    NavigationLink {
-                                        ProjectDetailView(
-                                            project: project,
-                                            projects: projectsViewModel.projects
-                                        )
-                                    } label: {
-                                        HStack {
-                                            Text(project.name)
-                                                .foregroundStyle(.primary)
-                                            
-                                            Spacer()
-                                            
-                                            Image(systemName: "chevron.right")
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        .padding()
-                                        .background(
-                                            Color(.secondarySystemBackground),
-                                            in: RoundedRectangle(cornerRadius: 12)
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
+                                
+                                ForEach(
+                                    projectsViewModel.projects.filter { !$0.isArchived }
+                                ) { project in
+                                    projectRow(project)
                                 }
+
+                                if projectsViewModel.projects.contains(
+                                    where: { $0.isArchived }
+                                ) {
+                                    DisclosureGroup("Archived Projects") {
+                                        ForEach(
+                                            projectsViewModel.projects.filter { $0.isArchived }
+                                        ) { project in
+                                            projectRow(project)
+                                        }
+                                    }
+                                }
+
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -273,6 +272,61 @@ struct ProfileView: View {
                 }
             )
         })
+        .sheet(item: $projectToRename, content: { project in
+            NavigationStack {
+                Form {
+                    Section("Project name") {
+                        TextField(
+                            "Name",
+                            text: $projectNameDraft
+                        )
+                    }
+                    
+                    if let error = projectsViewModel.errorMessage {
+                        Section {
+                            Text(error)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+                .navigationTitle("Rename Project")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            projectToRename = nil
+                        }
+                        .disabled(projectsViewModel.isUpdating)
+                    }
+                    
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            Task {
+                                let success = await projectsViewModel
+                                    .renameProject(
+                                        projectId: project.id,
+                                        name: projectNameDraft
+                                    )
+                                
+                                if success {
+                                    projectToRename = nil
+                                }
+                            }
+                        }
+                        .disabled(
+                            projectNameDraft.trimmingCharacters(
+                                in: .whitespacesAndNewlines
+                            ).isEmpty ||
+                            projectNameDraft.trimmingCharacters(
+                                in: .whitespacesAndNewlines
+                            ).count > 80 ||
+                            projectsViewModel.isUpdating
+                        )
+                    }
+                }
+                .interactiveDismissDisabled(projectsViewModel.isUpdating)
+            }
+        })
         .alert(
             "Couldn't delete post",
             isPresented: Binding(
@@ -293,4 +347,95 @@ struct ProfileView: View {
             Text(postsViewModel.deletionErrorMessage ?? "")
         }
     }
+    
+    
+    private func projectRow(_ project: Project) -> some View {
+        HStack(spacing: 12) {
+
+            NavigationLink {
+                ProjectDetailView(
+                    project: project,
+                    projects: projectsViewModel.projects
+                )
+            } label: {
+                VStack(alignment: .leading, spacing: 5) {
+
+                    Text(project.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+
+                    if project.isHidden {
+                        Label("Hidden", systemImage: "eye.slash")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if project.isArchived {
+                        Label("Archived", systemImage: "archivebox")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                Button {
+                    projectNameDraft = project.name
+                    projectsViewModel.clearError()
+                    projectToRename = project
+                } label: {
+                    Label("Rename", systemImage: "pencil")
+                }
+
+                Button {
+                    Task {
+                        _ = await projectsViewModel.setArchived(
+                            projectId: project.id,
+                            archived: !project.isArchived
+                        )
+                    }
+                } label: {
+                    Label(
+                        project.isArchived ? "Unarchive" : "Archive",
+                        systemImage: "archivebox"
+                    )
+                }
+
+                Button {
+                    Task {
+                        _ = await projectsViewModel.setHidden(
+                            projectId: project.id,
+                            hidden: !project.isHidden
+                        )
+                    }
+                } label: {
+                    Label(
+                        project.isHidden ? "Make Public" : "Hide",
+                        systemImage: project.isHidden
+                            ? "eye"
+                            : "eye.slash"
+                    )
+                }
+
+            } label: {
+                Image(systemName: "ellipsis")
+                    .foregroundStyle(.secondary)
+                    .padding(8)
+            }
+            .disabled(projectsViewModel.isUpdating)
+            .accessibilityLabel("Project options")
+        }
+        .padding()
+        .background(
+            Color(.secondarySystemBackground),
+            in: RoundedRectangle(cornerRadius: 12)
+        )
+    }
+
 }

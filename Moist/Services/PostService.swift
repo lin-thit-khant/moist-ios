@@ -16,7 +16,10 @@ struct PostService {
         self.client = client
     }
     
-    func createPost(content: String) async throws -> Post {
+    func createPost(
+        content: String,
+        projectId: UUID? = nil
+    ) async throws -> Post {
         
         let user = try await client.auth.session.user
         
@@ -24,7 +27,8 @@ struct PostService {
             userId: user.id,
             content: content.trimmingCharacters(
                 in: .whitespacesAndNewlines
-            )
+            ),
+            projectId: projectId
         )
         
         return try await client
@@ -36,6 +40,10 @@ struct PostService {
                     id,
                     display_name,
                     username
+                ),
+                project: projects!posts_project_owner_fk(
+                    id,
+                    name
                 )
                 """)
             .single()
@@ -53,6 +61,10 @@ struct PostService {
                     id,
                     display_name,
                     username
+                ),
+                project: projects!posts_project_owner_fk(
+                    id,
+                    name
                 )
                 """)
             .order("created_at", ascending: false)
@@ -70,6 +82,10 @@ struct PostService {
                     id,
                     display_name,
                     username
+                ),
+                project: projects!posts_project_owner_fk(
+                    id,
+                    name
                 )
                 """)
             .eq("user_id", value: userId)
@@ -111,6 +127,10 @@ struct PostService {
                     id,
                     display_name,
                     username
+                ),
+                project: projects!posts_project_owner_fk(
+                    id,
+                    name
                 )
                 """)
             .single()
@@ -128,6 +148,10 @@ struct PostService {
                     id,
                     display_name,
                     username
+                ),
+                project: projects!posts_project_owner_fk(
+                    id,
+                    name
                 )
                 """)
             .eq("project_id", value: projectId)
@@ -159,10 +183,12 @@ private struct NewPost: Encodable {
     
     let userId: UUID
     let content: String
+    let projectId: UUID?
     
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case content
+        case projectId = "project_id"
     }
 }
 

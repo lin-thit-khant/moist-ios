@@ -12,11 +12,15 @@ struct Project: Identifiable, Codable {
     let userId: UUID
     var name: String
     let createdAt: Date
+    var isArchived: Bool
+    var isHidden: Bool
     
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
         case name
         case createdAt = "created_at"
+        case isArchived = "is_archived"
+        case isHidden = "is_hidden"
     }
 }

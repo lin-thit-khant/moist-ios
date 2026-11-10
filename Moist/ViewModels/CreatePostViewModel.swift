@@ -21,7 +21,7 @@ final class CreatePostViewModel: ObservableObject {
         self.postService = postService
     }
     
-    func publish(content: String) async -> Bool {
+    func publish(content: String, projectId: UUID? = nil) async -> Bool {
         guard !isPublishing else { return false }
         
         let trimmedContent = content.trimmingCharacters(
@@ -48,7 +48,8 @@ final class CreatePostViewModel: ObservableObject {
         
         do {
             let post = try await postService.createPost(
-                content: trimmedContent
+                content: trimmedContent,
+                projectId: projectId
             )
             publishedPost = post
             return true

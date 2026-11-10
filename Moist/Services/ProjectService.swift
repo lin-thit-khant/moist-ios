@@ -37,6 +37,67 @@ struct ProjectService {
             .execute()
             .value
     }
+    
+    func fetchProject(id: UUID) async throws -> Project {
+        try await client
+            .from("projects")
+            .select()
+            .eq("id", value: id)
+            .single()
+            .execute()
+            .value
+    }
+    
+    func renameProject(
+        projectId: UUID,
+        name: String
+    ) async throws -> Project {
+        let user = try await client.auth.session.user
+        
+        return try await client
+            .from("projects")
+            .update(["name": name])
+            .eq("id", value: projectId)
+            .eq("user_id", value: user.id)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+    
+    func setArchived(
+        projectId: UUID,
+        archived: Bool
+    ) async throws -> Project {
+        let user = try await client.auth.session.user
+        
+        return try await client
+            .from("projects")
+            .update(["is_archived": archived])
+            .eq("id", value: projectId)
+            .eq("user_id", value: user.id)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+    
+    func setHidden(
+        projectId: UUID,
+        hidden: Bool
+    ) async throws -> Project {
+        let user = try await client.auth.session.user
+        
+        return try await client
+            .from("projects")
+            .update(["is_hidden": hidden])
+            .eq("id", value: projectId)
+            .eq("user_id", value: user.id)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
 }
 
 private struct NewProject: Encodable {

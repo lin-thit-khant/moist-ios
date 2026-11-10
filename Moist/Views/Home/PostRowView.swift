@@ -135,6 +135,22 @@ struct PostRowView: View {
                     horizontal: false,
                     vertical: true
                 )
+            if let project = post.project {
+                NavigationLink {
+                    ProjectRouteView(projectId: project.id)
+                } label: {
+                    Label(project.name, systemImage: "folder")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            .thinMaterial,
+                            in: Capsule()
+                        )
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.vertical, 12)
         .padding(.horizontal)
