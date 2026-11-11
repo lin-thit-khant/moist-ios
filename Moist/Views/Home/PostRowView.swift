@@ -15,6 +15,7 @@ struct PostRowView: View {
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
     let onMove: (() -> Void)?
+    let onHide: (() -> Void)?
     
     @State private var isShowingDeleteConfirmation = false
 
@@ -23,13 +24,15 @@ struct PostRowView: View {
         currentUserId: UUID? = nil,
         onEdit: (() -> Void)? = nil,
         onDelete: (() -> Void)? = nil,
-        onMove: (() -> Void)? = nil
+        onMove: (() -> Void)? = nil,
+        onHide: (() -> Void)? = nil
     ) {
         self.post = post
         self.currentUserId = currentUserId
         self.onEdit = onEdit
         self.onDelete = onDelete
         self.onMove = onMove
+        self.onHide = onHide
     }
     
     private var authorDisplayName: String {
@@ -88,7 +91,12 @@ struct PostRowView: View {
                 
                 if let currentUserId,
                    currentUserId == post.userId,
-                   (onEdit != nil || onDelete != nil || onMove != nil) {
+                   (
+                    onEdit != nil ||
+                    onDelete != nil ||
+                    onMove != nil ||
+                    onHide != nil
+                   ) {
                     
                     Menu {
                         if let onEdit {
@@ -112,6 +120,17 @@ struct PostRowView: View {
                                 onMove()
                             } label: {
                                 Label("Move to Project", systemImage: "folder")
+                            }
+                        }
+                        
+                        if let onHide {
+                            Button {
+                                onHide()
+                            } label: {
+                                Label(
+                                    post.isHidden ? "Unhide Post" : "Hide Post",
+                                    systemImage: post.isHidden ? "eye" : "eye.slash"
+                                )
                             }
                         }
                         
@@ -150,6 +169,15 @@ struct PostRowView: View {
                         )
                 }
                 .buttonStyle(.plain)
+            }
+            
+            if post.isHidden,
+               let currentUserId,
+               currentUserId == post.userId {
+                
+                Label("Hidden", systemImage: "eye.slash")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 12)

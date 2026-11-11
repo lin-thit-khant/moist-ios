@@ -177,6 +177,22 @@ struct PostService {
             .execute()
     }
     
+    func setPostHidden(
+        postId: UUID,
+        hidden: Bool
+    ) async throws {
+        
+        let user = try await client.auth.session.user
+        
+        try await client
+            .from("posts")
+            .update(["is_hidden": hidden])
+            .eq("id", value: postId)
+            .eq("user_id", value: user.id)
+            .select("id")
+            .single()
+            .execute()
+    }
 }
 
 private struct NewPost: Encodable {

@@ -98,6 +98,23 @@ struct ProjectService {
             .execute()
             .value
     }
+    
+    func setPinned(
+        projectId: UUID,
+        pinned: Bool
+    ) async throws -> Project {
+        let user = try await client.auth.session.user
+        
+        return try await client
+            .from("projects")
+            .update(["is_pinned": pinned])
+            .eq("id", value: projectId)
+            .eq("user_id", value: user.id)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
 }
 
 private struct NewProject: Encodable {

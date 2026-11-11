@@ -21,6 +21,9 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var editingPostId: UUID?
     @Published private(set) var editErrorMessage: String?
     
+    @Published private(set) var hidingPostId: UUID?
+    @Published private(set) var visibilityErrorMessage: String?
+    
     private let postService: PostService
     
     init(postService: PostService = PostService()) {
@@ -167,6 +170,41 @@ final class FeedViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             errorMessage = error.localizedDescription
         }
+    }
+    
+    func setPostHidden(
+        postId: UUID,
+        hidden: Bool
+    ) async {
+        
+        guard hidingPostId == nil else { return }
+        
+        hidingPostId = postId
+        visibilityErrorMessage = nil
+        
+        defer {
+            hidingPostId = nil
+        }
+        
+        do {
+            try await postService.setPostHidden(
+                postId: postId,
+                hidden: hidden
+            )
+            
+            if let index = posts.firstIndex(
+                where: { $0.id == postId }
+            ) {
+                posts[index].isHidden = hidden
+            }
+            
+        } catch {
+            visibilityErrorMessage = error.localizedDescription
+        }
+    }
+    
+    func clearVisibilityError() {
+        visibilityErrorMessage = nil
     }
     
     func clearError() {

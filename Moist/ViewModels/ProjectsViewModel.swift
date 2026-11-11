@@ -114,6 +114,18 @@ final class ProjectsViewModel: ObservableObject {
         }
     }
     
+    func setPinned(
+        projectId: UUID,
+        pinned: Bool
+    ) async -> Bool {
+        await applyChange {
+            try await projectService.setPinned(
+                projectId: projectId,
+                pinned: pinned
+            )
+        }
+    }
+    
     private func applyChange(
         _ operation: () async throws -> Project
     ) async -> Bool {

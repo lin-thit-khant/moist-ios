@@ -16,6 +16,7 @@ struct Post: Identifiable, Codable {
     var author: PostAuthor?
     var projectId: UUID? = nil
     var project: PostProject? = nil
+    var isHidden: Bool = false
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -25,6 +26,7 @@ struct Post: Identifiable, Codable {
         case author
         case projectId = "project_id"
         case project
+        case isHidden = "is_hidden"
     }
 }
 

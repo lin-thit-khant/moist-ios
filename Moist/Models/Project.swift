@@ -14,6 +14,7 @@ struct Project: Identifiable, Codable {
     let createdAt: Date
     var isArchived: Bool
     var isHidden: Bool
+    var isPinned: Bool
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -22,5 +23,6 @@ struct Project: Identifiable, Codable {
         case createdAt = "created_at"
         case isArchived = "is_archived"
         case isHidden = "is_hidden"
+        case isPinned = "is_pinned"
     }
 }

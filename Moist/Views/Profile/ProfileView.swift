@@ -22,6 +22,19 @@ struct ProfileView: View {
     @State private var projectToRename: Project?
     @State private var projectNameDraft = ""
     
+    private var sortedActiveProjects: [Project] {
+        projectsViewModel.projects
+            .filter { !$0.isArchived }
+            .sorted { first, second in
+                
+                if first.isPinned != second.isPinned {
+                    return first.isPinned
+                }
+                
+                return first.createdAt > second.createdAt
+            }
+    }
+    
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.profile == nil {
@@ -117,6 +130,14 @@ struct ProfileView: View {
                                             },
                                             onMove: {
                                                 selectedPostForMoving = post
+                                            },
+                                            onHide: {
+                                                Task {
+                                                    await postsViewModel.setPostHidden(
+                                                        postId: post.id,
+                                                        hidden: !post.isHidden
+                                                    )
+                                                }
                                             }
                                         )
                                         
@@ -162,7 +183,7 @@ struct ProfileView: View {
                             } else {
                                 
                                 ForEach(
-                                    projectsViewModel.projects.filter { !$0.isArchived }
+                                    sortedActiveProjects
                                 ) { project in
                                     projectRow(project)
                                 }
@@ -346,6 +367,31 @@ struct ProfileView: View {
         } message: {
             Text(postsViewModel.deletionErrorMessage ?? "")
         }
+        .alert(
+            "Couldn't change post visibility",
+            isPresented: Binding(
+                get: {
+                    postsViewModel.visibilityErrorMessage != nil
+                },
+                set: { isPresented in
+                    if !isPresented {
+                        postsViewModel.clearVisibilityError()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                postsViewModel.clearVisibilityError()
+            }
+        } message: {
+            Text(postsViewModel.visibilityErrorMessage ?? "")
+        }
+    }
+    
+    private func latestNote(for projectId: UUID) -> String? {
+        postsViewModel.posts.first {
+            $0.projectId == projectId && !$0.isHidden
+        }?.content
     }
     
     
@@ -358,12 +404,28 @@ struct ProfileView: View {
                     projects: projectsViewModel.projects
                 )
             } label: {
-                VStack(alignment: .leading, spacing: 5) {
+                
+                VStack(alignment: .leading, spacing: 6) {
 
-                    Text(project.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.primary)
+                    HStack(spacing: 8) {
+                        Text(project.name)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+
+                        if project.isPinned {
+                            Image(systemName: "pin.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let preview = latestNote(for: project.id) {
+                        Text(preview)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
 
                     if project.isHidden {
                         Label("Hidden", systemImage: "eye.slash")
@@ -377,10 +439,8 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .frame(
-                    maxWidth: .infinity,
-                    alignment: .leading
-                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             }
             .buttonStyle(.plain)
 
@@ -420,6 +480,20 @@ struct ProfileView: View {
                         systemImage: project.isHidden
                             ? "eye"
                             : "eye.slash"
+                    )
+                }
+                
+                Button {
+                    Task {
+                        _ = await projectsViewModel.setPinned(
+                            projectId: project.id,
+                            pinned: !project.isPinned
+                        )
+                    }
+                } label: {
+                    Label(
+                        project.isPinned ? "Unpin" : "Pin",
+                        systemImage: project.isPinned ? "pin.slash" : "pin"
                     )
                 }
 

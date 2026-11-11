@@ -72,6 +72,14 @@ struct ProjectDetailView: View {
                             },
                             onMove: {
                                 selectedPostForMoving = post
+                            },
+                            onHide: {
+                                Task {
+                                    await viewModel.setPostHidden(
+                                        postId: post.id,
+                                        hidden: !post.isHidden
+                                    )
+                                }
                             }
                         )
                         .listRowSeparator(.hidden)
@@ -132,6 +140,25 @@ struct ProjectDetailView: View {
             }
         } message: {
             Text(viewModel.deletionErrorMessage ?? "")
+        }
+        .alert(
+            "Couldn't change post visibility",
+            isPresented: Binding(
+                get: {
+                    viewModel.visibilityErrorMessage != nil
+                },
+                set: { isPresented in
+                    if !isPresented {
+                        viewModel.clearVisibilityError()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                viewModel.clearVisibilityError()
+            }
+        } message: {
+            Text(viewModel.visibilityErrorMessage ?? "")
         }
     }
 }

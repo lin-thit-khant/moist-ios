@@ -13,7 +13,6 @@ struct AuthorProfileView: View {
     let userId: UUID
 
     @StateObject private var viewModel = ProfileViewModel()
-    @StateObject private var postsViewModel = AuthorPostsViewModel()
     
     var body: some View {
         Group {
@@ -52,76 +51,27 @@ struct AuthorProfileView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
+
                         ProfileContentView(profile: profile)
-                        
+
                         Divider()
-                        
-                        VStack(alignment: .leading, spacing: 16) {
-                            
-                            Text("Posts")
-                                .font(.headline)
-                            
-                            if postsViewModel.isLoading {
-                                
-                                ProgressView("Loading posts")
-                                    .frame(maxWidth: .infinity)
-                                
-                            } else if let errorMessage = postsViewModel.errorMessage {
-                                
-                                VStack(spacing: 12) {
-                                    
-                                    Text("Couldn't load posts")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                    
-                                    Text(errorMessage)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .multilineTextAlignment(.center)
-                                    
-                                    Button("Try Again") {
-                                        Task {
-                                            await postsViewModel.loadPosts(userId: userId)
-                                        }
-                                    }
-                                    .buttonStyle(.bordered)
-                                }
-                                .frame(maxWidth: .infinity)
-                            } else if postsViewModel.posts.isEmpty {
-                                
-                                Text("No posts yet")
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity)
-                            } else {
-                                
-                                LazyVStack(spacing: 0) {
-                                    
-                                    ForEach(postsViewModel.posts) { post in
-                                        
-                                        PostRowView(post: post)
-                                        
-                                        Divider()
-                                    }
-                                }
-                            }
-                        }
+
+                        PublicProfileSectionsView(userId: userId)
+
                     }
                     .padding()
                 }
 
             } else {
-
                 ProgressView("Preparing profile...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: userId) {
             await viewModel.loadProfile(userId: userId)
-        }
-        .task(id: userId) {
-            await postsViewModel.loadPosts(userId: userId)
         }
     }
 }
