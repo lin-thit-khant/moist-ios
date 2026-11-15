@@ -82,6 +82,21 @@ struct ProfileView: View {
                         .buttonStyle(.borderedProminent)
                         .frame(maxWidth: .infinity, alignment: .center)
                         
+                        NavigationLink {
+                            
+                            FollowingView()
+                            
+                        } label: {
+                            
+                            Label(
+                                "Following",
+                                systemImage: "person.2"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        
                         VStack(alignment: .leading, spacing: 12) {
                             
                             Text("Free posts")
