@@ -193,6 +193,93 @@ struct PostService {
             .single()
             .execute()
     }
+    
+    // MARK: - Personalized Following Feed
+    
+    func fetchcPosts(
+        userIds: [UUID],
+        maxPosts: Int = 100
+    ) async throws -> [Post] {
+        
+        try await fetchPosts(
+            matching: "user_id",
+            ids: userIds,
+            maxPosts: maxPosts
+        )
+    }
+    
+    func fetchPosts(
+        projectIds: [UUID],
+        maxPosts: Int = 100
+    ) async throws -> [Post] {
+        
+        try await fetchPosts(
+            matching: "project_id",
+            ids: projectIds,
+            maxPosts: maxPosts
+        )
+    }
+    
+    // Split large follow lists into smaller requests.
+    // This avoids creating extremely long query URLs.
+    
+    private func fetchPosts(
+        matching column: String,
+        ids: [UUID],
+        maxPosts: Int
+    ) async throws -> [Post] {
+        
+        guard !ids.isEmpty, maxPosts > 0 else {
+            return []
+        }
+        
+        let batchSize = 40
+        var collectedPosts: [Post] = []
+        
+        for startIndex in stride(
+            from: 0,
+            to: ids.count,
+            by: batchSize
+        ) {
+            
+            try Task.checkCancellation()
+            
+            let endIndex = min(
+                startIndex + batchSize,
+                ids.count
+            )
+            
+            let batchIDs = ids[startIndex..<endIndex]
+                .map(\.uuidString)
+            
+            let batchPosts: [Post] = try await client
+                .from("posts")
+                .select("""
+                    *,
+                    author: profiles!posts_profile_fkey(
+                        id,
+                        display_name,
+                        username
+                    ),
+                    project: projects!posts_project_owner_fk(
+                        id,
+                        name
+                    )
+                    """)
+                .in(column, values: batchIDs)
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(maxPosts)
+                .execute()
+                .value
+            
+            collectedPosts.append(
+                contentsOf: batchPosts
+            )
+        }
+        
+        return collectedPosts
+    }
 }
 
 private struct NewPost: Encodable {
