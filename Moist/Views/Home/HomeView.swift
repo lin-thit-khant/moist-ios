@@ -18,6 +18,8 @@ struct HomeView: View {
     
     @ObservedObject var authViewModel: AuthViewModel
     
+    @Environment(\.scenePhase) private var scenePhase
+    
     // Existing normal feed
     
     @StateObject private var feedViewModel = FeedViewModel()
@@ -25,6 +27,7 @@ struct HomeView: View {
     // New personalized Following feed
     
     @StateObject private var followingFeedViewModel = FollowingFeedViewModel()
+    @StateObject private var notificationsViewModel = NotificationsViewModel()
     
     @State private var selectedFeed: HomeFeedTab = .all
     
@@ -125,6 +128,24 @@ struct HomeView: View {
                 SupabaseManager.debugConfiguration()
             }
             
+            .task {
+                await notificationsViewModel.refreshUnreadCount()
+            }
+            
+            // Refresh when Rawdea returns from
+            // the background to the foreground.
+            
+            .onChange(of: scenePhase) { _, newPhase in
+                
+                if newPhase == .active {
+                    
+                    Task {
+                        await notificationsViewModel
+                            .refreshUnreadCount()
+                    }
+                }
+            }
+            
             // MARK: - Existing User Lookup
             
             .task {
@@ -156,6 +177,56 @@ struct HomeView: View {
                     }
                 }
                 
+                
+                // MARK: - Notifications
+
+                ToolbarItem(placement: .topBarTrailing) {
+
+                    NavigationLink {
+
+                        NotificationsView(
+                            viewModel: notificationsViewModel
+                        )
+
+                    } label: {
+
+                        ZStack(alignment: .topTrailing) {
+
+                            Image(systemName: "bell")
+                                .frame(
+                                    width: 28,
+                                    height: 28
+                                )
+
+                            if notificationsViewModel.unreadCount > 0 {
+
+                                Text(
+                                    notificationsViewModel.unreadCount > 99
+                                    ? "99+"
+                                    : "\(notificationsViewModel.unreadCount)"
+                                )
+                                .font(
+                                    .system(
+                                        size: 10,
+                                        weight: .bold
+                                    )
+                                )
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Color.red,
+                                    in: Capsule()
+                                )
+                                .offset(x: 10, y: -8)
+                            }
+                        }
+                    }
+                    .accessibilityLabel(
+                        "Notifications, \(notificationsViewModel.unreadCount) unread"
+                    )
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     
                     Button {
