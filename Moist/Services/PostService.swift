@@ -280,6 +280,35 @@ struct PostService {
         
         return collectedPosts
     }
+    
+    // MARK: - Post Detail
+    
+    // MARK: - Post Detail
+
+    func fetchPost(postId: UUID) async throws -> Post? {
+
+        let posts: [Post] = try await client
+            .from("posts")
+            .select("""
+                *,
+                author: profiles!posts_profile_fkey(
+                    id,
+                    display_name,
+                    username
+                ),
+                project: projects!posts_project_owner_fk(
+                    id,
+                    name
+                )
+                """)
+            .eq("id", value: postId)
+            .limit(1)
+            .execute()
+            .value
+
+        return posts.first
+    }
+    
 }
 
 private struct NewPost: Encodable {

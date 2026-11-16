@@ -16,6 +16,7 @@ struct PostRowView: View {
     let onDelete: (() -> Void)?
     let onMove: (() -> Void)?
     let onHide: (() -> Void)?
+    let showsDiscussionLink: Bool
     
     @State private var isShowingDeleteConfirmation = false
 
@@ -25,7 +26,8 @@ struct PostRowView: View {
         onEdit: (() -> Void)? = nil,
         onDelete: (() -> Void)? = nil,
         onMove: (() -> Void)? = nil,
-        onHide: (() -> Void)? = nil
+        onHide: (() -> Void)? = nil,
+        showsDiscussionLink: Bool = true
     ) {
         self.post = post
         self.currentUserId = currentUserId
@@ -33,6 +35,7 @@ struct PostRowView: View {
         self.onDelete = onDelete
         self.onMove = onMove
         self.onHide = onHide
+        self.showsDiscussionLink = showsDiscussionLink
     }
     
     private var authorDisplayName: String {
@@ -178,6 +181,25 @@ struct PostRowView: View {
                 Label("Hidden", systemImage: "eye.slash")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            
+            if showsDiscussionLink {
+                
+                NavigationLink {
+                    
+                    PostDetailView(postId: post.id)
+                    
+                } label: {
+                    
+                    Label(
+                        "Like or Comment",
+                        systemImage: "bubble.left"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 6)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 12)

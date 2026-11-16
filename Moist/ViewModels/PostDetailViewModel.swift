@@ -1,0 +1,259 @@
+//
+//  PostDetailViewModel.swift
+//  Rawdea
+//
+//  Created by Lin Thit Khant on 16/11/2569 BE.
+//
+
+
+import Foundation
+import Combine
+
+@MainActor
+final class PostDetailViewModel: ObservableObject {
+
+    // MARK: - Data
+
+    @Published private(set) var post: Post?
+    @Published private(set) var viewerId: UUID?
+
+    @Published private(set) var likeCount = 0
+    @Published private(set) var isLiked = false
+    @Published private(set) var comments: [PostComment] = []
+
+    // MARK: - Loading State
+
+    @Published private(set) var isLoading = false
+    @Published private(set) var isUpdatingLike = false
+    @Published private(set) var isSubmittingComment = false
+    @Published private(set) var isEditingComment = false
+    @Published private(set) var isDeletingComment = false
+
+    // MARK: - Errors
+
+    @Published private(set) var errorMessage: String?
+    @Published private(set) var actionErrorMessage: String?
+
+    private let service: PostEngagementService
+
+    init(
+        service: PostEngagementService =
+            PostEngagementService()
+    ) {
+        self.service = service
+    }
+
+    // MARK: - Load
+
+    func loadPost(postId: UUID) async {
+
+        guard !isLoading,
+              !isUpdatingLike,
+              !isSubmittingComment,
+              !isEditingComment,
+              !isDeletingComment else {
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        actionErrorMessage = nil
+
+        defer {
+            isLoading = false
+        }
+
+        do {
+            let snapshot = try await service
+                .fetchDiscussion(postId: postId)
+
+            try Task.checkCancellation()
+
+            post = snapshot.post
+            viewerId = snapshot.viewerId
+
+            likeCount = snapshot.likeCount
+            isLiked = snapshot.isLiked
+            comments = snapshot.comments
+
+        } catch is CancellationError {
+            return
+
+        } catch {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            // Do not keep showing an old post
+            // if a fresh visibility check fails.
+
+            post = nil
+            viewerId = nil
+            comments = []
+            likeCount = 0
+            isLiked = false
+
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Like / Unlike
+
+    func toggleLike(postId: UUID) async {
+
+        guard post?.id == postId,
+              !isLoading,
+              !isUpdatingLike else {
+            return
+        }
+
+        isUpdatingLike = true
+        actionErrorMessage = nil
+
+        defer {
+            isUpdatingLike = false
+        }
+
+        do {
+            let previouslyLiked = isLiked
+
+            if previouslyLiked {
+                try await service.unlike(postId: postId)
+            } else {
+                try await service.like(postId: postId)
+            }
+
+            isLiked = !previouslyLiked
+
+            likeCount = max(
+                0,
+                likeCount + (previouslyLiked ? -1 : 1)
+            )
+
+        } catch {
+            actionErrorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Add Comment
+
+    func addComment(
+        postId: UUID,
+        content: String
+    ) async -> Bool {
+
+        guard post?.id == postId,
+              !isLoading,
+              !isSubmittingComment else {
+            return false
+        }
+
+        isSubmittingComment = true
+        actionErrorMessage = nil
+
+        defer {
+            isSubmittingComment = false
+        }
+
+        do {
+            let comment = try await service.addComment(
+                postId: postId,
+                content: content
+            )
+
+            comments.insert(comment, at: 0)
+
+            // Keep the same 100-comment window.
+            comments = Array(comments.prefix(100))
+
+            return true
+
+        } catch {
+            actionErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    // MARK: - Edit Comment
+
+    func editComment(
+        commentId: UUID,
+        content: String
+    ) async -> Bool {
+
+        guard !isEditingComment,
+              !isLoading,
+              let viewerId,
+              let existing = comments.first(
+                where: { $0.id == commentId }
+              ),
+              existing.userId == viewerId else {
+            return false
+        }
+
+        isEditingComment = true
+        actionErrorMessage = nil
+
+        defer {
+            isEditingComment = false
+        }
+
+        do {
+            let updated = try await service.updateComment(
+                commentId: commentId,
+                content: content
+            )
+
+            if let index = comments.firstIndex(
+                where: { $0.id == commentId }
+            ) {
+                comments[index] = updated
+            }
+
+            return true
+
+        } catch {
+            actionErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    // MARK: - Delete Comment
+
+    func deleteComment(commentId: UUID) async {
+
+        guard !isDeletingComment,
+              !isLoading,
+              let viewerId,
+              let existing = comments.first(
+                where: { $0.id == commentId }
+              ),
+              existing.userId == viewerId else {
+            return
+        }
+
+        isDeletingComment = true
+        actionErrorMessage = nil
+
+        defer {
+            isDeletingComment = false
+        }
+
+        do {
+            try await service.deleteComment(
+                commentId: commentId
+            )
+
+            comments.removeAll {
+                $0.id == commentId
+            }
+
+        } catch {
+            actionErrorMessage = error.localizedDescription
+        }
+    }
+
+    func clearActionError() {
+        actionErrorMessage = nil
+    }
+}
