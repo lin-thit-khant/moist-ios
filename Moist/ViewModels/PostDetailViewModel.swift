@@ -20,6 +20,16 @@ final class PostDetailViewModel: ObservableObject {
     @Published private(set) var likeCount = 0
     @Published private(set) var isLiked = false
     @Published private(set) var comments: [PostComment] = []
+    
+    // MARK: - Comment Pagination
+
+    @Published private(set) var hasMoreComments = false
+    @Published private(set) var isLoadingMoreComments = false
+
+    @Published private(set)
+    var commentsPaginationErrorMessage: String?
+
+    private var nextCommentsCursor: RawdeaPageCursor?
 
     // MARK: - Loading State
 
@@ -48,6 +58,7 @@ final class PostDetailViewModel: ObservableObject {
     func loadPost(postId: UUID) async {
 
         guard !isLoading,
+              !isLoadingMoreComments,
               !isUpdatingLike,
               !isSubmittingComment,
               !isEditingComment,
@@ -58,6 +69,7 @@ final class PostDetailViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         actionErrorMessage = nil
+        commentsPaginationErrorMessage = nil
 
         defer {
             isLoading = false
@@ -75,6 +87,8 @@ final class PostDetailViewModel: ObservableObject {
             likeCount = snapshot.likeCount
             isLiked = snapshot.isLiked
             comments = snapshot.comments
+            nextCommentsCursor = snapshot.commentsCursor
+            hasMoreComments = snapshot.hasMoreComments
 
         } catch is CancellationError {
             return
@@ -92,10 +106,74 @@ final class PostDetailViewModel: ObservableObject {
             comments = []
             likeCount = 0
             isLiked = false
+            nextCommentsCursor = nil
+            hasMoreComments = false
+            commentsPaginationErrorMessage = nil
 
             errorMessage = error.localizedDescription
         }
     }
+    
+    // MARK: - Load More Comments
+
+    func loadMoreComments(postId: UUID) async {
+
+        guard post?.id == postId,
+              hasMoreComments,
+              !isLoading,
+              !isLoadingMoreComments,
+              !isSubmittingComment,
+              !isEditingComment,
+              !isDeletingComment,
+              let cursor = nextCommentsCursor else {
+            return
+        }
+
+        isLoadingMoreComments = true
+        commentsPaginationErrorMessage = nil
+
+        defer {
+            isLoadingMoreComments = false
+        }
+
+        do {
+
+            let page = try await service.fetchCommentsPage(
+                postId: postId,
+                before: cursor
+            )
+
+            try Task.checkCancellation()
+
+            // Prevent duplicate comments
+            // across pagination boundaries.
+
+            let existingIDs = Set(
+                comments.map(\.id)
+            )
+
+            comments.append(
+                contentsOf: page.items.filter {
+                    !existingIDs.contains($0.id)
+                }
+            )
+
+            nextCommentsCursor = page.nextCursor
+            hasMoreComments = page.hasMore
+
+        } catch is CancellationError {
+            return
+
+        } catch {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            commentsPaginationErrorMessage =
+                error.localizedDescription
+        }
+    }
+
 
     // MARK: - Like / Unlike
 
@@ -161,10 +239,10 @@ final class PostDetailViewModel: ObservableObject {
                 content: content
             )
 
-            comments.insert(comment, at: 0)
+            // New comments appear at the top.
+            // Older loaded pages remain intact.
 
-            // Keep the same 100-comment window.
-            comments = Array(comments.prefix(100))
+            comments.insert(comment, at: 0)
 
             return true
 

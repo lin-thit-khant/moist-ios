@@ -15,7 +15,10 @@ struct PostEngagementSnapshot {
     let viewerId: UUID
     let likeCount: Int
     let isLiked: Bool
+    
     let comments: [PostComment]
+    let commentsCursor: RawdeaPageCursor?
+    let hasMoreComments: Bool
 }
 
 enum PostEngagementError: LocalizedError {
@@ -96,15 +99,10 @@ struct PostEngagementService {
             .execute()
             .value
 
-        let comments: [PostComment] = try await client
-            .from("post_comments")
-            .select(commentSelection)
-            .eq("post_id", value: postId)
-            .order("created_at", ascending: false)
-            .order("id", ascending: false)
-            .limit(100)
-            .execute()
-            .value
+        let commentsPage = try await fetchCommentsPage(
+            postId: postId,
+            before: nil
+        )
 
         try Task.checkCancellation()
 
@@ -113,9 +111,92 @@ struct PostEngagementService {
             viewerId: user.id,
             likeCount: likeResponse.count ?? 0,
             isLiked: !likedRows.isEmpty,
-            comments: comments
+
+            comments: commentsPage.items,
+            commentsCursor: commentsPage.nextCursor,
+            hasMoreComments: commentsPage.hasMore
         )
     }
+    
+    
+    // MARK: - Paginated Comments
+
+    func fetchCommentsPage(
+        postId: UUID,
+        before cursor: RawdeaPageCursor?
+    ) async throws -> RawdeaPage<PostComment> {
+
+        let pageSize = 20
+
+        let parameters = CommentPageParameters(
+            targetPostId: postId,
+            beforeCreatedAt: cursor?.createdAt,
+            beforeId: cursor?.id,
+            batchSize: pageSize + 1
+        )
+
+        // 1. Fetch ordered comment IDs and
+        // their exact pagination cursors.
+
+        let records: [RawdeaPageRecord] = try await client
+            .rpc(
+                "rawdea_page_post_comments",
+                params: parameters
+            )
+            .execute()
+            .value
+
+        try Task.checkCancellation()
+
+        let selectedRecords = Array(
+            records.prefix(pageSize)
+        )
+
+        guard !selectedRecords.isEmpty else {
+            return RawdeaPage(
+                items: [],
+                nextCursor: nil,
+                hasMore: false
+            )
+        }
+
+        // 2. Fetch complete comments including
+        // author information.
+
+        let comments: [PostComment] = try await client
+            .from("post_comments")
+            .select(commentSelection)
+            .eq("post_id", value: postId)
+            .in(
+                "id",
+                values: selectedRecords.map {
+                    $0.id.uuidString
+                }
+            )
+            .execute()
+            .value
+
+        try Task.checkCancellation()
+
+        // 3. Restore the database's sort order.
+
+        let commentsByID = Dictionary(
+            uniqueKeysWithValues: comments.map {
+                ($0.id, $0)
+            }
+        )
+
+        let orderedComments = selectedRecords.compactMap {
+            commentsByID[$0.id]
+        }
+
+        return RawdeaPage(
+            items: orderedComments,
+            nextCursor: selectedRecords.last?.cursor,
+            hasMore: records.count > pageSize
+        )
+    }
+
 
     // MARK: - Likes
 
@@ -232,6 +313,25 @@ struct PostEngagementService {
 
         return cleaned
     }
+    
+    
+    // MARK: - Comment Pagination Parameters
+
+    private struct CommentPageParameters: Encodable {
+
+        let targetPostId: UUID
+        let beforeCreatedAt: String?
+        let beforeId: UUID?
+        let batchSize: Int
+
+        enum CodingKeys: String, CodingKey {
+            case targetPostId = "target_post_id"
+            case beforeCreatedAt = "before_created_at"
+            case beforeId = "before_id"
+            case batchSize = "batch_size"
+        }
+    }
+
 }
 
 // MARK: - Request Payloads

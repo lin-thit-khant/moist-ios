@@ -106,6 +106,56 @@ struct FollowingFeedView: View {
                     .listRowSeparator(.hidden)
                 }
                 
+                
+                // MARK: - Pagination Error
+
+                if let error = viewModel.paginationErrorMessage {
+
+                    VStack(alignment: .leading, spacing: 8) {
+
+                        Label(
+                            "Couldn't load more Following posts",
+                            systemImage: "exclamationmark.circle"
+                        )
+                        .font(.subheadline)
+
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                // MARK: - Load More
+
+                if viewModel.hasMore {
+
+                    HStack {
+
+                        Spacer()
+
+                        if viewModel.isLoadingMore {
+
+                            ProgressView("Loading more...")
+
+                        } else {
+
+                            Button("Load More") {
+
+                                Task {
+                                    await viewModel.loadMorePosts()
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                    .listRowSeparator(.hidden)
+                }
+
+                
                 // Keep existing posts visible if
                 // refreshing fails.
                 

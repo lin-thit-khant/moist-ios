@@ -51,14 +51,24 @@ struct FeedView: View {
 
             } else if viewModel.posts.isEmpty {
 
-                ContentUnavailableView(
-                    "No Posts Yet",
-                    systemImage: "text.bubble",
-                    description: Text(
-                        "Be the first to share something with the Moist community."
-                    )
-                )
+                VStack(spacing: 12) {
 
+                    ContentUnavailableView(
+                        "No Posts Yet",
+                        systemImage: "text.bubble",
+                        description: Text(
+                            "Be the first to share something with Rawdea."
+                        )
+                    )
+
+                    Button("Refresh") {
+                        Task {
+                            await viewModel.refreshPosts()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+                
             } else {
 
                 List {
@@ -95,6 +105,80 @@ struct FeedView: View {
                         )
                         .listRowSeparator(.hidden)
                     }
+                    
+                    
+                    // MARK: - Load More Error
+
+                    if let error = viewModel.paginationErrorMessage {
+
+                        VStack(alignment: .leading, spacing: 8) {
+
+                            Label(
+                                "Couldn't load more posts",
+                                systemImage: "exclamationmark.circle"
+                            )
+                            .font(.subheadline)
+
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                    }
+
+                    // MARK: - Refresh Error
+
+                    if let error = viewModel.errorMessage {
+
+                        VStack(alignment: .leading, spacing: 8) {
+
+                            Text("Couldn't refresh posts")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Button("Try Again") {
+
+                                Task {
+                                    await viewModel.refreshPosts()
+                                }
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+
+                    // MARK: - Load More
+
+                    if viewModel.hasMore {
+
+                        HStack {
+
+                            Spacer()
+
+                            if viewModel.isLoadingMore {
+
+                                ProgressView("Loading more posts...")
+
+                            } else {
+
+                                Button("Load More") {
+
+                                    Task {
+                                        await viewModel.loadMorePosts()
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.vertical, 12)
+                        .listRowSeparator(.hidden)
+                    }
+
                 }
                 .listStyle(.plain)
                 .refreshable {

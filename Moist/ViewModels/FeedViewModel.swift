@@ -15,6 +15,16 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     
+    // MARK: - Home Feed Pagination
+
+    @Published private(set) var hasMore = false
+    @Published private(set) var isLoadingMore = false
+    @Published private(set) var paginationErrorMessage: String?
+
+    private var nextPageCursor: RawdeaPageCursor?
+
+    private let pagingService = FeedPagingService()
+    
     @Published private(set) var deletingPostId: UUID?
     @Published private(set) var deletionErrorMessage: String?
     
@@ -30,25 +40,110 @@ final class FeedViewModel: ObservableObject {
         self.postService = postService
     }
     
+    
+    // MARK: - Load First Home Feed Page
+
     func loadPosts() async {
-        
-        guard !isLoading else {
+
+        guard !isLoading && !isLoadingMore else {
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+        paginationErrorMessage = nil
+
         defer {
             isLoading = false
         }
-        
+
         do {
-            posts = try await postService.fetchPosts()
+
+            let page = try await pagingService
+                .fetchAllPosts(before: nil)
+
+            try Task.checkCancellation()
+
+            // Replace the current feed with
+            // the latest first page.
+
+            posts = page.items
+            nextPageCursor = page.nextCursor
+            hasMore = page.hasMore
+
+        } catch is CancellationError {
+            return
+
         } catch {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            // Preserve existing posts when
+            // refreshing fails.
+
             errorMessage = error.localizedDescription
         }
     }
+    
+    
+    // MARK: - Load More Home Feed Posts
+
+    func loadMorePosts() async {
+
+        guard hasMore,
+              !isLoading,
+              !isLoadingMore,
+              let cursor = nextPageCursor else {
+            return
+        }
+
+        isLoadingMore = true
+        paginationErrorMessage = nil
+
+        defer {
+            isLoadingMore = false
+        }
+
+        do {
+
+            let page = try await pagingService
+                .fetchAllPosts(before: cursor)
+
+            try Task.checkCancellation()
+
+            // Prevent duplicate IDs even if the
+            // database changes between requests.
+
+            let existingIDs = Set(
+                posts.map(\.id)
+            )
+
+            let newPosts = page.items.filter {
+                !existingIDs.contains($0.id)
+            }
+
+            posts.append(contentsOf: newPosts)
+
+            nextPageCursor = page.nextCursor
+            hasMore = page.hasMore
+
+        } catch is CancellationError {
+            return
+
+        } catch {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            // Existing pages remain available.
+
+            paginationErrorMessage =
+                error.localizedDescription
+        }
+    }
+
+
     
     func refreshPosts() async {
         await loadPosts()

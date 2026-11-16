@@ -396,15 +396,60 @@ struct PostDetailView: View {
 
                         commentRow(comment)
                     }
+                    
+                    
+                    // MARK: - Comment Pagination Error
 
-                    if viewModel.comments.count == 100 {
+                    if let error =
+                        viewModel.commentsPaginationErrorMessage {
 
-                        Text(
-                            "Showing up to 100 recent comments."
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 8) {
+
+                            Label(
+                                "Couldn't load more comments",
+                                systemImage: "exclamationmark.circle"
+                            )
+                            .font(.subheadline)
+
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 8)
                     }
+
+                    // MARK: - Load More Comments
+
+                    if viewModel.hasMoreComments {
+
+                        HStack {
+
+                            Spacer()
+
+                            if viewModel.isLoadingMoreComments {
+
+                                ProgressView("Loading more comments...")
+
+                            } else {
+
+                                Button("Load More Comments") {
+
+                                    Task {
+
+                                        await viewModel.loadMoreComments(
+                                            postId: postId
+                                        )
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.vertical, 12)
+                    }
+
+                    
                 }
             }
         }
