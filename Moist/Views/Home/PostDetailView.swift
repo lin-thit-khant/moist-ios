@@ -14,7 +14,9 @@ struct PostDetailView: View {
 
     @StateObject private var viewModel =
         PostDetailViewModel()
-
+    @StateObject private var bookmarkViewModel =
+        PostBookmarkViewModel()
+    
     @State private var commentDraft = ""
 
     @State private var editingCommentId: UUID?
@@ -76,6 +78,11 @@ struct PostDetailView: View {
 
         .task(id: postId) {
             await viewModel.loadPost(postId: postId)
+        }
+        .task(id: postId) {
+            await bookmarkViewModel.load(
+                postId: postId
+            )
         }
 
         // MARK: - Action Error
@@ -172,12 +179,14 @@ struct PostDetailView: View {
                     )
                 )
             }
-
-            // MARK: - Likes
+            
+            // MARK: - Likes and Bookmarks
 
             Section {
 
-                HStack(spacing: 16) {
+                HStack(spacing: 12) {
+
+                    // Existing Like / Unlike
 
                     Button {
 
@@ -189,7 +198,7 @@ struct PostDetailView: View {
 
                     } label: {
 
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
 
                             if viewModel.isUpdatingLike {
 
@@ -216,20 +225,96 @@ struct PostDetailView: View {
                             : Color.primary
                         )
                     }
+                    .buttonStyle(.borderless)
                     .disabled(
                         viewModel.isUpdatingLike ||
                         viewModel.isLoading
                     )
 
-                    Spacer()
+                    Text("\(viewModel.likeCount)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-                    Text(
-                        "\(viewModel.likeCount) likes"
+                    Spacer(minLength: 4)
+
+                    // New Save / Unsave
+
+                    Button {
+
+                        Task {
+
+                            await bookmarkViewModel
+                                .toggleBookmark(
+                                    postId: postId
+                                )
+                        }
+
+                    } label: {
+
+                        HStack(spacing: 6) {
+
+                            if bookmarkViewModel.isUpdating ||
+                               bookmarkViewModel.isLoading {
+
+                                ProgressView()
+
+                            } else {
+
+                                Image(
+                                    systemName:
+                                        bookmarkViewModel.isBookmarked
+                                        ? "bookmark.fill"
+                                        : "bookmark"
+                                )
+                            }
+
+                            Text(
+                                bookmarkViewModel.isBookmarked
+                                ? "Saved"
+                                : "Save"
+                            )
+                        }
+                        .font(.subheadline)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(
+                        !bookmarkViewModel.hasLoaded ||
+                        bookmarkViewModel.isLoading ||
+                        bookmarkViewModel.isUpdating
                     )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
                 }
             }
+
+            // Show errors without replacing the existing
+            // like/comment alerts.
+
+            if let bookmarkError = bookmarkViewModel.errorMessage {
+
+                Section {
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: 8
+                    ) {
+
+                        Text(bookmarkError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+
+                        Button("Retry Bookmark") {
+
+                            Task {
+
+                                await bookmarkViewModel.load(
+                                    postId: postId
+                                )
+                            }
+                        }
+                        .font(.caption)
+                    }
+                }
+            }
+
 
             // MARK: - Comment Composer
 

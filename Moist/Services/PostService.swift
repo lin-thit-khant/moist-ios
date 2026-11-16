@@ -282,8 +282,6 @@ struct PostService {
     }
     
     // MARK: - Post Detail
-    
-    // MARK: - Post Detail
 
     func fetchPost(postId: UUID) async throws -> Post? {
 
@@ -308,6 +306,39 @@ struct PostService {
 
         return posts.first
     }
+    
+    // MARK: - Fetch Posts by IDs
+
+    func fetchPosts(
+        postIds: [UUID]
+    ) async throws -> [Post] {
+
+        guard !postIds.isEmpty else {
+            return []
+        }
+
+        return try await client
+            .from("posts")
+            .select("""
+                *,
+                author: profiles!posts_profile_fkey(
+                    id,
+                    display_name,
+                    username
+                ),
+                project: projects!posts_project_owner_fk(
+                    id,
+                    name
+                )
+                """)
+            .in(
+                "id",
+                values: postIds.map(\.uuidString)
+            )
+            .execute()
+            .value
+    }
+
     
 }
 

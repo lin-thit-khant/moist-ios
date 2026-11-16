@@ -97,6 +97,24 @@ struct ProfileView: View {
                         .buttonStyle(.bordered)
                         .frame(maxWidth: .infinity)
                         
+                        
+                        // MARK: - Saved Posts
+
+                        NavigationLink {
+
+                            SavedPostsView()
+
+                        } label: {
+
+                            Label(
+                                "Saved Posts",
+                                systemImage: "bookmark"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+
                         VStack(alignment: .leading, spacing: 12) {
                             
                             Text("Free posts")
