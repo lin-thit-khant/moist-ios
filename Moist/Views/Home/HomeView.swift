@@ -178,6 +178,23 @@ struct HomeView: View {
                 }
                 
                 
+                // MARK: - Search and Discovery
+
+                ToolbarItem(placement: .topBarLeading) {
+
+                    NavigationLink {
+
+                        DiscoveryView()
+
+                    } label: {
+
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityLabel("Explore Rawdea")
+                }
+
+                
+                
                 // MARK: - Notifications
 
                 ToolbarItem(placement: .topBarTrailing) {
