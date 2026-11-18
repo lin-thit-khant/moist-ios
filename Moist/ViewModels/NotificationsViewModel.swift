@@ -41,6 +41,24 @@ final class NotificationsViewModel: ObservableObject {
         self.service = service
     }
 
+    
+    // MARK: - Revalidate Notifications
+
+    func reloadVisibleNotifications() async {
+
+        guard !isLoading,
+              !isMarkingAll,
+              updatingIds.isEmpty else {
+            return
+        }
+
+        notifications = []
+        unreadCount = 0
+        hasLoaded = false
+
+        await loadNotifications()
+    }
+
     // MARK: - Fetch Notifications
 
     func loadNotifications() async {

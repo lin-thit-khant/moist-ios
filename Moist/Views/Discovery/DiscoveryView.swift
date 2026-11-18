@@ -234,6 +234,24 @@ struct DiscoveryView: View {
                 )
             }
         }
+        
+        // MARK: - Recheck Search Visibility
+
+        .onAppear {
+
+            guard cleanedQuery.count >= 2,
+                  viewModel.hasSearched else {
+                return
+            }
+
+            Task {
+
+                await viewModel.search(
+                    query: cleanedQuery,
+                    category: selectedCategory
+                )
+            }
+        }
 
         .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.inline)

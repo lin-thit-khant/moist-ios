@@ -41,6 +41,26 @@ final class FeedViewModel: ObservableObject {
     }
     
     
+    // MARK: - Revalidate Feed Visibility
+
+    func reloadVisiblePosts() async {
+
+        guard !isLoading && !isLoadingMore else {
+            return
+        }
+
+        // Remove potentially outdated content before
+        // requesting the latest RLS-filtered posts.
+
+        posts = []
+        nextPageCursor = nil
+        hasMore = false
+
+        await loadPosts()
+    }
+
+    
+    
     // MARK: - Load First Home Feed Page
 
     func loadPosts() async {

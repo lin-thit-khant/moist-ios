@@ -196,8 +196,10 @@ struct FollowingFeedView: View {
         // Load whenever this view enters
         // the Home feed hierarchy.
         
-        .task {
-            await viewModel.loadPosts()
+        .onAppear {
+            Task {
+                await viewModel.reloadVisiblePosts()
+            }
         }
     }
 }

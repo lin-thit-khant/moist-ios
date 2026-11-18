@@ -195,7 +195,7 @@ struct SavedPostsView: View {
         .onAppear {
 
             Task {
-                await viewModel.loadPosts()
+                await viewModel.reloadVisiblePosts()
             }
         }
 

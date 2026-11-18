@@ -186,8 +186,10 @@ struct FeedView: View {
                 }
             }
         }
-        .task {
-            await viewModel.loadPosts()
+        .onAppear {
+            Task {
+                await viewModel.reloadVisiblePosts()
+            }
         }
         .sheet(item: $selectedPostForEditing) { post in
             EditPostView(

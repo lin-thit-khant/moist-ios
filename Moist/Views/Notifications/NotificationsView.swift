@@ -207,11 +207,13 @@ struct NotificationsView: View {
                 )
             }
         }
+        
+        .onAppear {
 
-        // MARK: - Initial Load
+            Task {
 
-        .task {
-            await viewModel.loadNotifications()
+                await viewModel.reloadVisibleNotifications()
+            }
         }
 
         // MARK: - Pull to Refresh

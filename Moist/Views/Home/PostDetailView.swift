@@ -84,6 +84,29 @@ struct PostDetailView: View {
                 postId: postId
             )
         }
+        
+        
+        // Recheck visibility when returning from
+        // an author profile or another child screen.
+
+        .onAppear {
+
+            guard viewModel.post != nil else {
+                return
+            }
+
+            Task {
+
+                await viewModel.loadPost(
+                    postId: postId
+                )
+
+                await bookmarkViewModel.load(
+                    postId: postId
+                )
+            }
+        }
+
 
         // MARK: - Action Error
 

@@ -23,6 +23,24 @@ final class FollowingViewModel: ObservableObject {
         self.followingService = followingService
     }
     
+    
+    // MARK: - Revalidate Following List
+
+    func reloadVisibleFollowing() async {
+
+        guard !isLoading else {
+            return
+        }
+
+        // Clear previously loaded relationships.
+
+        followedPeople = []
+        followedProjects = []
+
+        await loadFollowing()
+    }
+
+    
     func loadFollowing() async {
         
         guard !isLoading else {

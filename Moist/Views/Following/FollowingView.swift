@@ -146,7 +146,7 @@ struct FollowingView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             Task {
-                await viewModel.loadFollowing()
+                await viewModel.reloadVisibleFollowing()
             }
         }
     }

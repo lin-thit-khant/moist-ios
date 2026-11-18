@@ -70,6 +70,21 @@ final class PostDetailViewModel: ObservableObject {
         errorMessage = nil
         actionErrorMessage = nil
         commentsPaginationErrorMessage = nil
+        
+        
+        // Hide previously loaded discussion data while
+        // the database checks current visibility.
+
+        post = nil
+        viewerId = nil
+
+        comments = []
+        likeCount = 0
+        isLiked = false
+
+        nextCommentsCursor = nil
+        hasMoreComments = false
+
 
         defer {
             isLoading = false

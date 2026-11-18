@@ -39,6 +39,27 @@ final class FollowingFeedViewModel: ObservableObject {
         self.followingFeedService = followingFeedService
     }
 
+    
+    // MARK: - Revalidate Following Feed
+
+    func reloadVisiblePosts() async {
+
+        guard !isLoading && !isLoadingMore else {
+            return
+        }
+
+        posts = []
+
+        hasLoaded = false
+        hasFollowedSources = false
+        hasMore = false
+
+        nextPageCursor = nil
+
+        await loadPosts()
+    }
+
+    
     // MARK: - Load First Page
 
     func loadPosts() async {

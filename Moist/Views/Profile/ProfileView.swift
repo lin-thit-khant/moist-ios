@@ -98,6 +98,23 @@ struct ProfileView: View {
                         .frame(maxWidth: .infinity)
                         
                         
+                        // MARK: - Blocked Accounts
+
+                        NavigationLink {
+
+                            BlockedUsersView()
+
+                        } label: {
+
+                            Label(
+                                "Blocked Accounts",
+                                systemImage: "person.crop.circle.badge.xmark"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        
                         // MARK: - Saved Posts
 
                         NavigationLink {

@@ -30,6 +30,24 @@ final class SavedPostsViewModel: ObservableObject {
     ) {
         self.service = service
     }
+    
+    
+    // MARK: - Revalidate Saved Posts
+
+    func reloadVisiblePosts() async {
+
+        guard !isLoading,
+              removingPostId == nil else {
+            return
+        }
+
+        posts = []
+        hasBookmarks = false
+        hasLoaded = false
+
+        await loadPosts()
+    }
+
 
     // MARK: - Load Saved Posts
 

@@ -124,8 +124,13 @@ struct HomeView: View {
             
             // MARK: - Existing Configuration
             
+            
             .onAppear {
-                SupabaseManager.debugConfiguration()
+
+                Task {
+
+                    await notificationsViewModel.refreshUnreadCount()
+                }
             }
             
             .task {
