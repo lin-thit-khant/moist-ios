@@ -26,6 +26,7 @@ struct AuthorProfileView: View {
         UserBlockViewModel()
 
     @State private var showBlockConfirmation = false
+    @State private var reportTarget: ReportTarget?
 
     @Environment(\.scenePhase) private var scenePhase
     
@@ -260,6 +261,18 @@ struct AuthorProfileView: View {
                    !followViewModel.isOwnProfile {
 
                     Menu {
+                        
+                        Button {
+
+                            reportTarget = .account(userId)
+
+                        } label: {
+
+                            Label(
+                                "Report Account",
+                                systemImage: "flag"
+                            )
+                        }
 
                         Button(
                             "Block Account",
@@ -277,6 +290,9 @@ struct AuthorProfileView: View {
                     .disabled(blockViewModel.isUpdating)
                 }
             }
+        }
+        .sheet(item: $reportTarget) { target in
+            ReportContentView(target: target)
         }
 
         // MARK: - Confirm Block

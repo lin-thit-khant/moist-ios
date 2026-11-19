@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+import Supabase
 
 struct PostRowView: View {
 
@@ -19,6 +20,12 @@ struct PostRowView: View {
     let showsDiscussionLink: Bool
     
     @State private var isShowingDeleteConfirmation = false
+    
+    
+    @State private var resolvedViewerId: UUID?
+
+    @State private var reportTarget: ReportTarget?
+
 
     init(
         post: Post,
@@ -55,6 +62,12 @@ struct PostRowView: View {
 
         return "@unknown"
     }
+    
+    
+    private var effectiveViewerId: UUID? {
+        currentUserId ?? resolvedViewerId
+    }
+
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -145,6 +158,37 @@ struct PostRowView: View {
                     }
                     .accessibilityLabel("Post options")
                 }
+                
+                
+                // MARK: - Report Another User's Post
+
+                if let viewerId = effectiveViewerId,
+                   viewerId != post.userId {
+
+                    Menu {
+
+                        Button {
+
+                            reportTarget = .post(post.id)
+
+                        } label: {
+
+                            Label(
+                                "Report Post",
+                                systemImage: "flag"
+                            )
+                        }
+
+                    } label: {
+
+                        Image(systemName: "ellipsis")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                    }
+                    .accessibilityLabel("Post options")
+                }
+
             }
 
             Text(post.content)
@@ -223,5 +267,29 @@ struct PostRowView: View {
         } message: {
             Text("This cannot be undone.")
         }
+        
+        
+        .task {
+
+            guard currentUserId == nil,
+                  resolvedViewerId == nil else {
+                return
+            }
+
+            if let user = try? await SupabaseManager
+                .client
+                .auth
+                .session
+                .user {
+
+                resolvedViewerId = user.id
+            }
+        }
+
+        .sheet(item: $reportTarget) { target in
+
+            ReportContentView(target: target)
+        }
+
     }
 }
