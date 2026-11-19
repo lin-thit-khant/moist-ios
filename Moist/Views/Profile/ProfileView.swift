@@ -11,6 +11,8 @@ struct ProfileView: View {
     
     @StateObject private var viewModel = ProfileViewModel()
     
+    @State private var canModerate = false
+    
     @StateObject private var postsViewModel = FeedViewModel()
     
     @StateObject private var projectsViewModel = ProjectsViewModel()
@@ -115,6 +117,26 @@ struct ProfileView: View {
                         .buttonStyle(.bordered)
                         .frame(maxWidth: .infinity)
                         
+                        // MARK: - Moderation Dashboard
+
+                        if canModerate {
+
+                            NavigationLink {
+
+                                ModerationQueueView()
+
+                            } label: {
+
+                                Label(
+                                    "Moderation Queue",
+                                    systemImage: "checkmark.shield"
+                                )
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .frame(maxWidth: .infinity)
+                        }
+
                         // MARK: - Saved Posts
 
                         NavigationLink {
@@ -324,6 +346,25 @@ struct ProfileView: View {
         .task {
             await viewModel.loadProfile()
         }
+        
+        .task(id: viewModel.profile?.id) {
+
+            guard viewModel.profile != nil else {
+                canModerate = false
+                return
+            }
+
+            do {
+
+                canModerate = try await ModerationService()
+                    .isModerator()
+
+            } catch {
+
+                canModerate = false
+            }
+        }
+
         .sheet(item: $selectedPostForEditing) { post in
             EditPostView(
                 post: post,
