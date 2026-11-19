@@ -18,6 +18,8 @@ struct ProjectRouteView: View {
 
     @State private var isLoading = false
     @State private var errorMessage: String?
+    
+    @Environment(\.scenePhase) private var scenePhase
 
     private let projectService = ProjectService()
 
@@ -83,6 +85,18 @@ struct ProjectRouteView: View {
                 await loadProject()
             }
         }
+        
+        
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                return
+            }
+
+            Task {
+                await loadProject()
+            }
+        }
+
     }
 
     // MARK: - Load Project

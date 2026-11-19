@@ -23,6 +23,8 @@ struct NotificationsView: View {
 
     @State private var selectedDestination:
         NotificationDestination?
+    
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
 
@@ -215,6 +217,18 @@ struct NotificationsView: View {
                 await viewModel.reloadVisibleNotifications()
             }
         }
+        
+        
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                return
+            }
+
+            Task {
+                await viewModel.reloadVisibleNotifications()
+            }
+        }
+
 
         // MARK: - Pull to Refresh
 

@@ -22,32 +22,53 @@ final class ProfileViewModel: ObservableObject {
         self.profileService = profileService
     }
     
+
     func loadProfile(userId: UUID? = nil) async {
         guard !isLoading else {
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
         statusMessage = nil
-        
+
+        // A previously viewed external profile must
+        // not remain visible while access is checked.
+        if userId != nil {
+            profile = nil
+        }
+
         defer {
             isLoading = false
         }
-        
+
         do {
+            let loadedProfile: Profile
+
             if let userId {
-                profile = try await profileService.fetchProfile(
-                    userId: userId
-                )
+                loadedProfile = try await profileService
+                    .fetchProfile(userId: userId)
             } else {
-                profile = try await profileService.fetchCurrentProfile()
+                loadedProfile = try await profileService
+                    .fetchCurrentProfile()
             }
+
+            try Task.checkCancellation()
+
+            profile = loadedProfile
+
+        } catch is CancellationError {
+            return
+
         } catch {
+            guard !Task.isCancelled else {
+                return
+            }
+
             errorMessage = error.localizedDescription
         }
     }
-    
+
     func updateProfile(displayName: String, bio: String) async {
         guard !isSaving else { return }
         

@@ -27,6 +27,8 @@ struct DiscoveryView: View {
 
     @State private var selectedCategory:
         DiscoveryCategory = .people
+    
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - Search State
 
@@ -252,6 +254,22 @@ struct DiscoveryView: View {
                 )
             }
         }
+        
+        
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active,
+                  cleanedQuery.count >= 2 else {
+                return
+            }
+
+            Task {
+                await viewModel.search(
+                    query: cleanedQuery,
+                    category: selectedCategory
+                )
+            }
+        }
+
 
         .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.inline)

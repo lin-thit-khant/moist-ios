@@ -27,6 +27,8 @@ struct AuthorProfileView: View {
 
     @State private var showBlockConfirmation = false
 
+    @Environment(\.scenePhase) private var scenePhase
+    
     // MARK: - Body
 
     var body: some View {
@@ -334,12 +336,28 @@ struct AuthorProfileView: View {
             Text(blockViewModel.errorMessage ?? "")
         }
 
-        // MARK: - Load
-
-        .task(id: userId) {
-
-            await loadAvailableProfile()
+        
+        .onAppear {
+            Task {
+                await loadAvailableProfile()
+            }
         }
+        .onChange(of: userId) { _, _ in
+            Task {
+                await loadAvailableProfile()
+            }
+        }
+        
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                return
+            }
+
+            Task {
+                await loadAvailableProfile()
+            }
+        }
+        
     }
 
     // MARK: - Blocked Account UI

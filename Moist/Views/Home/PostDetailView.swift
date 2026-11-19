@@ -23,6 +23,8 @@ struct PostDetailView: View {
     @State private var editDraft = ""
 
     @State private var pendingDeletionId: UUID?
+    
+    @Environment(\.scenePhase) private var scenePhase
 
     private var trimmedDraft: String {
         commentDraft.trimmingCharacters(
@@ -106,6 +108,24 @@ struct PostDetailView: View {
                 )
             }
         }
+        
+        
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                return
+            }
+
+            Task {
+                await viewModel.loadPost(
+                    postId: postId
+                )
+
+                await bookmarkViewModel.load(
+                    postId: postId
+                )
+            }
+        }
+
 
 
         // MARK: - Action Error

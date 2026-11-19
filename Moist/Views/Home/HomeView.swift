@@ -140,13 +140,23 @@ struct HomeView: View {
             // Refresh when Rawdea returns from
             // the background to the foreground.
             
+            
             .onChange(of: scenePhase) { _, newPhase in
-                
-                if newPhase == .active {
-                    
-                    Task {
-                        await notificationsViewModel
-                            .refreshUnreadCount()
+                guard newPhase == .active else {
+                    return
+                }
+
+                Task {
+                    await notificationsViewModel
+                        .refreshUnreadCount()
+
+                    switch selectedFeed {
+                    case .all:
+                        await feedViewModel.reloadVisiblePosts()
+
+                    case .following:
+                        await followingFeedViewModel
+                            .reloadVisiblePosts()
                     }
                 }
             }
