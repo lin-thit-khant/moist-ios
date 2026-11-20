@@ -262,7 +262,7 @@ final class PostDetailViewModel: ObservableObject {
             return true
 
         } catch {
-            actionErrorMessage = error.localizedDescription
+            actionErrorMessage = PublicationErrorMessage.from(error)
             return false
         }
     }
@@ -306,7 +306,7 @@ final class PostDetailViewModel: ObservableObject {
             return true
 
         } catch {
-            actionErrorMessage = error.localizedDescription
+            actionErrorMessage = PublicationErrorMessage.from(error)
             return false
         }
     }

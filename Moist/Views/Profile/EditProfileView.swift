@@ -31,15 +31,37 @@ struct EditProfileView: View {
     }
     
     private var isFormValid: Bool {
-        bio.count <= 160
+        
+        displayName.count <= 80
+        && bio.count <= 160
     }
     
     var body: some View {
         Form {
+            
             Section("Display Name") {
-                TextField("Your display name", text: $displayName)
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled()
+
+                TextField(
+                    "Your display name",
+                    text: $displayName
+                )
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+
+                HStack {
+
+                    Text("Maximum 80 characters")
+
+                    Spacer()
+
+                    Text("\(displayName.count)/80")
+                }
+                .font(.caption)
+                .foregroundStyle(
+                    displayName.count > 80
+                    ? Color.red
+                    : Color.secondary
+                )
             }
             
             Section {

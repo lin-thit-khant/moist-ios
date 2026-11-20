@@ -62,6 +62,16 @@ struct CreatePostView: View {
                         )
                 }
                 
+                
+                Text(
+                    """
+                    Posts are checked against Rawdea's content rules before publishing.
+                    """
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                
                 Button {
                     isShowingProjectPicker = true
                 } label: {

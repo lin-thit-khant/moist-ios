@@ -64,7 +64,7 @@ final class ProjectsViewModel: ObservableObject {
             return true
             
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = PublicationErrorMessage.from(error)
             return false
         }
     }
@@ -149,7 +149,7 @@ final class ProjectsViewModel: ObservableObject {
             
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = PublicationErrorMessage.from(error)
             return false
         }
     }

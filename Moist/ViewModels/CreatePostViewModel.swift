@@ -54,7 +54,8 @@ final class CreatePostViewModel: ObservableObject {
             publishedPost = post
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = PublicationErrorMessage.from(error)
+            
             return false
         }
     }

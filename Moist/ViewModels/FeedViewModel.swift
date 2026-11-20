@@ -259,7 +259,8 @@ final class FeedViewModel: ObservableObject {
             return true
             
         } catch {
-            editErrorMessage = error.localizedDescription
+            editErrorMessage = PublicationErrorMessage.from(error)
+            
             return false
         }
     }
@@ -314,7 +315,8 @@ final class FeedViewModel: ObservableObject {
             }
             
         } catch {
-            visibilityErrorMessage = error.localizedDescription
+            visibilityErrorMessage =
+            PublicationErrorMessage.from(error)
         }
     }
     

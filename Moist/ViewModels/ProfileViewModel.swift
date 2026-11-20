@@ -88,7 +88,7 @@ final class ProfileViewModel: ObservableObject {
             
             statusMessage = "Profile updated successfully."
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = PublicationErrorMessage.from(error)
         }
     }
     
