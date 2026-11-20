@@ -96,6 +96,21 @@ struct ProfileView: View {
                                 )
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                                
+                                
+                                NavigationLink {
+
+                                    SafetyCenterView(initialKind: .appeal)
+
+                                } label: {
+
+                                    Label(
+                                        "Appeal This Decision",
+                                        systemImage: "envelope.open"
+                                    )
+                                }
+                                .buttonStyle(.bordered)
+
                             }
                             .frame(
                                 maxWidth: .infinity,
@@ -139,6 +154,24 @@ struct ProfileView: View {
                         .frame(maxWidth: .infinity)
                         
                         
+                        // MARK: - Safety and Support
+
+                        NavigationLink {
+
+                            SafetyCenterView()
+
+                        } label: {
+
+                            Label(
+                                "Safety & Support",
+                                systemImage: "heart.text.square"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+
+                        
                         // MARK: - Blocked Accounts
 
                         NavigationLink {
@@ -174,6 +207,23 @@ struct ProfileView: View {
                             }
                             .buttonStyle(.bordered)
                             .frame(maxWidth: .infinity)
+                            
+                            
+                            NavigationLink {
+
+                                ModerationSafetyInboxView()
+
+                            } label: {
+
+                                Label(
+                                    "Safety Support Inbox",
+                                    systemImage: "tray.full"
+                                )
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .frame(maxWidth: .infinity)
+
                         }
 
                         // MARK: - Saved Posts

@@ -36,6 +36,21 @@ struct WelcomeView: View {
                 }
                 .buttonStyle(.bordered)
                 .frame(maxWidth: .infinity)
+                
+                
+                NavigationLink {
+
+                    SafetyInformationView()
+
+                } label: {
+
+                    Label(
+                        "Community Guidelines & Support",
+                        systemImage: "shield"
+                    )
+                }
+                .buttonStyle(.bordered)
+
             }
             .padding(24)
         }
