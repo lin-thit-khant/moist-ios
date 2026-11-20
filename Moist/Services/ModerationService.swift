@@ -39,6 +39,20 @@ struct ModerationService {
 
         return result
     }
+    
+    
+    // MARK: - Current Account Restriction
+
+    func isMyAccountSuspended() async throws -> Bool {
+
+        let suspended: Bool = try await client
+            .rpc("rawdea_my_account_suspended")
+            .execute()
+            .value
+
+        return suspended
+    }
+
 
     // MARK: - Fetch Queue
 

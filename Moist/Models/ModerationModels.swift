@@ -15,6 +15,7 @@ enum ModerationStatus: String, CaseIterable, Identifiable {
     case pending
     case reviewing
     case dismissed
+    case actioned
 
     var id: String { rawValue }
 
@@ -155,4 +156,9 @@ enum ModerationAction: String {
     case release
     case dismiss
     case reopen
+    
+    // Milestone 13 - Batch 3
+    
+    case enforce
+    case restore
 }

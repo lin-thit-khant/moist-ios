@@ -16,7 +16,45 @@ struct ModerationReportDetailView: View {
         ModerationDetailViewModel()
 
     @State private var reviewNote = ""
-    @State private var showDismissConfirmation = false
+    
+    @State private var pendingConfirmation: ModerationAction?
+
+    private var confirmationTitle: String {
+
+        switch pendingConfirmation {
+
+        case .enforce:
+            return "Enforce this restriction?"
+
+        case .restore:
+            return "Restore this content or account?"
+
+        case .dismiss:
+            return "Dismiss this report?"
+
+        default:
+            return "Confirm moderation action"
+        }
+    }
+
+    private var confirmationButtonTitle: String {
+
+        switch pendingConfirmation {
+
+        case .enforce:
+            return "Enforce Restriction"
+
+        case .restore:
+            return "Restore"
+
+        case .dismiss:
+            return "Dismiss Report"
+
+        default:
+            return "Confirm"
+        }
+    }
+
 
     private var cleanedNote: String {
         reviewNote.trimmingCharacters(
@@ -75,39 +113,65 @@ struct ModerationReportDetailView: View {
             await viewModel.load(reportId: reportId)
         }
 
+        
         .confirmationDialog(
-            "Dismiss this report?",
-            isPresented: $showDismissConfirmation,
+            confirmationTitle,
+
+            isPresented: Binding(
+                get: {
+                    pendingConfirmation != nil
+                },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingConfirmation = nil
+                    }
+                }
+            ),
+
             titleVisibility: .visible
         ) {
 
-            Button(
-                "Dismiss Report",
-                role: .destructive
-            ) {
+            if let action = pendingConfirmation {
 
-                Task {
+                Button(
+                    confirmationButtonTitle,
+                    role: action == .restore
+                        ? nil
+                        : .destructive
+                ) {
 
-                    let succeeded = await viewModel.perform(
-                        reportId: reportId,
-                        action: .dismiss,
-                        note: cleanedNote
-                    )
+                    pendingConfirmation = nil
 
-                    if succeeded {
-                        reviewNote = ""
+                    let submittedNote = cleanedNote
+
+                    Task {
+
+                        let succeeded = await viewModel.perform(
+                            reportId: reportId,
+                            action: action,
+                            note: submittedNote
+                        )
+
+                        if succeeded {
+                            reviewNote = ""
+                        }
                     }
                 }
             }
 
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {
+                pendingConfirmation = nil
+            }
 
         } message: {
 
             Text(
-                "Your decision and review note will be recorded in the audit history."
+                """
+                This decision will be recorded in the moderation audit history.
+                """
             )
         }
+
     }
 
     // MARK: - Report Content
@@ -211,12 +275,15 @@ struct ModerationReportDetailView: View {
 
             Section("Review Actions") {
 
+                // =========================================
+                // PENDING
+                // =========================================
+
                 if report.status == "pending" {
 
                     Button {
 
                         Task {
-
                             _ = await viewModel.perform(
                                 reportId: reportId,
                                 action: .claim
@@ -231,6 +298,10 @@ struct ModerationReportDetailView: View {
                         )
                     }
                     .disabled(viewModel.isUpdating)
+
+                // =========================================
+                // REVIEWING
+                // =========================================
 
                 } else if report.status == "reviewing" {
 
@@ -257,14 +328,34 @@ struct ModerationReportDetailView: View {
 
                         reviewNoteEditor(
                             instruction:
-                                "Explain why this report should be dismissed."
+                                "Explain your moderation decision."
+                        )
+
+                        Button {
+
+                            pendingConfirmation = .enforce
+
+                        } label: {
+
+                            Label(
+                                enforcementButtonTitle(
+                                    targetType: report.targetType
+                                ),
+                                systemImage: "shield.lefthalf.filled"
+                            )
+                            .foregroundStyle(.red)
+                        }
+                        .disabled(
+                            !isNoteValid ||
+                            viewModel.isUpdating
                         )
 
                         Button(
                             "Dismiss Report",
                             role: .destructive
                         ) {
-                            showDismissConfirmation = true
+
+                            pendingConfirmation = .dismiss
                         }
                         .disabled(
                             !isNoteValid ||
@@ -278,6 +369,10 @@ struct ModerationReportDetailView: View {
                         )
                         .foregroundStyle(.secondary)
                     }
+
+                // =========================================
+                // DISMISSED
+                // =========================================
 
                 } else if report.status == "dismissed" {
 
@@ -323,12 +418,50 @@ struct ModerationReportDetailView: View {
                         viewModel.isUpdating
                     )
 
-                } else {
+                // =========================================
+                // ACTIONED
+                // =========================================
 
-                    Text(
-                        "This report cannot be changed in Batch 2."
+                } else if report.status == "actioned" {
+
+                    Label(
+                        enforcementDescription(
+                            targetType: report.targetType
+                        ),
+                        systemImage: "checkmark.shield.fill"
                     )
                     .foregroundStyle(.secondary)
+
+                    if let note = report.resolutionNote {
+
+                        Text("Enforcement Reason")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Text(note)
+                            .textSelection(.enabled)
+                    }
+
+                    reviewNoteEditor(
+                        instruction:
+                            "Explain why this restriction should be lifted."
+                    )
+
+                    Button {
+
+                        pendingConfirmation = .restore
+
+                    } label: {
+
+                        Label(
+                            "Restore Content or Account",
+                            systemImage: "arrow.uturn.backward.circle"
+                        )
+                    }
+                    .disabled(
+                        !isNoteValid ||
+                        viewModel.isUpdating
+                    )
                 }
 
                 if viewModel.isUpdating {
@@ -336,6 +469,7 @@ struct ModerationReportDetailView: View {
                     ProgressView("Saving decision...")
                 }
             }
+
 
             // MARK: - Audit History
 
@@ -473,4 +607,48 @@ struct ModerationReportDetailView: View {
                 .textSelection(.enabled)
         }
     }
+    
+    
+    // MARK: - Enforcement Labels
+
+    private func enforcementButtonTitle(
+        targetType: String
+    ) -> String {
+
+        switch targetType {
+
+        case "post":
+            return "Remove Post"
+
+        case "comment":
+            return "Remove Comment"
+
+        case "account":
+            return "Suspend Account"
+
+        default:
+            return "Enforce Restriction"
+        }
+    }
+
+    private func enforcementDescription(
+        targetType: String
+    ) -> String {
+
+        switch targetType {
+
+        case "post":
+            return "This post is unavailable to users."
+
+        case "comment":
+            return "This comment is unavailable to users."
+
+        case "account":
+            return "This account is suspended."
+
+        default:
+            return "A moderation restriction is active."
+        }
+    }
+
 }

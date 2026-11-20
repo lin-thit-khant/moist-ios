@@ -93,7 +93,7 @@ struct ModerationQueueView: View {
                             .tag(status)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
                 .disabled(
                     viewModel.isLoading ||
                     viewModel.isLoadingMore

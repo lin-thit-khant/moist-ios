@@ -13,6 +13,8 @@ struct ProfileView: View {
     
     @State private var canModerate = false
     
+    @State private var isAccountSuspended = false
+    
     @StateObject private var postsViewModel = FeedViewModel()
     
     @StateObject private var projectsViewModel = ProjectsViewModel()
@@ -69,6 +71,43 @@ struct ProfileView: View {
                     VStack(spacing: 20) {
                         
                         ProfileContentView(profile: profile)
+                        
+                        
+                        // MARK: - Account Moderation Notice
+
+                        if isAccountSuspended {
+
+                            VStack(alignment: .leading, spacing: 10) {
+
+                                Label(
+                                    "Account Suspended",
+                                    systemImage: "exclamationmark.shield.fill"
+                                )
+                                .font(.headline)
+
+                                Text(
+                                    """
+                                    Your account has been restricted following a moderation review.
+
+                                    Your public content is currently unavailable to other users. Publishing, commenting, liking, and following are restricted.
+
+                                    You can still sign in and view your own profile.
+                                    """
+                                )
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            }
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+                            .padding()
+                            .background(
+                                Color(.secondarySystemBackground),
+                                in: RoundedRectangle(cornerRadius: 12)
+                            )
+                        }
+
                         if let statusMessage = viewModel.statusMessage {
                             Text(statusMessage)
                                 .font(.subheadline)
@@ -330,6 +369,11 @@ struct ProfileView: View {
                 .refreshable {
                     await viewModel.loadProfile()
                     
+                    isAccountSuspended = (
+                        try? await ModerationService()
+                            .isMyAccountSuspended()
+                    ) ?? false
+
                     if let profile = viewModel.profile {
                         await postsViewModel.loadPosts(userId: profile.id)
                     }
@@ -362,6 +406,25 @@ struct ProfileView: View {
             } catch {
 
                 canModerate = false
+            }
+        }
+
+        
+        .task(id: viewModel.profile?.id) {
+
+            guard viewModel.profile != nil else {
+                isAccountSuspended = false
+                return
+            }
+
+            do {
+
+                isAccountSuspended = try await ModerationService()
+                    .isMyAccountSuspended()
+
+            } catch {
+
+                isAccountSuspended = false
             }
         }
 
