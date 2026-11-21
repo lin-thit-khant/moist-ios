@@ -242,6 +242,47 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.bordered)
                         .frame(maxWidth: .infinity)
+                        
+                        
+                        // MARK: - Appearance
+
+                        NavigationLink {
+
+                            AppearanceSettingsView()
+
+                        } label: {
+
+                            Label(
+                                "Appearance",
+                                systemImage: "circle.lefthalf.filled"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+
+                        #if DEBUG
+
+                        // Temporary design-system testing entry.
+                        // Only included in development builds.
+
+                        NavigationLink {
+
+                            RawdeaDesignPreviewView()
+
+                        } label: {
+
+                            Label(
+                                "Design System Preview",
+                                systemImage: "paintpalette"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+
+                        #endif
+
 
                         VStack(alignment: .leading, spacing: 12) {
                             
