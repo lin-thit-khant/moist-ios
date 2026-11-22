@@ -8,126 +8,422 @@
 import SwiftUI
 
 struct EditPostView: View {
-    
+
     let post: Post
-    
+
     @ObservedObject var viewModel: FeedViewModel
-    
-    @Environment(\.dismiss) private var dismiss
-    
+
+    @Environment(\.dismiss)
+    private var dismiss
+
     @State private var content: String
-    
-    init(post: Post, viewModel: FeedViewModel) {
+
+    @State private var isShowingDiscardConfirmation = false
+
+    init(
+        post: Post,
+        viewModel: FeedViewModel
+    ) {
+
         self.post = post
         self.viewModel = viewModel
-        _content = State(initialValue: post.content)
-    }
-    
-    private var trimmedContent: String {
-        content.trimmingCharacters(
-            in: .whitespacesAndNewlines
+
+        _content = State(
+            initialValue: post.content
         )
     }
-    
+
+    // MARK: - State
+
+    private var draft: RawdeaPostDraft {
+        RawdeaPostDraft(content: content)
+    }
+
     private var isSaving: Bool {
         viewModel.editingPostId == post.id
     }
-    
-    private var canSave: Bool {
-        !trimmedContent.isEmpty &&
-        content.count <= 500 &&
-        trimmedContent != post.content.trimmingCharacters(
-            in: .whitespacesAndNewlines
+
+    private var hasUnsavedChanges: Bool {
+
+        draft.hasUnsavedChanges(
+            comparedTo: post.content
         )
     }
-    
+
+    private var canSave: Bool {
+
+        draft.hasSubmittableChanges(
+            comparedTo: post.content
+        ) &&
+        !isSaving
+    }
+
+    // MARK: - Body
+
     var body: some View {
+
         NavigationStack {
-            VStack(alignment: .leading, spacing: 12) {
-                
-                Text("Post")
-                    .font(.headline)
-                
-                TextEditor(text: $content)
-                    .frame(height: 200)
-                    .scrollContentBackground(.hidden)
-                    .padding(8)
-                    .background(
-                        Color(.secondarySystemBackground),
-                        in: RoundedRectangle(cornerRadius: 12)
+
+            ScrollView {
+
+                VStack(
+                    alignment: .leading,
+                    spacing: RawdeaSpacing.lg
+                ) {
+
+                    introduction
+
+                    RawdeaPostEditor(
+                        content: $content,
+                        placeholder:
+                            "Edit your thought...",
+                        isEnabled: !isSaving
                     )
-                    .disabled(isSaving)
-                
-                HStack {
-                    
-                    Spacer()
-                    
-                    Text("\(content.count)/500")
-                        .font(.caption)
-                        .foregroundStyle(
-                            content.count > 500
-                            ? Color.red
-                            : Color.secondary
+
+                    originalPostInformation
+
+                    if draft.isEmpty &&
+                       !content.isEmpty {
+
+                        RawdeaInlineError(
+                            message:
+                                "Post content cannot be empty."
                         )
+                    }
+
+                    if let error =
+                        viewModel.editErrorMessage {
+
+                        RawdeaInlineError(
+                            message: error
+                        )
+                    }
                 }
-                
-                if trimmedContent.isEmpty {
-                    Text("Post Content cannot be empty.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-                
-                if let errorMessage = viewModel.editErrorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-                
-                Spacer()
+                .padding(
+                    .horizontal,
+                    RawdeaSpacing.screenInset
+                )
+                .padding(
+                    .top,
+                    RawdeaSpacing.md
+                )
+                .padding(
+                    .bottom,
+                    RawdeaSpacing.lg
+                )
             }
-            .padding()
+            .scrollDismissesKeyboard(.interactively)
+            .background(
+                RawdeaPalette.canvas
+                    .ignoresSafeArea()
+            )
+
+            .safeAreaInset(
+                edge: .bottom,
+                spacing: 0
+            ) {
+
+                saveFooter
+            }
+
             .navigationTitle("Edit Post")
             .navigationBarTitleDisplayMode(.inline)
+
             .toolbar {
-                
-                ToolbarItem(placement: .cancellationAction) {
+
+                ToolbarItem(
+                    placement: .cancellationAction
+                ) {
+
                     Button("Cancel") {
-                        dismiss()
+                        requestDismissal()
                     }
                     .disabled(isSaving)
-                }
-                
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        Task {
-                            let didSave = await viewModel.updatePost(
-                                postId: post.id,
-                                content: content
-                            )
-                            
-                            if didSave {
-                                dismiss()
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            if isSaving {
-                                ProgressView()
-                            }
-                            
-                            Text(isSaving ? "Saving..." : "Save")
-                        }
-                    }
-                    .disabled(!canSave || isSaving)
+                    .frame(
+                        minHeight:
+                            RawdeaSpacing.minimumTouchTarget
+                    )
                 }
             }
-            .interactiveDismissDisabled(isSaving)
-            .onAppear {
-                viewModel.clearEditError()
-            }
-            .onChange(of: content) { _, _ in
-                viewModel.clearEditError()
+
+            .interactiveDismissDisabled(
+                hasUnsavedChanges || isSaving
+            )
+
+            .confirmationDialog(
+                "Discard your changes?",
+                isPresented:
+                    $isShowingDiscardConfirmation,
+                titleVisibility: .visible
+            ) {
+
+                Button(
+                    "Discard Changes",
+                    role: .destructive
+                ) {
+
+                    dismiss()
+                }
+
+                Button(
+                    "Keep Editing",
+                    role: .cancel
+                ) { }
+
+            } message: {
+
+                Text(
+                    "Your changes to this post will not be saved."
+                )
             }
         }
+
+        .onAppear {
+
+            viewModel.clearEditError()
+        }
+
+        .onChange(of: content) { _, _ in
+
+            viewModel.clearEditError()
+        }
+    }
+
+    // MARK: - Introduction
+
+    private var introduction: some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: RawdeaSpacing.xs
+        ) {
+
+            Text("Refine your thought")
+                .font(
+                    RawdeaTypography.screenTitle
+                )
+                .foregroundStyle(
+                    RawdeaPalette.primaryText
+                )
+
+            Text(
+                "Make your changes and save when you're ready."
+            )
+            .font(RawdeaTypography.secondary)
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+        }
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+    }
+
+    // MARK: - Original metadata
+
+    private var originalPostInformation: some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: RawdeaSpacing.sm
+        ) {
+
+            Text("POST DETAILS")
+                .font(RawdeaTypography.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(
+                    RawdeaPalette.secondaryText
+                )
+                .accessibilityAddTraits(.isHeader)
+
+            HStack(
+                alignment: .top,
+                spacing: RawdeaSpacing.sm
+            ) {
+
+                Image(systemName: "clock")
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+                    .accessibilityHidden(true)
+
+                VStack(
+                    alignment: .leading,
+                    spacing: RawdeaSpacing.xxs
+                ) {
+
+                    Text("Originally published")
+                        .font(
+                            RawdeaTypography.metadata
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.primaryText
+                        )
+
+                    
+                    Text(
+                        post.createdAt.formatted(
+                            date: .abbreviated,
+                            time: .shortened
+                        )
+                    )
+                    .font(RawdeaTypography.caption)
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+
+                }
+            }
+
+            if let project = post.project {
+
+                HStack(
+                    alignment: .top,
+                    spacing: RawdeaSpacing.sm
+                ) {
+
+                    Image(systemName: "folder")
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
+                        .accessibilityHidden(true)
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: RawdeaSpacing.xxs
+                    ) {
+
+                        Text("Project")
+                            .font(
+                                RawdeaTypography.metadata
+                            )
+                            .foregroundStyle(
+                                RawdeaPalette.primaryText
+                            )
+
+                        Text(project.name)
+                            .font(
+                                RawdeaTypography.secondary
+                            )
+                            .foregroundStyle(
+                                RawdeaPalette.secondaryText
+                            )
+                    }
+                }
+
+            } else {
+
+                Label(
+                    "Free post",
+                    systemImage: "text.alignleft"
+                )
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(
+                    RawdeaPalette.secondaryText
+                )
+            }
+
+            Text(
+                "To change the Project or visibility, use the existing post options."
+            )
+            .font(RawdeaTypography.caption)
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+            .fixedSize(
+                horizontal: false,
+                vertical: true
+            )
+        }
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+        .padding(RawdeaSpacing.md)
+        .background(
+            RawdeaPalette.surface,
+            in: RoundedRectangle(
+                cornerRadius:
+                    RawdeaSpacing.cardRadius
+            )
+        )
+    }
+
+    // MARK: - Save footer
+
+    private var saveFooter: some View {
+
+        VStack(spacing: 0) {
+
+            Divider()
+                .overlay(RawdeaPalette.divider)
+
+            RawdeaPrimaryButton(
+                "Save Changes",
+                isLoading: isSaving,
+                isEnabled: canSave
+            ) {
+
+                Task {
+
+                    await saveChanges()
+                }
+            }
+            .padding(
+                .horizontal,
+                RawdeaSpacing.screenInset
+            )
+            .padding(
+                .vertical,
+                RawdeaSpacing.sm
+            )
+        }
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea(
+                    edges: .bottom
+                )
+        )
+    }
+
+    // MARK: - Dismissal
+
+    private func requestDismissal() {
+
+        guard !isSaving else {
+            return
+        }
+
+        if hasUnsavedChanges {
+
+            isShowingDiscardConfirmation = true
+
+        } else {
+
+            dismiss()
+        }
+    }
+
+    // MARK: - Save changes
+
+    @MainActor
+    private func saveChanges() async {
+
+        guard canSave else {
+            return
+        }
+
+        let didSave = await viewModel.updatePost(
+            postId: post.id,
+            content: draft.trimmedContent
+        )
+
+        guard didSave else {
+            // Preserve the user's edited text.
+            return
+        }
+
+        dismiss()
     }
 }

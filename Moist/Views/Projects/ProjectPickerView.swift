@@ -5,138 +5,347 @@
 //  Created by Lin Thit Khant on 9/11/2569 BE.
 //
 
+
 import SwiftUI
 import Supabase
 
 struct ProjectPickerView: View {
-    
+
     @Binding var selectedProject: Project?
-    
-    @Environment(\.dismiss) private var dismiss
-    
-    @StateObject private var viewModel = ProjectsViewModel()
-    
+
+    @Environment(\.dismiss)
+    private var dismiss
+
+    @StateObject private var viewModel =
+        ProjectsViewModel()
+
     @State private var newProjectName = ""
     @State private var isShowingCreateAlert = false
     @State private var sessionError: String?
-    
+
+    // MARK: - Body
+
     var body: some View {
+
         NavigationStack {
+
             Form {
-                Section("Post destination") {
-                    
-                    Button {
-                        selectedProject = nil
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Text("No Project")
-                            Spacer()
-                            
-                            if selectedProject == nil {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                    
-                    ForEach(viewModel.projects) { project in
-                        Button {
-                            selectedProject = project
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Text(project.name)
-                                Spacer()
-                                
-                                if selectedProject?.id == project.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-                    
-                    if viewModel.isLoading {
-                        ProgressView("Loading Projects...")
-                    } else if viewModel.projects.isEmpty &&
-                                viewModel.errorMessage == nil {
-                        Text("No Projects yet.")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                
+
                 Section {
+
+                    noProjectOption
+
+                    ForEach(viewModel.projects) { project in
+
+                        projectOption(project)
+                    }
+
+                    if viewModel.isLoading {
+
+                        ProgressView(
+                            "Loading Projects..."
+                        )
+                    }
+
+                    if viewModel.projects.isEmpty &&
+                       !viewModel.isLoading &&
+                       viewModel.errorMessage == nil {
+
+                        Text("No Projects yet.")
+                            .font(
+                                RawdeaTypography.secondary
+                            )
+                            .foregroundStyle(
+                                RawdeaPalette.secondaryText
+                            )
+                    }
+
+                } header: {
+
+                    Text("Post destination")
+
+                } footer: {
+
+                    Text(
+                        "Choose where this post belongs. You can also publish without a Project."
+                    )
+                }
+
+                Section {
+
                     Button {
+
                         newProjectName = ""
                         viewModel.clearError()
+
                         isShowingCreateAlert = true
+
                     } label: {
+
                         Label(
-                            "Create new Project",
+                            "Create New Project",
                             systemImage: "plus"
+                        )
+                        .font(
+                            RawdeaTypography.authorName
+                        )
+                        .frame(
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
+                    }
+                    .disabled(
+                        viewModel.isCreating
+                    )
+                }
+
+                if let error =
+                    viewModel.errorMessage
+                    ?? sessionError {
+
+                    Section {
+
+                        RawdeaInlineError(
+                            message: error
                         )
                     }
                 }
-                
-                if let error = viewModel.errorMessage ?? sessionError {
+
+                if viewModel.isCreating {
+
                     Section {
-                        Text(error)
-                            .foregroundStyle(.red)
+
+                        ProgressView(
+                            "Creating Project..."
+                        )
                     }
                 }
-                
-                if viewModel.isCreating {
-                    ProgressView("Creating Project...")
-                }
             }
-            .disabled(viewModel.isCreating)
+            .scrollContentBackground(.hidden)
+            .background(
+                RawdeaPalette.canvas
+                    .ignoresSafeArea()
+            )
+
             .navigationTitle("Choose Project")
             .navigationBarTitleDisplayMode(.inline)
+
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+
+                ToolbarItem(
+                    placement: .cancellationAction
+                ) {
+
                     Button("Cancel") {
                         dismiss()
                     }
+                    .disabled(
+                        viewModel.isCreating
+                    )
                 }
             }
+
+            .interactiveDismissDisabled(
+                viewModel.isCreating
+            )
+
+            // MARK: - Create Project
+
             .alert(
                 "New Project",
-                isPresented: $isShowingCreateAlert
+                isPresented:
+                    $isShowingCreateAlert
             ) {
-                    TextField(
-                        "Project name",
-                        text: $newProjectName
-                    )
-                
-                Button("Cancel", role: .cancel) {}
-                
+
+                TextField(
+                    "Project name",
+                    text: $newProjectName
+                )
+
+                Button(
+                    "Cancel",
+                    role: .cancel
+                ) { }
+
                 Button("Create") {
+
                     Task {
-                        let created = await viewModel.creatProject(
-                            name: newProjectName
-                        )
-                        
-                        if created,
-                           let newProject = viewModel.projects.first {
-                            selectedProject = newProject
-                            dismiss()
-                        }
+
+                        await createProject()
                     }
                 }
-                
+
             } message: {
-                Text("Give your Project a name.")
+
+                Text(
+                    "Give your Project a name of up to 80 characters."
+                )
             }
+
+            // MARK: - Initial load
+
             .task {
+
                 do {
+
                     let user = try await SupabaseManager
-                        .client.auth.session.user
-                    
-                    await viewModel.loadProjects(userId: user.id)
-                    
+                        .client
+                        .auth
+                        .session
+                        .user
+
+                    await viewModel.loadProjects(
+                        userId: user.id
+                    )
+
                 } catch {
-                    sessionError = "Please sign in again."
+
+                    sessionError =
+                        "Please sign in again."
                 }
             }
         }
+    }
+
+    // MARK: - Free post
+
+    private var noProjectOption: some View {
+
+        Button {
+
+            selectedProject = nil
+            dismiss()
+
+        } label: {
+
+            HStack(spacing: RawdeaSpacing.sm) {
+
+                Image(
+                    systemName: "text.alignleft"
+                )
+                .foregroundStyle(
+                    RawdeaPalette.secondaryText
+                )
+                .accessibilityHidden(true)
+
+                Text("No Project")
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(
+                        RawdeaPalette.primaryText
+                    )
+
+                Spacer(minLength: 0)
+
+                if selectedProject == nil {
+
+                    Image(
+                        systemName: "checkmark"
+                    )
+                    .foregroundStyle(
+                        RawdeaPalette.accent
+                    )
+                    .accessibilityHidden(true)
+                }
+            }
+            .frame(
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            "No Project"
+        )
+        .accessibilityAddTraits(
+            selectedProject == nil
+            ? .isSelected
+            : []
+        )
+    }
+
+    // MARK: - Project option
+
+    private func projectOption(
+        _ project: Project
+    ) -> some View {
+
+        Button {
+
+            selectedProject = project
+            dismiss()
+
+        } label: {
+
+            HStack(
+                spacing: RawdeaSpacing.sm
+            ) {
+
+                Image(systemName: "folder")
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+                    .accessibilityHidden(true)
+
+                Text(project.name)
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(
+                        RawdeaPalette.primaryText
+                    )
+                    .fixedSize(
+                        horizontal: false,
+                        vertical: true
+                    )
+
+                Spacer(minLength: 0)
+
+                if selectedProject?.id == project.id {
+
+                    Image(
+                        systemName: "checkmark"
+                    )
+                    .foregroundStyle(
+                        RawdeaPalette.accent
+                    )
+                    .accessibilityHidden(true)
+                }
+            }
+            .frame(
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            project.name
+        )
+        .accessibilityAddTraits(
+            selectedProject?.id == project.id
+            ? .isSelected
+            : []
+        )
+    }
+
+    // MARK: - Create Project
+
+    @MainActor
+    private func createProject() async {
+
+        let created = await viewModel.creatProject(
+            name: newProjectName
+        )
+
+        guard created,
+              let project =
+                  viewModel.projects.first else {
+            return
+        }
+
+        // ProjectsViewModel inserts a newly
+        // created Project at index zero.
+        selectedProject = project
+
+        dismiss()
     }
 }
