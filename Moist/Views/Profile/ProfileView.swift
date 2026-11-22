@@ -226,13 +226,12 @@ struct ProfileView: View {
 
                         }
 
+                        
                         // MARK: - Saved Posts
 
-                        NavigationLink {
-
-                            SavedPostsView()
-
-                        } label: {
+                        NavigationLink(
+                            value: RawdeaPostRoute.savedPosts
+                        ) {
 
                             Label(
                                 "Saved Posts",
@@ -242,7 +241,6 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.bordered)
                         .frame(maxWidth: .infinity)
-                        
                         
                         // MARK: - Appearance
 

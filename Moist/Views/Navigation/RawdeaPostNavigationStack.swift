@@ -6,23 +6,26 @@
 //
 
 
+
 import SwiftUI
 
-// MARK: - Post-related destinations
-//
-// Use lightweight IDs instead of passing
-// entire database models through navigation.
+// MARK: - Navigation destinations
 
 enum RawdeaPostRoute: Hashable {
 
     case author(UUID)
     case discussion(UUID)
     case project(UUID)
+
+    // Saved Posts now participates in the
+    // same navigation path as post routes.
+    case savedPosts
 }
 
 // MARK: - Navigation environment
 
-private struct RawdeaPostRouteActionKey: EnvironmentKey {
+private struct RawdeaPostRouteActionKey:
+    EnvironmentKey {
 
     static let defaultValue:
         ((RawdeaPostRoute) -> Void)? = nil
@@ -85,12 +88,17 @@ struct RawdeaPostNavigationStack<Content: View>: View {
                         ProjectRouteView(
                             projectId: projectId
                         )
+
+                    case .savedPosts:
+
+                        SavedPostsView()
                     }
                 }
         }
         .environment(
             \.rawdeaOpenPostRoute,
             { route in
+
                 path.append(route)
             }
         )
