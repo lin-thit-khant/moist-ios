@@ -27,7 +27,8 @@ struct PostRowView: View {
     @State private var resolvedViewerId: UUID?
     @State private var reportTarget: ReportTarget?
     @State private var isShowingDeleteConfirmation = false
-
+    @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
+    
     init(
         post: Post,
         currentUserId: UUID? = nil,
@@ -228,7 +229,7 @@ struct PostRowView: View {
             Text("This cannot be undone.")
         }
     }
-
+    
     // MARK: - Author header
 
     private var authorHeader: some View {
@@ -238,7 +239,9 @@ struct PostRowView: View {
             spacing: RawdeaSpacing.xs
         ) {
 
-            NavigationLink {
+            routedPostControl(
+                to: .author(post.userId)
+            ) {
 
                 AuthorProfileView(
                     userId: post.userId
@@ -305,12 +308,12 @@ struct PostRowView: View {
                 }
                 .frame(
                     maxWidth: .infinity,
-                    minHeight: RawdeaSpacing.minimumTouchTarget,
+                    minHeight:
+                        RawdeaSpacing.minimumTouchTarget,
                     alignment: .leading
                 )
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .accessibilityLabel(
                 "View profile for \(authorName), \(authorHandle)"
             )
@@ -331,6 +334,8 @@ struct PostRowView: View {
         }
     }
 
+
+
     // MARK: - Post content
 
     @ViewBuilder
@@ -338,9 +343,13 @@ struct PostRowView: View {
 
         if showsDiscussionLink {
 
-            NavigationLink {
+            routedPostControl(
+                to: .discussion(post.id)
+            ) {
 
-                PostDetailView(postId: post.id)
+                PostDetailView(
+                    postId: post.id
+                )
 
             } label: {
 
@@ -361,7 +370,6 @@ struct PostRowView: View {
                     )
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .accessibilityLabel(
                 "Post by \(authorName). \(post.content)"
             )
@@ -385,13 +393,17 @@ struct PostRowView: View {
         }
     }
 
+
+
     // MARK: - Project navigation
 
     private func projectLink(
         _ project: PostProject
     ) -> some View {
 
-        NavigationLink {
+        routedPostControl(
+            to: .project(project.id)
+        ) {
 
             ProjectRouteView(
                 projectId: project.id
@@ -420,11 +432,11 @@ struct PostRowView: View {
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
         .accessibilityLabel(
             "Open Project \(project.name)"
         )
     }
+
 
     // MARK: - Independent post actions
 
@@ -465,9 +477,14 @@ struct PostRowView: View {
                 actions.isLiked ? .isSelected : []
             )
 
-            NavigationLink {
+            
+            routedPostControl(
+                to: .discussion(post.id)
+            ) {
 
-                PostDetailView(postId: post.id)
+                PostDetailView(
+                    postId: post.id
+                )
 
             } label: {
 
@@ -477,10 +494,10 @@ struct PostRowView: View {
                     loading: false
                 )
             }
-            .buttonStyle(.plain)
             .accessibilityLabel(
                 "Open discussion and comments"
             )
+
 
             Spacer(minLength: 0)
 
@@ -646,4 +663,45 @@ struct PostRowView: View {
             )
             .contentShape(Rectangle())
     }
+    
+    
+    // MARK: - Independent routed navigation
+    //
+    // Within Rawdea's main tabs, use a Button
+    // to navigate explicitly.
+    //
+    // The NavigationLink fallback also lets
+    // the row work in other navigation contexts,
+    // including standalone previews.
+
+    @ViewBuilder
+    private func routedPostControl<
+        LabelContent: View,
+        Destination: View
+    >(
+        to route: RawdeaPostRoute,
+        @ViewBuilder destination: () -> Destination,
+        @ViewBuilder label: () -> LabelContent
+    ) -> some View {
+
+        if let openPostRoute {
+
+            Button {
+                openPostRoute(route)
+            } label: {
+                label()
+            }
+            .buttonStyle(.plain)
+
+        } else {
+
+            NavigationLink {
+                destination()
+            } label: {
+                label()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
 }

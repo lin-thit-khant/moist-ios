@@ -85,7 +85,7 @@ struct RawdeaMainTabView: View {
 
             // HOME
 
-            NavigationStack {
+            RawdeaPostNavigationStack {
 
                 HomeView(
                     feedViewModel: feedViewModel,
@@ -106,7 +106,7 @@ struct RawdeaMainTabView: View {
 
             // EXPLORE
 
-            NavigationStack {
+            RawdeaPostNavigationStack {
 
                 DiscoveryView()
             }
@@ -140,7 +140,7 @@ struct RawdeaMainTabView: View {
 
             // ACTIVITY
 
-            NavigationStack {
+            RawdeaPostNavigationStack {
 
                 NotificationsView(
                     viewModel: notificationsViewModel
@@ -160,7 +160,7 @@ struct RawdeaMainTabView: View {
 
             // PROFILE
 
-            NavigationStack {
+            RawdeaPostNavigationStack {
 
                 ProfileView()
                     .toolbar {
