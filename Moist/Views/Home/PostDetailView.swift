@@ -9,66 +9,103 @@
 import SwiftUI
 
 struct PostDetailView: View {
-    
+
     let postId: UUID
-    
+
     @StateObject private var viewModel =
-    PostDetailViewModel()
+        PostDetailViewModel()
+
     @StateObject private var bookmarkViewModel =
-    PostBookmarkViewModel()
-    
+        PostBookmarkViewModel()
+
     @State private var commentDraft = ""
-    
+
     @State private var editingCommentId: UUID?
     @State private var editDraft = ""
-    
+
     @State private var pendingDeletionId: UUID?
     @State private var reportTarget: ReportTarget?
-    
-    @Environment(\.scenePhase) private var scenePhase
-    
-    private var trimmedDraft: String {
+
+    @FocusState private var isCommentFocused: Bool
+
+    @AccessibilityFocusState
+    private var focusedCommentId: UUID?
+
+    @Environment(\.scenePhase)
+    private var scenePhase
+
+    @Environment(\.accessibilityReduceMotion)
+    private var reduceMotion
+
+    // MARK: - Validation
+
+    private var trimmedComment: String {
         commentDraft.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
     }
-    
-    private var trimmedEditDraft: String {
+
+    private var trimmedEdit: String {
         editDraft.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
     }
-    
+
+    private var canSendComment: Bool {
+        !trimmedComment.isEmpty &&
+        commentDraft.count <= 500 &&
+        !viewModel.isSubmittingComment &&
+        !viewModel.isLoading
+    }
+
+    // MARK: - Body
+
     var body: some View {
-        
+
         Group {
-            
+
             if let post = viewModel.post {
-                
-                discussionContent(post: post)
-                
+
+                ScrollViewReader { proxy in
+
+                    discussionList(post: post)
+                        .safeAreaInset(
+                            edge: .bottom,
+                            spacing: 0
+                        ) {
+
+                            commentComposer(
+                                scrollProxy: proxy
+                            )
+                        }
+                }
+
             } else if let error = viewModel.errorMessage {
-                
-                VStack(spacing: 16) {
-                    
-                    ContentUnavailableView(
-                        "Post Unavailable",
-                        systemImage: "exclamationmark.circle",
-                        description: Text(error)
-                    )
-                    
-                    Button("Try Again") {
+
+                VStack(spacing: RawdeaSpacing.md) {
+
+                    RawdeaEmptyState(
+                        symbol:
+                            "exclamationmark.circle",
+                        title: "Post Unavailable",
+                        message: error,
+                        actionTitle: "Try Again"
+                    ) {
+
                         Task {
                             await viewModel.loadPost(
                                 postId: postId
                             )
                         }
                     }
-                    .buttonStyle(.borderedProminent)
                 }
-                
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
+
             } else {
-                
+
                 ProgressView("Loading discussion...")
                     .frame(
                         maxWidth: .infinity,
@@ -76,619 +113,966 @@ struct PostDetailView: View {
                     )
             }
         }
+        .background(
+            RawdeaPalette.canvas.ignoresSafeArea()
+        )
         .navigationTitle("Discussion")
         .navigationBarTitleDisplayMode(.inline)
-        
-        
-        .sheet(item: $reportTarget) { target in
-            
-            ReportContentView(target: target)
-        }
-        
-        
+
+        // MARK: - Initial loading
+
         .task(id: postId) {
-            await viewModel.loadPost(postId: postId)
+
+            await viewModel.loadPost(
+                postId: postId
+            )
         }
+
         .task(id: postId) {
+
             await bookmarkViewModel.load(
                 postId: postId
             )
         }
-        
-        
-        // Recheck visibility when returning from
-        // an author profile or another child screen.
-        
+
+        // Recheck privacy after returning from
+        // a child destination such as a profile.
         .onAppear {
-            
+
             guard viewModel.post != nil else {
                 return
             }
-            
+
             Task {
-                
+
                 await viewModel.loadPost(
                     postId: postId
                 )
-                
+
                 await bookmarkViewModel.load(
                     postId: postId
                 )
             }
         }
-        
-        
-        .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else {
+
+        .onChange(of: scenePhase) { _, phase in
+
+            guard phase == .active else {
                 return
             }
-            
+
             Task {
+
                 await viewModel.loadPost(
                     postId: postId
                 )
-                
+
                 await bookmarkViewModel.load(
                     postId: postId
                 )
             }
         }
-        
-        
-        
-        // MARK: - Action Error
-        
-        .alert(
-            "Couldn't complete action",
-            isPresented: Binding(
-                get: {
-                    viewModel.actionErrorMessage != nil
-                },
-                set: { isPresented in
-                    if !isPresented {
-                        viewModel.clearActionError()
-                    }
-                }
-            )
-        ) {
-            
-            Button("OK", role: .cancel) {
-                viewModel.clearActionError()
-            }
-            
-        } message: {
-            
-            Text(
-                viewModel.actionErrorMessage ?? ""
-            )
+
+        // MARK: - Reporting
+
+        .sheet(item: $reportTarget) { target in
+
+            ReportContentView(target: target)
         }
-        
-        // MARK: - Comment Deletion Confirmation
-        
+
+        // MARK: - Delete comment confirmation
+
         .confirmationDialog(
             "Delete this comment?",
             isPresented: Binding(
                 get: {
                     pendingDeletionId != nil
                 },
-                set: { isPresented in
-                    if !isPresented {
+                set: { presented in
+
+                    if !presented {
                         pendingDeletionId = nil
                     }
                 }
             ),
             titleVisibility: .visible
         ) {
-            
+
             Button(
                 "Delete Comment",
                 role: .destructive
             ) {
-                
-                guard let commentId = pendingDeletionId else {
+
+                guard let commentId =
+                    pendingDeletionId else {
                     return
                 }
-                
+
                 pendingDeletionId = nil
-                
+
                 Task {
+
                     await viewModel.deleteComment(
                         commentId: commentId
                     )
                 }
             }
-            
+
             Button("Cancel", role: .cancel) {
                 pendingDeletionId = nil
             }
         }
     }
-    
-    // MARK: - Discussion Content
-    
-    private func discussionContent(
+
+    // MARK: - Discussion list
+
+    private func discussionList(
         post: Post
     ) -> some View {
-        
+
         List {
-            
-            // Existing post rendering.
-            
-            Section {
-                
+
+            // The original post and actions
+            // form one continuous reading area.
+            VStack(spacing: 0) {
+
                 PostRowView(
                     post: post,
                     currentUserId: viewModel.viewerId,
                     showsDiscussionLink: false
                 )
-                .listRowInsets(
-                    EdgeInsets(
-                        top: 0,
-                        leading: 0,
-                        bottom: 0,
-                        trailing: 0
-                    )
-                )
-            }
-            
-            // MARK: - Likes and Bookmarks
-            
-            Section {
-                
-                HStack(spacing: 12) {
-                    
-                    // Existing Like / Unlike
-                    
-                    Button {
-                        
-                        Task {
-                            await viewModel.toggleLike(
-                                postId: postId
-                            )
-                        }
-                        
-                    } label: {
-                        
-                        HStack(spacing: 6) {
-                            
-                            if viewModel.isUpdatingLike {
-                                
-                                ProgressView()
-                                
-                            } else {
-                                
-                                Image(
-                                    systemName: viewModel.isLiked
-                                    ? "heart.fill"
-                                    : "heart"
-                                )
-                            }
-                            
-                            Text(
-                                viewModel.isLiked
-                                ? "Unlike"
-                                : "Like"
-                            )
-                        }
-                        .foregroundStyle(
-                            viewModel.isLiked
-                            ? Color.red
-                            : Color.primary
-                        )
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(
-                        viewModel.isUpdatingLike ||
-                        viewModel.isLoading
-                    )
-                    
-                    Text("\(viewModel.likeCount)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    
-                    Spacer(minLength: 4)
-                    
-                    // New Save / Unsave
-                    
-                    Button {
-                        
-                        Task {
-                            
-                            await bookmarkViewModel
-                                .toggleBookmark(
-                                    postId: postId
-                                )
-                        }
-                        
-                    } label: {
-                        
-                        HStack(spacing: 6) {
-                            
-                            if bookmarkViewModel.isUpdating ||
-                                bookmarkViewModel.isLoading {
-                                
-                                ProgressView()
-                                
-                            } else {
-                                
-                                Image(
-                                    systemName:
-                                        bookmarkViewModel.isBookmarked
-                                    ? "bookmark.fill"
-                                    : "bookmark"
-                                )
-                            }
-                            
-                            Text(
-                                bookmarkViewModel.isBookmarked
-                                ? "Saved"
-                                : "Save"
-                            )
-                        }
-                        .font(.subheadline)
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(
-                        !bookmarkViewModel.hasLoaded ||
-                        bookmarkViewModel.isLoading ||
-                        bookmarkViewModel.isUpdating
-                    )
-                }
-            }
-            
-            // Show errors without replacing the existing
-            // like/comment alerts.
-            
-            if let bookmarkError = bookmarkViewModel.errorMessage {
-                
-                Section {
-                    
+
+                discussionActions
+
+                if let bookmarkError =
+                    bookmarkViewModel.errorMessage {
+
                     VStack(
                         alignment: .leading,
-                        spacing: 8
+                        spacing: RawdeaSpacing.xs
                     ) {
-                        
-                        Text(bookmarkError)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                        
-                        Button("Retry Bookmark") {
-                            
+
+                        RawdeaInlineError(
+                            message: bookmarkError
+                        )
+
+                        Button("Retry bookmark status") {
+
                             Task {
-                                
+
                                 await bookmarkViewModel.load(
                                     postId: postId
                                 )
                             }
                         }
-                        .font(.caption)
+                        .font(RawdeaTypography.metadata)
+                        .frame(
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
                     }
+                    .padding(.horizontal, RawdeaSpacing.md)
+                    .padding(.bottom, RawdeaSpacing.sm)
+                }
+
+                Divider()
+                    .overlay(RawdeaPalette.divider)
+                    .padding(.horizontal, RawdeaSpacing.md)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(RawdeaPalette.canvas)
+            .id("original-post")
+
+            Text("Comments")
+                .font(RawdeaTypography.sectionTitle)
+                .foregroundStyle(
+                    RawdeaPalette.primaryText
+                )
+                .accessibilityAddTraits(.isHeader)
+                .padding(.vertical, RawdeaSpacing.xs)
+                .listRowSeparator(.hidden)
+                .listRowBackground(RawdeaPalette.canvas)
+
+            if viewModel.comments.isEmpty {
+
+                Text("No comments yet. Start the discussion.")
+                    .font(RawdeaTypography.secondary)
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+                    .padding(.vertical, RawdeaSpacing.md)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(RawdeaPalette.canvas)
+
+            } else {
+
+                ForEach(viewModel.comments) { comment in
+
+                    commentRow(comment)
+                        .id(comment.id)
+                        .listRowInsets(
+                            EdgeInsets(
+                                top: 0,
+                                leading:
+                                    RawdeaSpacing.screenInset,
+                                bottom: 0,
+                                trailing:
+                                    RawdeaSpacing.screenInset
+                            )
+                        )
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(
+                            RawdeaPalette.canvas
+                        )
                 }
             }
-            
-            
-            // MARK: - Comment Composer
-            
-            Section("Write a Comment") {
-                
-                TextField(
-                    "Share your thoughts...",
-                    text: $commentDraft,
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .disabled(viewModel.isSubmittingComment)
-                
-                HStack {
-                    
-                    Text("\(commentDraft.count)/500")
-                        .font(.caption)
-                        .foregroundStyle(
-                            commentDraft.count > 500
-                            ? Color.red
-                            : Color.secondary
-                        )
-                    
-                    Spacer()
-                    
-                    Button {
-                        
+
+            // MARK: - Pagination error
+
+            if let error =
+                viewModel.commentsPaginationErrorMessage {
+
+                VStack(
+                    alignment: .leading,
+                    spacing: RawdeaSpacing.xs
+                ) {
+
+                    RawdeaInlineError(
+                        message: "Couldn't load more comments. \(error)"
+                    )
+
+                    Button("Retry loading comments") {
+
                         Task {
-                            
-                            let success = await viewModel
-                                .addComment(
-                                    postId: postId,
-                                    content: commentDraft
-                                )
-                            
-                            if success {
-                                commentDraft = ""
-                            }
-                        }
-                        
-                    } label: {
-                        
-                        HStack(spacing: 6) {
-                            
-                            if viewModel.isSubmittingComment {
-                                ProgressView()
-                            }
-                            
-                            Text(
-                                viewModel.isSubmittingComment
-                                ? "Posting..."
-                                : "Post Comment"
+
+                            await viewModel.loadMoreComments(
+                                postId: postId
                             )
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(
-                        trimmedDraft.isEmpty ||
-                        commentDraft.count > 500 ||
-                        viewModel.isSubmittingComment ||
-                        viewModel.isLoading
+                    .frame(
+                        minHeight:
+                            RawdeaSpacing.minimumTouchTarget
                     )
                 }
+                .padding(.vertical, RawdeaSpacing.sm)
+                .listRowSeparator(.hidden)
+                .listRowBackground(RawdeaPalette.canvas)
             }
-            
-            // MARK: - Comments
-            
-            Section("Comments") {
-                
-                if viewModel.comments.isEmpty {
-                    
-                    Text("No comments yet. Start the discussion!")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    
-                } else {
-                    
-                    ForEach(viewModel.comments) { comment in
-                        
-                        commentRow(comment)
-                    }
-                    
-                    
-                    // MARK: - Comment Pagination Error
-                    
-                    if let error =
-                        viewModel.commentsPaginationErrorMessage {
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            
-                            Label(
-                                "Couldn't load more comments",
-                                systemImage: "exclamationmark.circle"
-                            )
-                            .font(.subheadline)
-                            
-                            Text(error)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    
-                    // MARK: - Load More Comments
-                    
-                    if viewModel.hasMoreComments {
-                        
-                        HStack {
-                            
-                            Spacer()
-                            
-                            if viewModel.isLoadingMoreComments {
-                                
-                                ProgressView("Loading more comments...")
-                                
-                            } else {
-                                
-                                Button("Load More Comments") {
-                                    
-                                    Task {
-                                        
-                                        await viewModel.loadMoreComments(
-                                            postId: postId
-                                        )
-                                    }
-                                }
-                                .buttonStyle(.bordered)
+
+            // MARK: - Load more
+
+            if viewModel.hasMoreComments {
+
+                HStack {
+
+                    Spacer(minLength: 0)
+
+                    if viewModel.isLoadingMoreComments {
+
+                        ProgressView(
+                            "Loading more comments..."
+                        )
+
+                    } else {
+
+                        Button("Load More Comments") {
+
+                            Task {
+
+                                await viewModel.loadMoreComments(
+                                    postId: postId
+                                )
                             }
-                            
-                            Spacer()
                         }
-                        .padding(.vertical, 12)
+                        .buttonStyle(.bordered)
+                        .frame(
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
                     }
-                    
-                    
+
+                    Spacer(minLength: 0)
                 }
+                .padding(.vertical, RawdeaSpacing.sm)
+                .listRowSeparator(.hidden)
+                .listRowBackground(RawdeaPalette.canvas)
             }
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(RawdeaPalette.canvas)
+        .scrollDismissesKeyboard(.interactively)
+
+        // Preserve existing privacy revalidation
+        // when the user refreshes Discussion.
         .refreshable {
+
             await viewModel.loadPost(
+                postId: postId
+            )
+
+            await bookmarkViewModel.load(
                 postId: postId
             )
         }
     }
-    
-    // MARK: - Individual Comment
-    
+
+    // MARK: - Quiet Like / Comment / Save actions
+
+    private var discussionActions: some View {
+
+        HStack(spacing: RawdeaSpacing.xs) {
+
+            Button {
+
+                Task {
+
+                    await viewModel.toggleLike(
+                        postId: postId
+                    )
+                }
+
+            } label: {
+
+                HStack(spacing: RawdeaSpacing.xs) {
+
+                    if viewModel.isUpdatingLike {
+
+                        ProgressView()
+                            .accessibilityHidden(true)
+
+                    } else {
+
+                        Image(
+                            systemName:
+                                viewModel.isLiked
+                                ? "heart.fill"
+                                : "heart"
+                        )
+                        .foregroundStyle(
+                            viewModel.isLiked
+                            ? RawdeaPalette.accent
+                            : RawdeaPalette.secondaryText
+                        )
+                    }
+
+                    Text("\(viewModel.likeCount)")
+                        .font(
+                            RawdeaTypography.metadata
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
+                }
+                .frame(
+                    minWidth:
+                        RawdeaSpacing.minimumTouchTarget,
+                    minHeight:
+                        RawdeaSpacing.minimumTouchTarget
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(
+                viewModel.isUpdatingLike ||
+                viewModel.isLoading
+            )
+            .accessibilityLabel(
+                viewModel.isLiked
+                ? "Unlike post"
+                : "Like post"
+            )
+            .accessibilityValue(
+                "\(viewModel.likeCount) likes"
+            )
+            .accessibilityAddTraits(
+                viewModel.isLiked ? .isSelected : []
+            )
+
+            Button {
+
+                isCommentFocused = true
+
+            } label: {
+
+                Image(systemName: "bubble.left")
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+                    .frame(
+                        width:
+                            RawdeaSpacing.minimumTouchTarget,
+                        height:
+                            RawdeaSpacing.minimumTouchTarget
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Write a comment")
+
+            Spacer(minLength: 0)
+
+            Button {
+
+                Task {
+
+                    await bookmarkViewModel
+                        .toggleBookmark(
+                            postId: postId
+                        )
+                }
+
+            } label: {
+
+                Group {
+
+                    if bookmarkViewModel.isUpdating ||
+                       bookmarkViewModel.isLoading {
+
+                        ProgressView()
+                            .accessibilityHidden(true)
+
+                    } else {
+
+                        Image(
+                            systemName:
+                                bookmarkViewModel.isBookmarked
+                                ? "bookmark.fill"
+                                : "bookmark"
+                        )
+                        .foregroundStyle(
+                            bookmarkViewModel.isBookmarked
+                            ? RawdeaPalette.accent
+                            : RawdeaPalette.secondaryText
+                        )
+                    }
+                }
+                .frame(
+                    width:
+                        RawdeaSpacing.minimumTouchTarget,
+                    height:
+                        RawdeaSpacing.minimumTouchTarget
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(
+                !bookmarkViewModel.hasLoaded ||
+                bookmarkViewModel.isUpdating ||
+                bookmarkViewModel.isLoading
+            )
+            .accessibilityLabel(
+                bookmarkViewModel.isBookmarked
+                ? "Remove saved post"
+                : "Save post"
+            )
+            .accessibilityAddTraits(
+                bookmarkViewModel.isBookmarked
+                ? .isSelected : []
+            )
+        }
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.bottom, RawdeaSpacing.sm)
+    }
+
+    // MARK: - Bottom-anchored comment composer
+
+    private func commentComposer(
+        scrollProxy: ScrollViewProxy
+    ) -> some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: RawdeaSpacing.xs
+        ) {
+
+            if let error = viewModel.actionErrorMessage {
+
+                RawdeaInlineError(message: error)
+            }
+
+            HStack(
+                alignment: .bottom,
+                spacing: RawdeaSpacing.xs
+            ) {
+
+                TextField(
+                    "Write a comment...",
+                    text: $commentDraft,
+                    axis: .vertical
+                )
+                .lineLimit(1...5)
+                .focused($isCommentFocused)
+                .disabled(
+                    viewModel.isSubmittingComment
+                )
+                .font(RawdeaTypography.body)
+                .foregroundStyle(
+                    RawdeaPalette.primaryText
+                )
+                .padding(.horizontal, RawdeaSpacing.sm)
+                .padding(.vertical, RawdeaSpacing.xs)
+                .background(
+                    RawdeaPalette.surface,
+                    in: RoundedRectangle(
+                        cornerRadius:
+                            RawdeaSpacing.buttonRadius
+                    )
+                )
+                .accessibilityLabel("Comment")
+                .accessibilityHint(
+                    "Write up to 500 characters"
+                )
+
+                Button {
+
+                    Task {
+
+                        await sendComment(
+                            scrollProxy: scrollProxy
+                        )
+                    }
+
+                } label: {
+
+                    Group {
+
+                        if viewModel.isSubmittingComment {
+
+                            ProgressView()
+                                .tint(
+                                    RawdeaPalette.onAccent
+                                )
+                                .accessibilityHidden(true)
+
+                        } else {
+
+                            Image(
+                                systemName: "arrow.up"
+                            )
+                            .font(
+                                .system(
+                                    .body,
+                                    weight: .semibold
+                                )
+                            )
+                            .accessibilityHidden(true)
+                        }
+                    }
+                    .frame(
+                        width:
+                            RawdeaSpacing.minimumTouchTarget,
+                        height:
+                            RawdeaSpacing.minimumTouchTarget
+                    )
+                    .foregroundStyle(
+                        canSendComment
+                        ? RawdeaPalette.onAccent
+                        : RawdeaPalette.secondaryText
+                    )
+                    .background(
+                        canSendComment
+                        ? RawdeaPalette.accent
+                        : RawdeaPalette.divider,
+                        in: RoundedRectangle(
+                            cornerRadius:
+                                RawdeaSpacing.buttonRadius
+                        )
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSendComment)
+                .accessibilityLabel(
+                    viewModel.isSubmittingComment
+                    ? "Sending comment"
+                    : "Send comment"
+                )
+            }
+
+            HStack {
+
+                Text("\(commentDraft.count)/500")
+                    .font(RawdeaTypography.caption)
+                    .foregroundStyle(
+                        commentDraft.count > 500
+                        ? RawdeaPalette.danger
+                        : RawdeaPalette.secondaryText
+                    )
+                    .accessibilityLabel(
+                        "\(commentDraft.count) of 500 characters"
+                    )
+
+                Spacer(minLength: 0)
+
+                if commentDraft.count > 500 {
+
+                    Text("Comment is too long")
+                        .font(
+                            RawdeaTypography.caption
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.danger
+                        )
+                }
+            }
+        }
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.top, RawdeaSpacing.sm)
+        .padding(.bottom, RawdeaSpacing.xs)
+        .background {
+
+            RawdeaPalette.canvas
+                .ignoresSafeArea(
+                    edges: .bottom
+                )
+        }
+        .overlay(alignment: .top) {
+
+            Rectangle()
+                .fill(RawdeaPalette.divider)
+                .frame(height: 1)
+                .accessibilityHidden(true)
+        }
+        .onChange(of: commentDraft) { _, _ in
+
+            if viewModel.actionErrorMessage != nil {
+                viewModel.clearActionError()
+            }
+        }
+    }
+
+    // MARK: - Send comment
+
+    @MainActor
+    private func sendComment(
+        scrollProxy: ScrollViewProxy
+    ) async {
+
+        guard canSendComment else {
+            return
+        }
+
+        let submittedText = commentDraft
+
+        let success = await viewModel.addComment(
+            postId: postId,
+            content: submittedText
+        )
+
+        guard success else {
+            // Important: preserve the draft.
+            return
+        }
+
+        // The backend confirmed the new comment.
+        commentDraft = ""
+
+        // Approved keyboard behavior.
+        isCommentFocused = false
+
+        guard let newestId =
+            viewModel.comments.first?.id else {
+            return
+        }
+
+        // Let SwiftUI insert the new row before
+        // requesting its scroll position.
+        await Task.yield()
+
+        if reduceMotion {
+
+            scrollProxy.scrollTo(
+                newestId,
+                anchor: .center
+            )
+
+        } else {
+
+            withAnimation(.easeOut(duration: 0.2)) {
+
+                scrollProxy.scrollTo(
+                    newestId,
+                    anchor: .center
+                )
+            }
+        }
+
+        // Move screen-reader focus to the
+        // new comment's content.
+        focusedCommentId = newestId
+    }
+
+    // MARK: - Comment row
+
     private func commentRow(
         _ comment: PostComment
     ) -> some View {
-        
+
         VStack(
             alignment: .leading,
-            spacing: 10
+            spacing: RawdeaSpacing.sm
         ) {
-            
-            HStack(alignment: .top, spacing: 10) {
-                
+
+            HStack(
+                alignment: .top,
+                spacing: RawdeaSpacing.sm
+            ) {
+
                 Image(
                     systemName: "person.crop.circle.fill"
                 )
-                .font(.title2)
-                .foregroundStyle(.secondary)
-                
+                .font(.system(.title2))
+                .foregroundStyle(
+                    RawdeaPalette.secondaryText
+                )
+                .accessibilityHidden(true)
+
                 VStack(
                     alignment: .leading,
-                    spacing: 3
+                    spacing: RawdeaSpacing.xxs
                 ) {
-                    
+
                     NavigationLink {
-                        
+
                         AuthorProfileView(
                             userId: comment.userId
                         )
-                        
+
                     } label: {
-                        
+
                         Text(
-                            comment.author?.displayName.isEmpty == false
-                            ? (comment.author?.displayName ?? "")
-                            : (comment.author?.username ?? "User")
+                            commentAuthorName(comment)
                         )
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(
+                            RawdeaTypography.authorName
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.primaryText
+                        )
+                        .fixedSize(
+                            horizontal: false,
+                            vertical: true
+                        )
                     }
                     .buttonStyle(.plain)
-                    
+                    .accessibilityLabel(
+                        "View profile for \(commentAuthorName(comment))"
+                    )
+
                     Text(
                         comment.createdAt,
                         style: .relative
                     )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                // Only the comment author
-                // sees the edit/delete menu.
-                
-                if let viewerId = viewModel.viewerId,
-                   viewerId == comment.userId {
-                    
-                    Menu {
-                        
-                        Button {
-                            
-                            editingCommentId = comment.id
-                            editDraft = comment.content
-                            
-                        } label: {
-                            
-                            Label(
-                                "Edit Comment",
-                                systemImage: "pencil"
-                            )
-                        }
-                        
-                        Button(role: .destructive) {
-                            
-                            pendingDeletionId = comment.id
-                            
-                        } label: {
-                            
-                            Label(
-                                "Delete Comment",
-                                systemImage: "trash"
-                            )
-                        }
-                        
-                    } label: {
-                        
-                        Image(systemName: "ellipsis")
-                            .padding(8)
-                    }
-                } else if let viewerId = viewModel.viewerId,
-                          viewerId != comment.userId {
-                    
-                    Menu {
-                        
-                        Button {
-                            
-                            reportTarget = .comment(comment.id)
-                            
-                        } label: {
-                            
-                            Label(
-                                "Report Comment",
-                                systemImage: "flag"
-                            )
-                        }
-                        
-                    } label: {
-                        
-                        Image(systemName: "ellipsis")
-                            .padding(8)
-                    }
-                    .accessibilityLabel("Comment options")
-                }
-                
-                // MARK: - Inline Editing
-                
-                if editingCommentId == comment.id {
-                    
-                    TextField(
-                        "Edit comment",
-                        text: $editDraft,
-                        axis: .vertical
+                    .font(RawdeaTypography.caption)
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
                     )
-                    .lineLimit(2...5)
-                    .disabled(viewModel.isEditingComment)
-                    
-                    HStack(spacing: 12) {
-                        
-                        Button("Cancel") {
-                            editingCommentId = nil
-                            editDraft = ""
-                        }
-                        .disabled(viewModel.isEditingComment)
-                        
-                        Spacer()
-                        
-                        Text("\(editDraft.count)/500")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        Button("Save") {
-                            
-                            Task {
-                                
-                                let success = await viewModel
-                                    .editComment(
-                                        commentId: comment.id,
-                                        content: editDraft
-                                    )
-                                
-                                if success {
-                                    editingCommentId = nil
-                                    editDraft = ""
-                                }
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(
-                            trimmedEditDraft.isEmpty ||
-                            editDraft.count > 500 ||
-                            trimmedEditDraft == comment.content ||
-                            viewModel.isEditingComment
-                        )
+                }
+
+                Spacer(minLength: 0)
+
+                if let viewerId = viewModel.viewerId {
+
+                    if viewerId == comment.userId {
+
+                        ownCommentMenu(comment)
+
+                    } else {
+
+                        reportCommentMenu(comment)
                     }
-                    
-                } else {
-                    
-                    Text(comment.content)
-                        .font(.body)
-                        .frame(
-                            maxWidth: .infinity,
-                            alignment: .leading
-                        )
                 }
             }
-            .padding(.vertical, 8)
+
+            // MARK: - Inline editing
+
+            if editingCommentId == comment.id {
+
+                TextField(
+                    "Edit comment",
+                    text: $editDraft,
+                    axis: .vertical
+                )
+                .lineLimit(2...5)
+                .font(RawdeaTypography.body)
+                .disabled(
+                    viewModel.isEditingComment
+                )
+
+                HStack(spacing: RawdeaSpacing.sm) {
+
+                    Button("Cancel") {
+                        editingCommentId = nil
+                        editDraft = ""
+                    }
+                    .disabled(
+                        viewModel.isEditingComment
+                    )
+
+                    Spacer(minLength: 0)
+
+                    Text("\(editDraft.count)/500")
+                        .font(
+                            RawdeaTypography.caption
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
+
+                    Button("Save") {
+
+                        Task {
+
+                            let success =
+                                await viewModel.editComment(
+                                    commentId: comment.id,
+                                    content: editDraft
+                                )
+
+                            if success {
+                                editingCommentId = nil
+                                editDraft = ""
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(
+                        trimmedEdit.isEmpty ||
+                        editDraft.count > 500 ||
+                        trimmedEdit == comment.content ||
+                        viewModel.isEditingComment
+                    )
+                }
+
+            } else {
+
+                Text(comment.content)
+                    .font(RawdeaTypography.postBody)
+                    .foregroundStyle(
+                        RawdeaPalette.primaryText
+                    )
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: .leading
+                    )
+                    .fixedSize(
+                        horizontal: false,
+                        vertical: true
+                    )
+                    .accessibilityFocused(
+                        $focusedCommentId,
+                        equals: comment.id
+                    )
+            }
+
+            Divider()
+                .overlay(RawdeaPalette.divider)
         }
+        .padding(.vertical, RawdeaSpacing.sm)
+    }
+
+    // MARK: - Author name
+
+    private func commentAuthorName(
+        _ comment: PostComment
+    ) -> String {
+
+        let name = comment.author?.displayName
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ) ?? ""
+
+        return name.isEmpty
+            ? (comment.author?.username ?? "User")
+            : name
+    }
+
+    // MARK: - Own comment options
+
+    private func ownCommentMenu(
+        _ comment: PostComment
+    ) -> some View {
+
+        Menu {
+
+            Button {
+
+                editingCommentId = comment.id
+                editDraft = comment.content
+
+            } label: {
+
+                Label(
+                    "Edit Comment",
+                    systemImage: "pencil"
+                )
+            }
+
+            Button(role: .destructive) {
+
+                pendingDeletionId = comment.id
+
+            } label: {
+
+                Label(
+                    "Delete Comment",
+                    systemImage: "trash"
+                )
+            }
+
+        } label: {
+
+            commentOptionsIcon
+        }
+        .disabled(
+            viewModel.isEditingComment ||
+            viewModel.isDeletingComment
+        )
+        .accessibilityLabel("Comment options")
+    }
+
+    // MARK: - Report comment
+
+    private func reportCommentMenu(
+        _ comment: PostComment
+    ) -> some View {
+
+        Menu {
+
+            Button {
+
+                reportTarget = .comment(
+                    comment.id
+                )
+
+            } label: {
+
+                Label(
+                    "Report Comment",
+                    systemImage: "flag"
+                )
+            }
+
+        } label: {
+
+            commentOptionsIcon
+        }
+        .accessibilityLabel("Comment options")
+    }
+
+    private var commentOptionsIcon: some View {
+
+        Image(systemName: "ellipsis")
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+            .frame(
+                width: RawdeaSpacing.minimumTouchTarget,
+                height: RawdeaSpacing.minimumTouchTarget
+            )
+            .contentShape(Rectangle())
     }
 }

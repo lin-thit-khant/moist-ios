@@ -5,134 +5,126 @@
 //  Created by Lin Thit Khant on 16/11/2569 BE.
 //
 
+
 import SwiftUI
 
 struct FollowingFeedView: View {
-    
+
     @ObservedObject var viewModel: FollowingFeedViewModel
-    
+
     var body: some View {
-        
+
         List {
-            
-            // MARK: - Error Before First Successful Load
-            
+
+            // MARK: - Initial error
+
             if let error = viewModel.errorMessage,
                viewModel.posts.isEmpty {
-                
-                VStack(spacing: 12) {
-                    
-                    Image(systemName: "exclamationmark.circle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    
-                    Text("Couldn't load Following feed")
-                        .font(.headline)
-                    
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    
-                    Button("Try Again") {
-                        Task {
-                            await viewModel.loadPosts()
-                        }
+
+                RawdeaEmptyState(
+                    symbol: "exclamationmark.circle",
+                    title:
+                        "Couldn't load Following feed",
+                    message: error,
+                    actionTitle: "Try Again"
+                ) {
+
+                    Task {
+                        await viewModel.loadPosts()
                     }
-                    .buttonStyle(.borderedProminent)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 36)
                 .listRowSeparator(.hidden)
-                
-                // MARK: - Initial Loading
+                .listRowBackground(RawdeaPalette.canvas)
+
+            // MARK: - Initial loading
+
             } else if viewModel.posts.isEmpty &&
                         (
                             viewModel.isLoading ||
                             !viewModel.hasLoaded
                         ) {
-                
-                HStack(spacing: 12) {
-                    
+
+                HStack(spacing: RawdeaSpacing.sm) {
+
                     ProgressView()
-                    
+
                     Text("Loading Following feed...")
-                        .foregroundStyle(.secondary)
+                        .font(
+                            RawdeaTypography.secondary
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 36)
+                .padding(.vertical, RawdeaSpacing.xl)
                 .listRowSeparator(.hidden)
-                
-                // MARK: - Empty State
-                
+                .listRowBackground(RawdeaPalette.canvas)
+
+            // MARK: - Empty state
+
             } else if viewModel.posts.isEmpty {
-                
-                ContentUnavailableView(
-                    viewModel.hasFollowedSources
-                    ? "No Following Posts Yet"
-                    : "Your Following Feed Is Empty",
-                    
-                    systemImage: "person.2",
-                    
-                    description: Text(
+
+                RawdeaEmptyState(
+                    symbol: "person.2",
+                    title:
+                        viewModel.hasFollowedSources
+                        ? "No Following Posts Yet"
+                        : "Your Following Feed Is Empty",
+                    message:
                         viewModel.hasFollowedSources
                         ? "People and Projects you follow have no visible posts yet."
                         : "Follow people or Projects to see their posts here."
-                    )
                 )
-                .frame(maxWidth: .infinity)
                 .listRowSeparator(.hidden)
-                
-                // MARK: - Feed Content
+                .listRowBackground(RawdeaPalette.canvas)
+
+            // MARK: - Posts
+
             } else {
-                
+
                 ForEach(viewModel.posts) { post in
-                    
+
                     VStack(spacing: 0) {
-                        
+
                         PostRowView(post: post)
-                        
+
                         Divider()
+                            .overlay(
+                                RawdeaPalette.divider
+                            )
                             .padding(.horizontal)
                     }
-                    .listRowInsets(
-                        EdgeInsets(
-                            top: 0,
-                            leading: 0,
-                            bottom: 0,
-                            trailing: 0
-                        )
-                    )
+                    .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-                }
-                
-                
-                // MARK: - Pagination Error
-
-                if let error = viewModel.paginationErrorMessage {
-
-                    VStack(alignment: .leading, spacing: 8) {
-
-                        Label(
-                            "Couldn't load more Following posts",
-                            systemImage: "exclamationmark.circle"
-                        )
-                        .font(.subheadline)
-
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 8)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
                 }
 
-                // MARK: - Load More
+                // MARK: - Pagination error
+
+                if let error =
+                    viewModel.paginationErrorMessage {
+
+                    RawdeaInlineError(
+                        message:
+                            "Couldn't load more Following posts. \(error)"
+                    )
+                    .padding(.vertical, RawdeaSpacing.sm)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+                }
+
+                // MARK: - Load more
 
                 if viewModel.hasMore {
 
                     HStack {
 
-                        Spacer()
+                        Spacer(minLength: 0)
 
                         if viewModel.isLoadingMore {
 
@@ -143,63 +135,81 @@ struct FollowingFeedView: View {
                             Button("Load More") {
 
                                 Task {
-                                    await viewModel.loadMorePosts()
+
+                                    await viewModel
+                                        .loadMorePosts()
                                 }
                             }
                             .buttonStyle(.bordered)
+                            .frame(
+                                minHeight:
+                                    RawdeaSpacing.minimumTouchTarget
+                            )
                         }
 
-                        Spacer()
+                        Spacer(minLength: 0)
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, RawdeaSpacing.sm)
                     .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
                 }
 
-                
-                // Keep existing posts visible if
-                // refreshing fails.
-                
+                // MARK: - Refresh error
+
                 if let error = viewModel.errorMessage {
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        
-                        Label(
-                            "Couldn't refresh Following feed",
-                            systemImage: "exclamationmark.circle"
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: RawdeaSpacing.xs
+                    ) {
+
+                        RawdeaInlineError(
+                            message:
+                                "Couldn't refresh Following feed. \(error)"
                         )
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
+
                         Button("Try Again") {
+
                             Task {
-                                await viewModel.refreshPosts()
+
+                                await viewModel
+                                    .refreshPosts()
                             }
                         }
+                        .frame(
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, RawdeaSpacing.sm)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
                 }
             }
         }
         .listStyle(.plain)
-        
-        // Pull to refresh works even with
-        // an empty feed.
-        
-        .refreshable {
-            await viewModel.refreshPosts()
-        }
-        
-        // Load whenever this view enters
-        // the Home feed hierarchy.
-        
+        .scrollContentBackground(.hidden)
+        .background(
+            RawdeaPalette.canvas.ignoresSafeArea()
+        )
+
+        // Preserve existing loading behavior.
         .onAppear {
+
             Task {
-                await viewModel.reloadVisiblePosts()
+
+                await viewModel
+                    .reloadVisiblePosts()
             }
+        }
+
+        .refreshable {
+
+            await viewModel.refreshPosts()
         }
     }
 }

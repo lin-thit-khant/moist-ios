@@ -109,6 +109,10 @@ struct ProjectDetailView: View {
                                 }
                             )
                             .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(RawdeaPalette.canvas)
+                            .scrollContentBackground(.hidden)
+                            .background(RawdeaPalette.canvas)
                         }
                     }
                     .listStyle(.plain)

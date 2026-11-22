@@ -124,6 +124,7 @@ struct SavedPostsView: View {
                         )
                     )
                     .listRowSeparator(.hidden)
+                    .listRowBackground(RawdeaPalette.canvas)
 
                     // Swipe left to remove the bookmark.
 
@@ -184,7 +185,8 @@ struct SavedPostsView: View {
             }
         }
         .listStyle(.plain)
-
+        .scrollContentBackground(.hidden)
+        .background(RawdeaPalette.canvas)
         .navigationTitle("Saved Posts")
         .navigationBarTitleDisplayMode(.inline)
 
