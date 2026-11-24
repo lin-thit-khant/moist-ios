@@ -20,7 +20,10 @@ struct PostRowView: View {
     let onHide: (() -> Void)?
 
     let showsDiscussionLink: Bool
-
+    let onUnsave: (() -> Void)?
+    let isUnsaveDisabled: Bool
+    let isUnsaving: Bool
+    
     @StateObject private var actions =
         PostRowActionsViewModel()
 
@@ -29,6 +32,7 @@ struct PostRowView: View {
     @State private var isShowingDeleteConfirmation = false
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
     
+    
     init(
         post: Post,
         currentUserId: UUID? = nil,
@@ -36,8 +40,12 @@ struct PostRowView: View {
         onDelete: (() -> Void)? = nil,
         onMove: (() -> Void)? = nil,
         onHide: (() -> Void)? = nil,
-        showsDiscussionLink: Bool = true
+        showsDiscussionLink: Bool = true,
+        onUnsave: (() -> Void)? = nil,
+        isUnsaveDisabled: Bool = false,
+        isUnsaving: Bool = false
     ) {
+
         self.post = post
         self.currentUserId = currentUserId
         self.onEdit = onEdit
@@ -45,7 +53,12 @@ struct PostRowView: View {
         self.onMove = onMove
         self.onHide = onHide
         self.showsDiscussionLink = showsDiscussionLink
+
+        self.onUnsave = onUnsave
+        self.isUnsaveDisabled = isUnsaveDisabled
+        self.isUnsaving = isUnsaving
     }
+
 
     // MARK: - Display values
 
@@ -81,6 +94,39 @@ struct PostRowView: View {
         onHide != nil
     }
 
+    private var displayedBookmarkState: Bool {
+
+        if onUnsave != nil {
+
+            // Saved Posts already knows that this
+            // row represents a saved post.
+
+            return true
+        }
+
+        return actions.isBookmarked
+    }
+
+    private var bookmarkActionIsLoading: Bool {
+
+        if onUnsave != nil {
+            return isUnsaving
+        }
+
+        return actions.isUpdatingBookmark
+    }
+
+    private var bookmarkActionIsDisabled: Bool {
+
+        if onUnsave != nil {
+
+            return isUnsaveDisabled || isUnsaving
+        }
+
+        return !actions.hasLoaded ||
+               actions.isLoading ||
+               actions.isUpdatingBookmark
+    }
     // MARK: - Body
 
     var body: some View {
@@ -501,38 +547,54 @@ struct PostRowView: View {
 
             Spacer(minLength: 0)
 
+            
             Button {
 
-                Task {
-                    await actions.toggleBookmark(
-                        postId: post.id
-                    )
+                if let onUnsave {
+
+                    // Saved Posts owns the removal,
+                    // so both removal methods share
+                    // the same view model.
+
+                    onUnsave()
+
+                } else {
+
+                    // Normal feed Bookmark behavior.
+
+                    Task {
+
+                        await actions.toggleBookmark(
+                            postId: post.id
+                        )
+                    }
                 }
 
             } label: {
 
                 actionSymbol(
-                    actions.isBookmarked
+                    displayedBookmarkState
                     ? "bookmark.fill"
                     : "bookmark",
-                    selected: actions.isBookmarked,
-                    loading: actions.isUpdatingBookmark
+                    selected: displayedBookmarkState,
+                    loading: bookmarkActionIsLoading
                 )
             }
             .buttonStyle(.plain)
             .disabled(
-                !actions.hasLoaded ||
-                actions.isLoading ||
-                actions.isUpdatingBookmark
+                bookmarkActionIsDisabled
             )
             .accessibilityLabel(
-                actions.isBookmarked
+                displayedBookmarkState
                 ? "Remove saved post"
                 : "Save post"
             )
             .accessibilityAddTraits(
-                actions.isBookmarked ? .isSelected : []
+                displayedBookmarkState
+                ? .isSelected
+                : []
             )
+
         }
         .accessibilityElement(children: .contain)
     }

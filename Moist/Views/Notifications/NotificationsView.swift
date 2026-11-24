@@ -5,178 +5,161 @@
 //  Created by Lin Thit Khant on 16/11/2569 BE.
 //
 
-
 import SwiftUI
-
-// MARK: - Navigation Destinations
-
-private enum NotificationDestination: Hashable {
-
-    case profile(UUID)
-    case project(UUID)
-    case post(UUID)
-}
 
 struct NotificationsView: View {
 
-    @ObservedObject var viewModel: NotificationsViewModel
+    @ObservedObject var viewModel:
+        NotificationsViewModel
 
-    @State private var selectedDestination:
-        NotificationDestination?
-    
-    @Environment(\.scenePhase) private var scenePhase
+    @State private var openingNotificationId: UUID?
+
+    @State private var navigationError: String?
+
+    @Environment(\.rawdeaOpenPostRoute)
+    private var openPostRoute
+
+    @Environment(\.scenePhase)
+    private var scenePhase
+
+    private var isBusy: Bool {
+
+        openingNotificationId != nil ||
+        viewModel.isLoading ||
+        viewModel.isMarkingAll ||
+        !viewModel.updatingIds.isEmpty
+    }
+
+    private var hasUnreadNotifications: Bool {
+
+        viewModel.unreadCount > 0 ||
+        viewModel.notifications.contains {
+            !$0.isRead
+        }
+    }
+
+    // MARK: - Body
 
     var body: some View {
 
         List {
 
-            // MARK: - Initial Loading
-
-            if viewModel.isLoading &&
+            if let error = viewModel.errorMessage,
                !viewModel.hasLoaded {
 
-                HStack(spacing: 12) {
+                RawdeaEmptyState(
+                    symbol: "exclamationmark.circle",
+                    title: "Couldn't load activity",
+                    message: error,
+                    actionTitle: "Try Again"
+                ) {
 
-                    ProgressView()
+                    Task {
 
-                    Text("Loading notifications...")
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 36)
-                .listRowSeparator(.hidden)
-
-            // MARK: - Initial Error
-
-            } else if let error = viewModel.errorMessage,
-                      !viewModel.hasLoaded {
-
-                VStack(spacing: 12) {
-
-                    Image(systemName: "exclamationmark.circle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-
-                    Text("Couldn't load notifications")
-                        .font(.headline)
-
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
-                    Button("Try Again") {
-
-                        Task {
-                            await viewModel.loadNotifications()
-                        }
+                        await viewModel.loadNotifications()
                     }
-                    .buttonStyle(.borderedProminent)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 36)
                 .listRowSeparator(.hidden)
-
-            // MARK: - Before First Load
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
 
             } else if !viewModel.hasLoaded {
 
-                ProgressView("Loading notifications...")
+                ProgressView("Loading activity...")
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 36)
+                    .padding(
+                        .vertical,
+                        RawdeaSpacing.xl
+                    )
                     .listRowSeparator(.hidden)
-
-            // MARK: - Empty State
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
 
             } else if viewModel.notifications.isEmpty {
 
-                ContentUnavailableView(
-                    "No Notifications Yet",
-                    systemImage: "bell",
-                    description: Text(
-                        "Activity involving your account, Projects, and posts will appear here."
-                    )
+                RawdeaEmptyState(
+                    symbol: "bell",
+                    title: "Nothing new yet",
+                    message:
+                        "Likes, comments, and new followers will appear here."
                 )
-                .frame(maxWidth: .infinity)
                 .listRowSeparator(.hidden)
-
-            // MARK: - Notifications
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
 
             } else {
 
-                ForEach(viewModel.notifications) {
-                    notification in
+                activitySummary
 
-                    Button {
+                ForEach(
+                    viewModel.notifications
+                ) { notification in
 
-                        Task {
-
-                            // Mark read before navigating.
-
-                            await viewModel.markAsRead(
-                                notificationId: notification.id
-                            )
-
-                            if let destination = destination(
-                                for: notification
-                            ) {
-                                selectedDestination = destination
-                            }
-                        }
-
-                    } label: {
-
-                        notificationRow(notification)
-                    }
-                    .buttonStyle(.plain)
-                    .listRowSeparator(.hidden)
+                    activityRow(notification)
                 }
 
-                if viewModel.notifications.count == 100 {
+                if viewModel.notifications.count >= 100 {
 
                     Text(
                         "Showing the 100 most recent notifications."
                     )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(
+                        RawdeaTypography.caption
+                    )
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
                     .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
                 }
             }
-
-            // MARK: - Refresh Error
 
             if viewModel.hasLoaded,
                let error = viewModel.errorMessage {
 
                 VStack(
                     alignment: .leading,
-                    spacing: 8
+                    spacing: RawdeaSpacing.xs
                 ) {
 
-                    Text("Couldn't refresh notifications")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    RawdeaInlineError(
+                        message:
+                            "Couldn't refresh activity. \(error)"
+                    )
 
                     Button("Try Again") {
 
                         Task {
+
                             await viewModel.loadNotifications()
                         }
                     }
+                    .frame(
+                        minHeight:
+                            RawdeaSpacing.minimumTouchTarget
+                    )
                 }
                 .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
             }
         }
         .listStyle(.plain)
-
-        .navigationTitle("Notifications")
+        .scrollContentBackground(.hidden)
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
+        .navigationTitle("Activity")
         .navigationBarTitleDisplayMode(.inline)
 
-        // MARK: - Toolbar
+        // MARK: - Mark all read
 
         .toolbar {
 
@@ -187,6 +170,7 @@ struct NotificationsView: View {
                 Button {
 
                     Task {
+
                         await viewModel.markAllAsRead()
                     }
 
@@ -202,74 +186,65 @@ struct NotificationsView: View {
                     }
                 }
                 .disabled(
-                    viewModel.unreadCount == 0 ||
-                    viewModel.isLoading ||
-                    viewModel.isMarkingAll ||
-                    !viewModel.updatingIds.isEmpty
+                    isBusy ||
+                    !hasUnreadNotifications
+                )
+                .accessibilityLabel(
+                    viewModel.isMarkingAll
+                    ? "Marking notifications as read"
+                    : "Mark all notifications as read"
                 )
             }
         }
-        
+
+        // Preserve visibility revalidation.
+
         .onAppear {
 
             Task {
 
-                await viewModel.reloadVisibleNotifications()
+                await viewModel
+                    .reloadVisibleNotifications()
             }
         }
-        
-        
-        .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else {
+
+        .onChange(of: scenePhase) { _, phase in
+
+            guard phase == .active else {
                 return
             }
 
             Task {
-                await viewModel.reloadVisibleNotifications()
+
+                await viewModel
+                    .reloadVisibleNotifications()
             }
         }
 
-
-        // MARK: - Pull to Refresh
-
         .refreshable {
+
+            guard openingNotificationId == nil else {
+                return
+            }
+
             await viewModel.loadNotifications()
         }
 
-        // MARK: - Destination Routing
-
-        .navigationDestination(
-            item: $selectedDestination
-        ) { destination in
-
-            switch destination {
-
-            case .profile(let userId):
-
-                AuthorProfileView(userId: userId)
-
-            case .project(let projectId):
-
-                ProjectRouteView(projectId: projectId)
-
-            case .post(let postId):
-
-                PostDetailView(postId: postId)
-            }
-        }
-
-        // MARK: - Action Errors
+        // MARK: - Errors
 
         .alert(
-            "Couldn't update notification",
+            "Couldn't complete action",
             isPresented: Binding(
                 get: {
+
+                    navigationError != nil ||
                     viewModel.actionErrorMessage != nil
                 },
-                set: { isPresented in
+                set: { presented in
 
-                    if !isPresented {
-                        viewModel.clearActionError()
+                    if !presented {
+
+                        clearErrors()
                     }
                 }
             )
@@ -277,91 +252,178 @@ struct NotificationsView: View {
 
             Button("OK", role: .cancel) {
 
-                viewModel.clearActionError()
+                clearErrors()
             }
 
         } message: {
 
             Text(
-                viewModel.actionErrorMessage ?? ""
+                navigationError
+                ?? viewModel.actionErrorMessage
+                ?? ""
             )
         }
     }
 
-    // MARK: - Notification Row
+    // MARK: - Activity summary
 
-    private func notificationRow(
+    private var activitySummary: some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: RawdeaSpacing.xxs
+        ) {
+
+            Text("Recent activity")
+                .font(
+                    RawdeaTypography.sectionTitle
+                )
+                .foregroundStyle(
+                    RawdeaPalette.primaryText
+                )
+                .accessibilityAddTraits(.isHeader)
+
+            Text(
+                "\(viewModel.unreadCount) unread"
+            )
+            .font(
+                RawdeaTypography.metadata
+            )
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+        }
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+        .padding(
+            .vertical,
+            RawdeaSpacing.xs
+        )
+        .listRowSeparator(.hidden)
+        .listRowBackground(
+            RawdeaPalette.canvas
+        )
+    }
+
+    // MARK: - Activity card
+
+    private func activityRow(
         _ notification: RawdeaNotification
     ) -> some View {
 
-        HStack(alignment: .center, spacing: 12) {
+        Button {
 
-            Image(
-                systemName: notification.kind.systemImage
-            )
-            .font(.title3)
-            .foregroundStyle(.secondary)
-            .frame(width: 36, height: 36)
-            .background(
-                .thinMaterial,
-                in: Circle()
-            )
+            Task {
 
-            VStack(
-                alignment: .leading,
-                spacing: 5
-            ) {
-
-                Text(notification.message)
-                    .font(.subheadline)
-                    .fontWeight(
-                        notification.isRead
-                        ? .regular
-                        : .semibold
-                    )
-                    .foregroundStyle(.primary)
-
-                Text(
-                    notification.createdAt,
-                    style: .relative
+                await openNotification(
+                    notification
                 )
-                .font(.caption)
-                .foregroundStyle(.secondary)
             }
 
-            Spacer(minLength: 8)
+        } label: {
 
-            if !notification.isRead {
-
-                Circle()
-                    .fill(Color.blue)
-                    .frame(width: 8, height: 8)
-                    .accessibilityLabel("Unread")
-            }
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            RawdeaActivityCard(
+                notification: notification,
+                isOpening:
+                    openingNotificationId ==
+                    notification.id
+            )
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
+        .buttonStyle(.plain)
+        .disabled(isBusy)
+        .accessibilityHint(
+            "Opens the related activity"
+        )
+        .listRowInsets(
+            EdgeInsets(
+                top: RawdeaSpacing.xxs,
+                leading: RawdeaSpacing.screenInset,
+                bottom: RawdeaSpacing.xxs,
+                trailing: RawdeaSpacing.screenInset
+            )
+        )
+        .listRowSeparator(.hidden)
+        .listRowBackground(
+            RawdeaPalette.canvas
+        )
     }
 
-    // MARK: - Notification Destination
+    // MARK: - Open notification
+
+    @MainActor
+    private func openNotification(
+        _ notification: RawdeaNotification
+    ) async {
+
+        guard !isBusy else {
+            return
+        }
+
+        openingNotificationId = notification.id
+
+        navigationError = nil
+
+        defer {
+
+            openingNotificationId = nil
+        }
+
+        let didRead = await viewModel.markAsRead(
+            notificationId: notification.id
+        )
+
+        guard didRead else {
+            // Keep the user on Activity if the
+            // read mutation fails.
+            return
+        }
+
+        guard let route = destination(
+            for: notification
+        ) else {
+
+            navigationError =
+                "This activity no longer has an available destination."
+
+            return
+        }
+
+        guard let openPostRoute else {
+
+            navigationError =
+                "The activity destination couldn't be opened."
+
+            return
+        }
+
+        // Use the same value-based router as
+        // Home, Explore, Profile and Projects.
+
+        openPostRoute(route)
+    }
+
+    // MARK: - Destination mapping
 
     private func destination(
         for notification: RawdeaNotification
-    ) -> NotificationDestination? {
+    ) -> RawdeaPostRoute? {
 
         switch notification.kind {
 
         case .userFollow:
 
-            return .profile(notification.actorId)
+            return .author(
+                notification.actorId
+            )
 
         case .projectFollow:
 
-            guard let projectId = notification.projectId else {
+            guard let projectId =
+                notification.projectId else {
+
                 return nil
             }
 
@@ -369,11 +431,20 @@ struct NotificationsView: View {
 
         case .postLike, .postComment:
 
-            guard let postId = notification.postId else {
+            guard let postId =
+                notification.postId else {
+
                 return nil
             }
 
-            return .post(postId)
+            return .discussion(postId)
         }
+    }
+
+    private func clearErrors() {
+
+        navigationError = nil
+
+        viewModel.clearActionError()
     }
 }

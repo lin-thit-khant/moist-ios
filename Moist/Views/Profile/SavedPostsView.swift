@@ -5,7 +5,6 @@
 //  Created by Lin Thit Khant on 16/11/2569 BE.
 //
 
-
 import SwiftUI
 
 struct SavedPostsView: View {
@@ -13,190 +12,95 @@ struct SavedPostsView: View {
     @StateObject private var viewModel =
         SavedPostsViewModel()
 
+    @Environment(\.scenePhase)
+    private var scenePhase
+
     var body: some View {
 
         List {
 
-            // MARK: - Initial Loading
+            if let error = viewModel.errorMessage,
+               viewModel.posts.isEmpty {
 
-            if viewModel.isLoading &&
-                viewModel.posts.isEmpty {
+                RawdeaEmptyState(
+                    symbol: "exclamationmark.circle",
+                    title: "Couldn't load saved posts",
+                    message: error,
+                    actionTitle: "Try Again"
+                ) {
 
-                HStack(spacing: 12) {
+                    Task {
 
-                    ProgressView()
-
-                    Text("Loading saved posts...")
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 36)
-                .listRowSeparator(.hidden)
-
-            // MARK: - Initial Error
-
-            } else if let error = viewModel.errorMessage,
-                      viewModel.posts.isEmpty {
-
-                VStack(spacing: 12) {
-
-                    Image(
-                        systemName: "exclamationmark.circle"
-                    )
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
-
-                    Text("Couldn't load saved posts")
-                        .font(.headline)
-
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
-                    Button("Try Again") {
-
-                        Task {
-                            await viewModel.loadPosts()
-                        }
+                        await viewModel.loadPosts()
                     }
-                    .buttonStyle(.borderedProminent)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 36)
                 .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
 
-            // MARK: - Waiting for Initial Load
-
-            } else if !viewModel.hasLoaded {
+            } else if !viewModel.hasLoaded ||
+                      (
+                        viewModel.isLoading &&
+                        viewModel.posts.isEmpty
+                      ) {
 
                 ProgressView("Loading saved posts...")
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 36)
+                    .padding(
+                        .vertical,
+                        RawdeaSpacing.xl
+                    )
                     .listRowSeparator(.hidden)
-
-            // MARK: - Empty State
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
 
             } else if viewModel.posts.isEmpty {
 
-                ContentUnavailableView(
-                    viewModel.hasBookmarks
-                    ? "No Available Saved Posts"
-                    : "Nothing Saved Yet",
-
-                    systemImage: "bookmark",
-
-                    description: Text(
-                        viewModel.hasBookmarks
-                        ? "Some saved posts may have become private or unavailable."
-                        : "Open a post and tap Save to keep it for later."
-                    )
-                )
-                .frame(maxWidth: .infinity)
-                .listRowSeparator(.hidden)
-
-            // MARK: - Saved Posts
+                emptyState
 
             } else {
 
                 ForEach(viewModel.posts) { post in
 
-                    VStack(spacing: 0) {
-
-                        PostRowView(post: post)
-
-                        if viewModel.removingPostId == post.id {
-
-                            ProgressView("Removing bookmark...")
-                                .font(.caption)
-                                .padding(.bottom, 8)
-                        }
-
-                        Divider()
-                            .padding(.horizontal)
-                    }
-                    .listRowInsets(
-                        EdgeInsets(
-                            top: 0,
-                            leading: 0,
-                            bottom: 0,
-                            trailing: 0
-                        )
-                    )
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(RawdeaPalette.canvas)
-
-                    // Swipe left to remove the bookmark.
-
-                    .swipeActions(edge: .trailing) {
-
-                        Button(role: .destructive) {
-
-                            Task {
-
-                                await viewModel.removePost(
-                                    postId: post.id
-                                )
-                            }
-
-                        } label: {
-
-                            Label(
-                                "Unsave",
-                                systemImage: "bookmark.slash"
-                            )
-                        }
-                        .disabled(
-                            viewModel.removingPostId != nil ||
-                            viewModel.isLoading
-                        )
-                    }
+                    savedPostRow(post)
                 }
-
-                // Keep existing rows visible
-                // when a refresh fails.
 
                 if let error = viewModel.errorMessage {
 
-                    VStack(
-                        alignment: .leading,
-                        spacing: 8
-                    ) {
-
-                        Label(
-                            "Couldn't refresh saved posts",
-                            systemImage: "exclamationmark.circle"
-                        )
-                        .font(.subheadline)
-
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Button("Try Again") {
-
-                            Task {
-                                await viewModel.loadPosts()
-                            }
-                        }
-                    }
-                    .padding(.vertical, 12)
+                    refreshError(error)
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(RawdeaPalette.canvas)
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationTitle("Saved Posts")
         .navigationBarTitleDisplayMode(.inline)
 
-        // Refresh when this screen appears,
-        // including after returning from
-        // a discussion.
+        // Revalidate after returning from
+        // Discussion or another child screen.
 
         .onAppear {
 
             Task {
+
+                await viewModel.reloadVisiblePosts()
+            }
+        }
+
+        .onChange(of: scenePhase) { _, phase in
+
+            guard phase == .active else {
+                return
+            }
+
+            Task {
+
                 await viewModel.reloadVisiblePosts()
             }
         }
@@ -206,17 +110,17 @@ struct SavedPostsView: View {
             await viewModel.loadPosts()
         }
 
-        // MARK: - Removal Error
-
         .alert(
             "Couldn't remove bookmark",
             isPresented: Binding(
                 get: {
+
                     viewModel.actionErrorMessage != nil
                 },
-                set: { isPresented in
+                set: { presented in
 
-                    if !isPresented {
+                    if !presented {
+
                         viewModel.clearActionError()
                     }
                 }
@@ -224,6 +128,7 @@ struct SavedPostsView: View {
         ) {
 
             Button("OK", role: .cancel) {
+
                 viewModel.clearActionError()
             }
 
@@ -233,5 +138,133 @@ struct SavedPostsView: View {
                 viewModel.actionErrorMessage ?? ""
             )
         }
+    }
+
+    // MARK: - Saved post row
+
+    private func savedPostRow(
+        _ post: Post
+    ) -> some View {
+
+        VStack(spacing: 0) {
+
+            PostRowView(
+                post: post,
+                onUnsave: {
+
+                    Task {
+
+                        await viewModel.removePost(
+                            postId: post.id
+                        )
+                    }
+                },
+                isUnsaveDisabled:
+                    viewModel.isBusy,
+                isUnsaving:
+                    viewModel.removingPostId ==
+                    post.id
+            )
+
+            Divider()
+                .overlay(
+                    RawdeaPalette.divider
+                )
+                .padding(
+                    .horizontal,
+                    RawdeaSpacing.screenInset
+                )
+        }
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+        .listRowBackground(
+            RawdeaPalette.canvas
+        )
+
+        // Both the inline button and swipe action
+        // use the same removePost method.
+
+        .swipeActions(
+            edge: .trailing,
+            allowsFullSwipe: false
+        ) {
+
+            Button(role: .destructive) {
+
+                Task {
+
+                    await viewModel.removePost(
+                        postId: post.id
+                    )
+                }
+
+            } label: {
+
+                Label(
+                    "Unsave",
+                    systemImage: "bookmark.slash"
+                )
+            }
+            .disabled(viewModel.isBusy)
+        }
+    }
+
+    // MARK: - Empty state
+
+    private var emptyState: some View {
+
+        RawdeaEmptyState(
+            symbol: "bookmark",
+            title:
+                viewModel.hasBookmarks
+                ? "No available saved posts"
+                : "Nothing saved yet",
+            message:
+                viewModel.hasBookmarks
+                ? "Your saved posts may have become private or unavailable."
+                : "Bookmark a post to return to it whenever you want."
+        )
+        .listRowSeparator(.hidden)
+        .listRowBackground(
+            RawdeaPalette.canvas
+        )
+    }
+
+    // MARK: - Refresh error
+
+    private func refreshError(
+        _ error: String
+    ) -> some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: RawdeaSpacing.xs
+        ) {
+
+            RawdeaInlineError(
+                message:
+                    "Couldn't refresh saved posts. \(error)"
+            )
+
+            Button("Try Again") {
+
+                Task {
+
+                    await viewModel.loadPosts()
+                }
+            }
+            .frame(
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
+            )
+        }
+        .padding(
+            .vertical,
+            RawdeaSpacing.sm
+        )
+        .listRowSeparator(.hidden)
+        .listRowBackground(
+            RawdeaPalette.canvas
+        )
     }
 }

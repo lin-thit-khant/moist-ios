@@ -5,18 +5,13 @@
 //  Created by Lin Thit Khant on 16/11/2569 BE.
 //
 
-
 import SwiftUI
-
-// MARK: - Search Task Identity
 
 private struct DiscoverySearchKey: Hashable {
 
     let query: String
     let category: DiscoveryCategory
 }
-
-// MARK: - Discovery View
 
 struct DiscoveryView: View {
 
@@ -27,12 +22,17 @@ struct DiscoveryView: View {
 
     @State private var selectedCategory:
         DiscoveryCategory = .people
-    
-    @Environment(\.scenePhase) private var scenePhase
 
-    // MARK: - Search State
+    @Environment(\.scenePhase)
+    private var scenePhase
+
+    @Environment(\.dynamicTypeSize)
+    private var dynamicTypeSize
+
+    // MARK: - Search state
 
     private var cleanedQuery: String {
+
         searchText.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
@@ -58,223 +58,19 @@ struct DiscoveryView: View {
 
         VStack(spacing: 0) {
 
-            // MARK: - Category Selector
-
-            Picker(
-                "Search Category",
-                selection: $selectedCategory
-            ) {
-
-                ForEach(DiscoveryCategory.allCases) {
-                    category in
-
-                    Text(category.title)
-                        .tag(category)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding()
+            categorySelector
 
             Divider()
+                .overlay(RawdeaPalette.divider)
 
-            // MARK: - Search Results
-
-            List {
-
-                if cleanedQuery.count < 2 {
-
-                    ContentUnavailableView(
-                        "Explore Rawdea",
-                        systemImage: "magnifyingglass",
-                        description: Text(
-                            "Enter at least two characters to search people, Projects, or posts."
-                        )
-                    )
-                    .frame(maxWidth: .infinity)
-                    .listRowSeparator(.hidden)
-
-                } else if !resultsAreCurrent ||
-                          viewModel.isLoading ||
-                          !viewModel.hasSearched {
-
-                    HStack(spacing: 12) {
-
-                        ProgressView()
-
-                        Text("Searching...")
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 36)
-                    .listRowSeparator(.hidden)
-
-                } else if let error = viewModel.errorMessage {
-
-                    searchError(error)
-
-                } else if viewModel.isCurrentResultEmpty {
-
-                    emptyResults
-
-                } else {
-
-                    // MARK: - Category Results
-
-                    switch selectedCategory {
-
-                    case .people:
-
-                        ForEach(viewModel.people) {
-                            profile in
-
-                            personRow(profile)
-                        }
-
-                    case .projects:
-
-                        ForEach(viewModel.projects) {
-                            project in
-
-                            projectRow(project)
-                        }
-
-                    case .posts:
-
-                        ForEach(viewModel.posts) {
-                            post in
-
-                            PostRowView(post: post)
-                                .listRowInsets(
-                                    EdgeInsets(
-                                        top: 0,
-                                        leading: 0,
-                                        bottom: 0,
-                                        trailing: 0
-                                    )
-                                )
-                                .listRowSeparator(.hidden)
-                        }
-                    }
-
-                    // MARK: - Loaded Count
-
-                    Text(
-                        "\(viewModel.currentResultCount) results loaded"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .listRowSeparator(.hidden)
-
-                    // MARK: - Pagination Error
-
-                    if let error =
-                        viewModel.paginationErrorMessage {
-
-                        VStack(
-                            alignment: .leading,
-                            spacing: 8
-                        ) {
-
-                            Text(
-                                "Couldn't load more results"
-                            )
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-
-                            Text(error)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .listRowSeparator(.hidden)
-                    }
-
-                    // MARK: - Load More
-
-                    if viewModel.hasMore {
-
-                        HStack {
-
-                            Spacer()
-
-                            if viewModel.isLoadingMore {
-
-                                ProgressView(
-                                    "Loading more..."
-                                )
-
-                            } else {
-
-                                Button("Load More") {
-
-                                    Task {
-
-                                        await viewModel
-                                            .loadMore()
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.vertical, 12)
-                        .listRowSeparator(.hidden)
-                    }
-                }
-            }
-            .listStyle(.plain)
-
-            .refreshable {
-
-                guard cleanedQuery.count >= 2 else {
-                    return
-                }
-
-                await viewModel.search(
-                    query: cleanedQuery,
-                    category: selectedCategory
-                )
-            }
+            resultsList
         }
-        
-        // MARK: - Recheck Search Visibility
-
-        .onAppear {
-
-            guard cleanedQuery.count >= 2,
-                  viewModel.hasSearched else {
-                return
-            }
-
-            Task {
-
-                await viewModel.search(
-                    query: cleanedQuery,
-                    category: selectedCategory
-                )
-            }
-        }
-        
-        
-        .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active,
-                  cleanedQuery.count >= 2 else {
-                return
-            }
-
-            Task {
-                await viewModel.search(
-                    query: cleanedQuery,
-                    category: selectedCategory
-                )
-            }
-        }
-
-
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.inline)
-
-        // Native iOS search field.
 
         .searchable(
             text: $searchText,
@@ -284,7 +80,7 @@ struct DiscoveryView: View {
             prompt: "Search Rawdea"
         )
 
-        // MARK: - Debounced Search
+        // MARK: - Debounced search
 
         .task(id: searchKey) {
 
@@ -297,9 +93,6 @@ struct DiscoveryView: View {
                 return
             }
 
-            // Delay requests slightly while
-            // the user is typing.
-
             do {
 
                 try await Task.sleep(
@@ -307,6 +100,7 @@ struct DiscoveryView: View {
                 )
 
             } catch {
+
                 return
             }
 
@@ -319,36 +113,288 @@ struct DiscoveryView: View {
                 category: category
             )
         }
+
+        // Revalidate results when returning
+        // from another destination.
+
+        .onAppear {
+
+            guard cleanedQuery.count >= 2,
+                  viewModel.hasSearched else {
+                return
+            }
+
+            Task {
+
+                await refreshSearch()
+            }
+        }
+
+        // Revalidate after foregrounding.
+
+        .onChange(of: scenePhase) { _, phase in
+
+            guard phase == .active,
+                  cleanedQuery.count >= 2 else {
+                return
+            }
+
+            Task {
+
+                await refreshSearch()
+            }
+        }
     }
 
-    // MARK: - People Result
+    // MARK: - Search category selector
+
+    @ViewBuilder
+    private var categorySelector: some View {
+
+        if dynamicTypeSize.isAccessibilitySize {
+
+            // A menu avoids cramped segmented
+            // labels at very large text sizes.
+
+            HStack {
+
+                Text("Search category")
+                    .font(RawdeaTypography.secondary)
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+
+                Spacer(minLength: 0)
+
+                categoryPicker
+                    .pickerStyle(.menu)
+            }
+            .padding(
+                .horizontal,
+                RawdeaSpacing.screenInset
+            )
+            .frame(
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
+            )
+
+        } else {
+
+            categoryPicker
+                .pickerStyle(.segmented)
+                .padding(
+                    .horizontal,
+                    RawdeaSpacing.screenInset
+                )
+                .padding(
+                    .vertical,
+                    RawdeaSpacing.sm
+                )
+        }
+    }
+
+    private var categoryPicker: some View {
+
+        Picker(
+            "Search category",
+            selection: $selectedCategory
+        ) {
+
+            ForEach(DiscoveryCategory.allCases) {
+                category in
+
+                Text(category.title)
+                    .tag(category)
+            }
+        }
+    }
+
+    // MARK: - Results list
+
+    private var resultsList: some View {
+
+        List {
+
+            if cleanedQuery.count < 2 {
+
+                RawdeaEmptyState(
+                    symbol: "magnifyingglass",
+                    title: "Explore Rawdea",
+                    message:
+                        "Search for people, Projects, or posts using at least two characters."
+                )
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
+
+            } else if !resultsAreCurrent ||
+                      viewModel.isLoading ||
+                      !viewModel.hasSearched {
+
+                ProgressView("Searching...")
+                    .frame(maxWidth: .infinity)
+                    .padding(
+                        .vertical,
+                        RawdeaSpacing.xl
+                    )
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+
+            } else if let error =
+                viewModel.errorMessage {
+
+                RawdeaEmptyState(
+                    symbol: "exclamationmark.circle",
+                    title: "Couldn't search Rawdea",
+                    message: error,
+                    actionTitle: "Try Again"
+                ) {
+
+                    Task {
+
+                        await refreshSearch()
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
+
+            } else {
+
+                if viewModel.isCurrentResultEmpty {
+
+                    RawdeaEmptyState(
+                        symbol: "magnifyingglass",
+                        title: "No results found",
+                        message:
+                            viewModel.hasMore
+                            ? "No visible results on this page. Load more to continue searching."
+                            : "Try another search term or choose a different category."
+                    )
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+
+                } else {
+
+                    categoryResults
+
+                    Text(
+                        "\(viewModel.currentResultCount) results loaded"
+                    )
+                    .font(RawdeaTypography.caption)
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+                }
+
+                paginationControls
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(RawdeaPalette.canvas)
+        .scrollDismissesKeyboard(.interactively)
+
+        .refreshable {
+
+            await refreshSearch()
+        }
+    }
+
+    // MARK: - Category results
+
+    @ViewBuilder
+    private var categoryResults: some View {
+
+        switch selectedCategory {
+
+        case .people:
+
+            ForEach(viewModel.people) { profile in
+
+                personRow(profile)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+            }
+
+        case .projects:
+
+            ForEach(viewModel.projects) { project in
+
+                projectRow(project)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+            }
+
+        case .posts:
+
+            ForEach(viewModel.posts) { post in
+
+                VStack(spacing: 0) {
+
+                    PostRowView(post: post)
+
+                    Divider()
+                        .overlay(
+                            RawdeaPalette.divider
+                        )
+                        .padding(
+                            .horizontal,
+                            RawdeaSpacing.screenInset
+                        )
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
+            }
+        }
+    }
+
+    // MARK: - People result
 
     private func personRow(
         _ profile: Profile
     ) -> some View {
 
-        NavigationLink {
-
-            AuthorProfileView(
-                userId: profile.id
+        NavigationLink(
+            value: RawdeaPostRoute.author(
+                profile.id
             )
-
-        } label: {
+        ) {
 
             HStack(
                 alignment: .top,
-                spacing: 12
+                spacing: RawdeaSpacing.sm
             ) {
 
                 Image(
-                    systemName: "person.crop.circle.fill"
+                    systemName:
+                        "person.crop.circle.fill"
                 )
-                .font(.system(size: 38))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 40))
+                .foregroundStyle(
+                    RawdeaPalette.secondaryText
+                )
+                .accessibilityHidden(true)
 
                 VStack(
                     alignment: .leading,
-                    spacing: 5
+                    spacing: RawdeaSpacing.xxs
                 ) {
 
                     Text(
@@ -356,116 +402,170 @@ struct DiscoveryView: View {
                         ? profile.username
                         : profile.displayname
                     )
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(
+                        RawdeaTypography.authorName
+                    )
+                    .foregroundStyle(
+                        RawdeaPalette.primaryText
+                    )
 
                     Text("@\(profile.username)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(
+                            RawdeaTypography.metadata
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
 
                     if !profile.bio.isEmpty {
 
                         Text(profile.bio)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(
+                                RawdeaTypography.secondary
+                            )
+                            .foregroundStyle(
+                                RawdeaPalette.secondaryText
+                            )
                             .lineLimit(2)
                     }
                 }
-
-                Spacer()
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
             }
-            .padding(.vertical, 6)
+            .frame(
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
+            )
+            .padding(
+                .vertical,
+                RawdeaSpacing.xs
+            )
+            .contentShape(Rectangle())
         }
+        .accessibilityHint("Opens profile")
     }
 
-    // MARK: - Project Result
+    // MARK: - Project result
 
     private func projectRow(
         _ project: Project
     ) -> some View {
 
-        NavigationLink {
-
-            ProjectRouteView(
-                projectId: project.id
+        NavigationLink(
+            value: RawdeaPostRoute.project(
+                project.id
             )
+        ) {
 
-        } label: {
-
-            HStack(spacing: 12) {
-
-                Image(systemName: "folder.fill")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 38)
+            RawdeaProjectSurface {
 
                 VStack(
                     alignment: .leading,
-                    spacing: 5
+                    spacing: RawdeaSpacing.xs
                 ) {
 
-                    Text(project.name)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                    RawdeaProjectCard(
+                        project: project
+                    )
 
                     Text("Public Project")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(
+                            RawdeaTypography.caption
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
                 }
-
-                Spacer()
+                .frame(
+                    minHeight:
+                        RawdeaSpacing.minimumTouchTarget,
+                    alignment: .leading
+                )
             }
-            .padding(.vertical, 6)
         }
-    }
-
-    // MARK: - Empty Results
-
-    private var emptyResults: some View {
-
-        ContentUnavailableView.search(
-            text: cleanedQuery
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens Project")
+        .padding(
+            .vertical,
+            RawdeaSpacing.xxs
         )
-        .frame(maxWidth: .infinity)
-        .listRowSeparator(.hidden)
     }
 
-    // MARK: - Error State
+    // MARK: - Pagination
 
-    private func searchError(
-        _ message: String
-    ) -> some View {
+    @ViewBuilder
+    private var paginationControls: some View {
 
-        VStack(spacing: 12) {
+        if let error =
+            viewModel.paginationErrorMessage {
 
-            Image(
-                systemName: "exclamationmark.circle"
+            RawdeaInlineError(
+                message:
+                    "Couldn't load more results. \(error)"
             )
-            .font(.largeTitle)
-            .foregroundStyle(.secondary)
+            .listRowSeparator(.hidden)
+            .listRowBackground(
+                RawdeaPalette.canvas
+            )
+        }
 
-            Text("Couldn't search Rawdea")
-                .font(.headline)
+        if viewModel.hasMore {
 
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            HStack {
 
-            Button("Try Again") {
+                Spacer(minLength: 0)
 
-                Task {
+                if viewModel.isLoadingMore {
 
-                    await viewModel.search(
-                        query: cleanedQuery,
-                        category: selectedCategory
+                    ProgressView("Loading more...")
+
+                } else {
+
+                    Button(
+                        viewModel.paginationErrorMessage == nil
+                        ? "Load More"
+                        : "Retry Loading More"
+                    ) {
+
+                        Task {
+
+                            await viewModel.loadMore()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .frame(
+                        minHeight:
+                            RawdeaSpacing.minimumTouchTarget
                     )
                 }
+
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.borderedProminent)
+            .padding(
+                .vertical,
+                RawdeaSpacing.sm
+            )
+            .listRowSeparator(.hidden)
+            .listRowBackground(
+                RawdeaPalette.canvas
+            )
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 36)
-        .listRowSeparator(.hidden)
+    }
+
+    // MARK: - Refresh
+
+    @MainActor
+    private func refreshSearch() async {
+
+        guard cleanedQuery.count >= 2 else {
+            return
+        }
+
+        await viewModel.search(
+            query: cleanedQuery,
+            category: selectedCategory
+        )
     }
 }

@@ -5,7 +5,6 @@
 //  Created by Lin Thit Khant on 16/11/2569 BE.
 //
 
-
 import Foundation
 import Combine
 
@@ -15,43 +14,65 @@ final class SavedPostsViewModel: ObservableObject {
     @Published private(set) var posts: [Post] = []
 
     @Published private(set) var hasBookmarks = false
+
     @Published private(set) var hasLoaded = false
 
     @Published private(set) var isLoading = false
+
     @Published private(set) var removingPostId: UUID?
 
     @Published private(set) var errorMessage: String?
+
     @Published private(set) var actionErrorMessage: String?
 
     private let service: BookmarkService
 
     init(
-        service: BookmarkService = BookmarkService()
+        service: BookmarkService =
+            BookmarkService()
     ) {
+
         self.service = service
     }
-    
-    
-    // MARK: - Revalidate Saved Posts
+
+    var isBusy: Bool {
+
+        isLoading ||
+        removingPostId != nil
+    }
+
+    // MARK: - Revalidate visibility
 
     func reloadVisiblePosts() async {
 
-        guard !isLoading,
-              removingPostId == nil else {
+        guard !isBusy else {
             return
         }
+
+        // Never keep previously loaded content
+        // during a fresh visibility check.
 
         posts = []
         hasBookmarks = false
         hasLoaded = false
 
-        await loadPosts()
+        await fetchSnapshot()
     }
 
-
-    // MARK: - Load Saved Posts
+    // MARK: - Refresh saved posts
 
     func loadPosts() async {
+
+        guard !isBusy else {
+            return
+        }
+
+        await fetchSnapshot()
+    }
+
+    // MARK: - Shared snapshot loading
+
+    private func fetchSnapshot() async {
 
         guard !isLoading else {
             return
@@ -61,6 +82,7 @@ final class SavedPostsViewModel: ObservableObject {
         errorMessage = nil
 
         defer {
+
             isLoading = false
         }
 
@@ -72,13 +94,17 @@ final class SavedPostsViewModel: ObservableObject {
             try Task.checkCancellation()
 
             posts = snapshot.posts
+
             hasBookmarks = snapshot.hasBookmarks
+
             hasLoaded = true
 
         } catch is CancellationError {
+
             return
 
         } catch {
+
             guard !Task.isCancelled else {
                 return
             }
@@ -87,19 +113,26 @@ final class SavedPostsViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Remove From Saved Posts
+    // MARK: - Unsave
 
-    func removePost(postId: UUID) async {
+    func removePost(
+        postId: UUID
+    ) async {
 
-        guard !isLoading,
-              removingPostId == nil else {
+        guard !isBusy,
+              posts.contains(
+                where: { $0.id == postId }
+              ) else {
+
             return
         }
 
         removingPostId = postId
+
         actionErrorMessage = nil
 
         defer {
+
             removingPostId = nil
         }
 
@@ -109,23 +142,32 @@ final class SavedPostsViewModel: ObservableObject {
                 postId: postId
             )
 
-            // Immediately remove the row.
-
-            posts.removeAll {
-                $0.id == postId
-            }
-
-            // Refresh to keep the collection
-            // and its empty state consistent.
-
-            await loadPosts()
-
         } catch {
-            actionErrorMessage = error.localizedDescription
+
+            // The removal failed. Do not hide
+            // the original saved post.
+
+            actionErrorMessage =
+                error.localizedDescription
+
+            return
         }
+
+        // The database confirmed removal.
+        // Update the visible list immediately.
+
+        posts.removeAll {
+            $0.id == postId
+        }
+
+        // Reconcile the remaining bookmarks,
+        // including any newly available posts.
+
+        await fetchSnapshot()
     }
 
     func clearActionError() {
+
         actionErrorMessage = nil
     }
 }

@@ -5,7 +5,6 @@
 //  Created by Lin Thit Khant on 16/11/2569 BE.
 //
 
-
 import Foundation
 import Combine
 
@@ -19,60 +18,79 @@ final class NotificationsViewModel: ObservableObject {
 
     @Published private(set) var unreadCount = 0
 
-    // MARK: - Loading State
+    // MARK: - Loading
 
     @Published private(set) var isLoading = false
+
     @Published private(set) var hasLoaded = false
 
     @Published private(set) var isMarkingAll = false
 
-    @Published private(set) var updatingIds: Set<UUID> = []
+    @Published private(set) var updatingIds:
+        Set<UUID> = []
 
     // MARK: - Errors
 
     @Published private(set) var errorMessage: String?
+
     @Published private(set) var actionErrorMessage: String?
 
     private let service: NotificationService
 
+    // Identifies the latest badge request.
+    private var badgeRequestID = UUID()
+
     init(
-        service: NotificationService = NotificationService()
+        service: NotificationService =
+            NotificationService()
     ) {
+
         self.service = service
     }
 
-    
-    // MARK: - Revalidate Notifications
+    private var isBusy: Bool {
+
+        isLoading ||
+        isMarkingAll ||
+        !updatingIds.isEmpty
+    }
+
+    // MARK: - Revalidate notifications
 
     func reloadVisibleNotifications() async {
 
-        guard !isLoading,
-              !isMarkingAll,
-              updatingIds.isEmpty else {
+        guard !isBusy else {
             return
         }
 
+        // Clear potentially outdated rows before
+        // checking their current visibility.
+
         notifications = []
-        unreadCount = 0
         hasLoaded = false
+
+        // Do not set unreadCount to zero here.
+        // Keep the last confirmed badge value.
 
         await loadNotifications()
     }
 
-    // MARK: - Fetch Notifications
+    // MARK: - Load notifications
 
     func loadNotifications() async {
 
-        guard !isLoading,
-              !isMarkingAll,
-              updatingIds.isEmpty else {
+        guard !isBusy else {
             return
         }
 
         isLoading = true
         errorMessage = nil
 
+        // Invalidate any older badge request.
+        badgeRequestID = UUID()
+
         defer {
+
             isLoading = false
         }
 
@@ -81,17 +99,15 @@ final class NotificationsViewModel: ObservableObject {
             let loaded = try await service
                 .fetchNotifications()
 
-            let count = try await service
-                .fetchUnreadCount()
-
             try Task.checkCancellation()
 
             notifications = loaded
-            unreadCount = count
-
             hasLoaded = true
 
+            await updateUnreadCount()
+
         } catch is CancellationError {
+
             return
 
         } catch {
@@ -104,9 +120,26 @@ final class NotificationsViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Refresh Badge Count
+    // MARK: - External badge refresh
 
     func refreshUnreadCount() async {
+
+        guard !isBusy else {
+            // The active operation will perform
+            // its own badge refresh.
+            return
+        }
+
+        await updateUnreadCount()
+    }
+
+    // MARK: - Latest count wins
+
+    private func updateUnreadCount() async {
+
+        let requestID = UUID()
+
+        badgeRequestID = requestID
 
         do {
 
@@ -115,38 +148,50 @@ final class NotificationsViewModel: ObservableObject {
 
             try Task.checkCancellation()
 
-            unreadCount = count
+            guard badgeRequestID == requestID else {
+                return
+            }
 
-        } catch is CancellationError {
-            return
+            unreadCount = count
 
         } catch {
 
-            // Do not destroy an existing badge
-            // count because one refresh failed.
+            // A failed count refresh must not
+            // erase the last confirmed count.
         }
     }
 
-    // MARK: - Mark One as Read
+    // MARK: - Mark one as read
 
+    @discardableResult
     func markAsRead(
         notificationId: UUID
-    ) async {
+    ) async -> Bool {
 
-        guard !isLoading,
-              !isMarkingAll,
-              !updatingIds.contains(notificationId),
+        guard !isBusy,
               let existing = notifications.first(
-                where: { $0.id == notificationId }
-              ),
-              !existing.isRead else {
-            return
+                where: {
+                    $0.id == notificationId
+                }
+              ) else {
+
+            return false
+        }
+
+        actionErrorMessage = nil
+
+        if existing.isRead {
+
+            return true
         }
 
         updatingIds.insert(notificationId)
-        actionErrorMessage = nil
+
+        // Older badge results are no longer valid.
+        badgeRequestID = UUID()
 
         defer {
+
             updatingIds.remove(notificationId)
         }
 
@@ -156,36 +201,60 @@ final class NotificationsViewModel: ObservableObject {
                 notificationId: notificationId
             )
 
-            if let index = notifications.firstIndex(
-                where: { $0.id == notificationId }
-            ) {
+            if let index =
+                notifications.firstIndex(
+                    where: {
+                        $0.id == notificationId
+                    }
+                ) {
 
                 notifications[index].isRead = true
             }
 
-            unreadCount = max(0, unreadCount - 1)
+            // Update immediately after the
+            // successful database mutation.
+
+            unreadCount = max(
+                0,
+                unreadCount - 1
+            )
+
+            // Reconcile with the server, including
+            // notifications that may have arrived.
+
+            await updateUnreadCount()
+
+            return true
 
         } catch {
 
-            actionErrorMessage = error.localizedDescription
+            actionErrorMessage =
+                error.localizedDescription
+
+            return false
         }
     }
 
-    // MARK: - Mark All as Read
+    // MARK: - Mark all as read
 
     func markAllAsRead() async {
 
-        guard !isLoading,
-              !isMarkingAll,
-              updatingIds.isEmpty,
-              unreadCount > 0 else {
+        guard !isBusy,
+              unreadCount > 0 ||
+              notifications.contains(
+                where: { !$0.isRead }
+              ) else {
+
             return
         }
 
         isMarkingAll = true
         actionErrorMessage = nil
 
+        badgeRequestID = UUID()
+
         defer {
+
             isMarkingAll = false
         }
 
@@ -193,28 +262,27 @@ final class NotificationsViewModel: ObservableObject {
 
             try await service.markAllAsRead()
 
-            // Database update succeeded.
-            // Update visible rows immediately.
-
             for index in notifications.indices {
+
                 notifications[index].isRead = true
             }
 
             unreadCount = 0
 
-            // Recheck for events that arrived
-            // around the same time as the update.
+            // Reconcile with newly arrived
+            // notifications after marking all read.
 
-            unreadCount = try await service
-                .fetchUnreadCount()
+            await updateUnreadCount()
 
         } catch {
 
-            actionErrorMessage = error.localizedDescription
+            actionErrorMessage =
+                error.localizedDescription
         }
     }
 
     func clearActionError() {
+
         actionErrorMessage = nil
     }
 }
