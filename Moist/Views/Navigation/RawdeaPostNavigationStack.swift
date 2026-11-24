@@ -5,24 +5,19 @@
 //  Created by Lin Thit Khant on 22/11/2569 BE.
 //
 
-
-
 import SwiftUI
-
-// MARK: - Navigation destinations
 
 enum RawdeaPostRoute: Hashable {
 
     case author(UUID)
     case discussion(UUID)
     case project(UUID)
-
-    // Saved Posts now participates in the
-    // same navigation path as post routes.
     case savedPosts
-}
 
-// MARK: - Navigation environment
+    // Profile → Following participates in
+    // the same value-based navigation path.
+    case following
+}
 
 private struct RawdeaPostRouteActionKey:
     EnvironmentKey {
@@ -45,8 +40,6 @@ extension EnvironmentValues {
         }
     }
 }
-
-// MARK: - Navigation stack
 
 struct RawdeaPostNavigationStack<Content: View>: View {
 
@@ -92,6 +85,10 @@ struct RawdeaPostNavigationStack<Content: View>: View {
                     case .savedPosts:
 
                         SavedPostsView()
+
+                    case .following:
+
+                        FollowingView()
                     }
                 }
         }

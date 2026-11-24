@@ -14,7 +14,8 @@ struct ProjectDetailView: View {
     let project: Project
     let projects: [Project]
 
-    @StateObject private var viewModel = FeedViewModel()
+    @StateObject private var viewModel =
+        FeedViewModel()
 
     @StateObject private var followViewModel =
         ProjectFollowViewModel()
@@ -23,129 +24,54 @@ struct ProjectDetailView: View {
     @State private var selectedPostForMoving: Post?
     @State private var currentUserId: UUID?
 
+    private var isOwner: Bool {
+        currentUserId == project.userId
+    }
+
     var body: some View {
 
         VStack(spacing: 0) {
 
-            // New Project follow header
-
-            projectFollowHeader
+            projectHeader
 
             Divider()
+                .overlay(RawdeaPalette.divider)
 
-            // Existing Project posts
-
-            Group {
-
-                if viewModel.isLoading && viewModel.posts.isEmpty {
-
-                    ProgressView("Loading projects...")
-
-                } else if let error = viewModel.errorMessage,
-                          viewModel.posts.isEmpty {
-
-                    VStack(spacing: 12) {
-
-                        Text("Couldn't load posts")
-                            .font(.headline)
-
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Button("Try Again") {
-                            Task {
-                                await viewModel.loadPosts(
-                                    projectId: project.id
-                                )
-                            }
-                        }
-                    }
-                    .padding()
-
-                } else if viewModel.posts.isEmpty {
-
-                    ContentUnavailableView(
-                        "An unfinished beginning",
-                        systemImage: "text.bubble",
-                        description: Text(
-                            "Move a thought here whenever you're ready."
-                        )
-                    )
-
-                } else {
-
-                    List {
-
-                        ForEach(viewModel.posts) { post in
-
-                            PostRowView(
-                                post: post,
-                                currentUserId: currentUserId,
-
-                                onEdit: {
-                                    selectedPostForEditing = post
-                                },
-
-                                onDelete: {
-                                    Task {
-                                        await viewModel.deletePost(
-                                            postId: post.id
-                                        )
-                                    }
-                                },
-
-                                onMove: {
-                                    selectedPostForMoving = post
-                                },
-
-                                onHide: {
-                                    Task {
-                                        await viewModel.setPostHidden(
-                                            postId: post.id,
-                                            hidden: !post.isHidden
-                                        )
-                                    }
-                                }
-                            )
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(RawdeaPalette.canvas)
-                            .scrollContentBackground(.hidden)
-                            .background(RawdeaPalette.canvas)
-                        }
-                    }
-                    .listStyle(.plain)
-                    .refreshable {
-                        await viewModel.loadPosts(
-                            projectId: project.id
-                        )
-                    }
-                }
-            }
+            projectPosts
         }
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity
+        )
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationTitle(project.name)
         .navigationBarTitleDisplayMode(.inline)
 
-        // Existing Project post loading
+        // MARK: - Load posts
 
         .task(id: project.id) {
+
             await viewModel.loadPosts(
                 projectId: project.id
             )
         }
 
-        // New Project follow loading
+        // MARK: - Load follow state
 
         .task(id: project.id) {
+
             await followViewModel.load(
                 project: project
             )
         }
 
-        // Existing authenticated user lookup
+        // MARK: - Identify viewer
 
         .task {
+
             if let user = try? await SupabaseManager
                 .client.auth.session.user {
 
@@ -153,7 +79,7 @@ struct ProjectDetailView: View {
             }
         }
 
-        // Existing edit sheet
+        // MARK: - Edit
 
         .sheet(item: $selectedPostForEditing) { post in
 
@@ -163,7 +89,7 @@ struct ProjectDetailView: View {
             )
         }
 
-        // Existing move sheet
+        // MARK: - Move
 
         .sheet(item: $selectedPostForMoving) { post in
 
@@ -171,6 +97,7 @@ struct ProjectDetailView: View {
                 post: post,
                 projects: projects,
                 onMoved: {
+
                     await viewModel.loadPosts(
                         projectId: project.id
                     )
@@ -178,7 +105,7 @@ struct ProjectDetailView: View {
             )
         }
 
-        // Existing deletion alert
+        // MARK: - Delete error
 
         .alert(
             "Couldn't delete post",
@@ -186,8 +113,9 @@ struct ProjectDetailView: View {
                 get: {
                     viewModel.deletionErrorMessage != nil
                 },
-                set: { isPresented in
-                    if !isPresented {
+                set: { presented in
+
+                    if !presented {
                         viewModel.clearDeletionError()
                     }
                 }
@@ -195,15 +123,18 @@ struct ProjectDetailView: View {
         ) {
 
             Button("OK", role: .cancel) {
+
                 viewModel.clearDeletionError()
             }
 
         } message: {
 
-            Text(viewModel.deletionErrorMessage ?? "")
+            Text(
+                viewModel.deletionErrorMessage ?? ""
+            )
         }
 
-        // Existing visibility alert
+        // MARK: - Visibility error
 
         .alert(
             "Couldn't change post visibility",
@@ -211,8 +142,9 @@ struct ProjectDetailView: View {
                 get: {
                     viewModel.visibilityErrorMessage != nil
                 },
-                set: { isPresented in
-                    if !isPresented {
+                set: { presented in
+
+                    if !presented {
                         viewModel.clearVisibilityError()
                     }
                 }
@@ -220,104 +152,293 @@ struct ProjectDetailView: View {
         ) {
 
             Button("OK", role: .cancel) {
+
                 viewModel.clearVisibilityError()
             }
 
         } message: {
 
-            Text(viewModel.visibilityErrorMessage ?? "")
+            Text(
+                viewModel.visibilityErrorMessage ?? ""
+            )
         }
     }
 
-    // MARK: - Project Follow Header
+    // MARK: - Header
 
-    private var projectFollowHeader: some View {
+    private var projectHeader: some View {
 
-        VStack(alignment: .leading, spacing: 12) {
+        RawdeaProjectSurface {
 
-            HStack(spacing: 12) {
+            VStack(
+                alignment: .leading,
+                spacing: RawdeaSpacing.md
+            ) {
 
-                VStack(
-                    alignment: .leading,
-                    spacing: 6
-                ) {
+                RawdeaProjectCard(
+                    project: project,
+                    showsOwnerStatus: isOwner
+                )
 
-                    Text(project.name)
-                        .font(.headline)
+                if followViewModel.isLoading &&
+                   !followViewModel.hasLoaded {
 
-                    if followViewModel.hasLoaded {
+                    ProgressView(
+                        "Loading Project details..."
+                    )
 
-                        Text(
-                            "\(followViewModel.followerCount) followers"
+                } else if followViewModel.hasLoaded {
+
+                    HStack(
+                        spacing: RawdeaSpacing.sm
+                    ) {
+
+                        Label(
+                            "\(followViewModel.followerCount) followers",
+                            systemImage: "person.2"
                         )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-                }
+                        .font(
+                            RawdeaTypography.metadata
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
 
-                Spacer()
+                        Spacer(minLength: 0)
 
-                if followViewModel.isLoading {
+                        if !followViewModel.isOwnProject &&
+                           !project.isHidden &&
+                           !project.isArchived {
 
-                    ProgressView()
+                            Button {
 
-                } else if followViewModel.hasLoaded &&
-                          !followViewModel.isOwnProject &&
-                          !project.isHidden &&
-                          !project.isArchived {
+                                Task {
 
-                    Button {
+                                    await followViewModel
+                                        .toggleFollow(
+                                            project: project
+                                        )
+                                }
 
-                        Task {
-                            await followViewModel.toggleFollow(
-                                project: project
-                            )
-                        }
+                            } label: {
 
-                    } label: {
+                                HStack(
+                                    spacing: RawdeaSpacing.xs
+                                ) {
 
-                        HStack(spacing: 6) {
+                                    if followViewModel.isUpdating {
 
-                            if followViewModel.isUpdating {
-                                ProgressView()
+                                        ProgressView()
+                                            .accessibilityHidden(true)
+                                    }
+
+                                    Text(
+                                        followViewModel.isFollowing
+                                        ? "Following"
+                                        : "Follow"
+                                    )
+                                    .font(
+                                        RawdeaTypography.authorName
+                                    )
+                                }
+                                .frame(
+                                    minHeight:
+                                        RawdeaSpacing.minimumTouchTarget
+                                )
                             }
-
-                            Text(
+                            .buttonStyle(.borderedProminent)
+                            .tint(RawdeaPalette.accent)
+                            .disabled(
+                                followViewModel.isUpdating
+                            )
+                            .accessibilityLabel(
                                 followViewModel.isFollowing
-                                ? "Following"
-                                : "Follow"
+                                ? "Unfollow Project"
+                                : "Follow Project"
                             )
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(followViewModel.isUpdating)
                 }
-            }
 
-            if let error = followViewModel.errorMessage {
+                if let error =
+                    followViewModel.errorMessage {
 
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                    RawdeaInlineError(
+                        message: error
+                    )
 
-                if !followViewModel.hasLoaded {
+                    if !followViewModel.hasLoaded {
 
-                    Button("Retry Follow Status") {
-                        Task {
-                            await followViewModel.load(
-                                project: project
-                            )
+                        Button(
+                            "Retry Follow Status"
+                        ) {
+
+                            Task {
+
+                                await followViewModel.load(
+                                    project: project
+                                )
+                            }
                         }
+                        .frame(
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
                     }
-                    .buttonStyle(.bordered)
                 }
             }
         }
-        .padding()
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
+        .padding(
+            .horizontal,
+            RawdeaSpacing.screenInset
+        )
+        .padding(
+            .vertical,
+            RawdeaSpacing.md
         )
     }
-}
 
+    // MARK: - Project posts
+
+    @ViewBuilder
+    private var projectPosts: some View {
+
+        if viewModel.isLoading &&
+           viewModel.posts.isEmpty {
+
+            ProgressView("Loading posts...")
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
+
+        } else if let error =
+            viewModel.errorMessage,
+            viewModel.posts.isEmpty {
+
+            RawdeaEmptyState(
+                symbol: "exclamationmark.circle",
+                title: "Couldn't load posts",
+                message: error,
+                actionTitle: "Try Again"
+            ) {
+
+                Task {
+
+                    await viewModel.loadPosts(
+                        projectId: project.id
+                    )
+                }
+            }
+
+        } else if viewModel.posts.isEmpty {
+
+            RawdeaEmptyState(
+                symbol: "text.bubble",
+                title: "An unfinished beginning",
+                message:
+                    isOwner
+                    ? "Move a thought here whenever you're ready."
+                    : "No public posts are available in this Project yet."
+            )
+
+        } else {
+
+            List {
+
+                ForEach(viewModel.posts) { post in
+
+                    VStack(spacing: 0) {
+
+                        PostRowView(
+                            post: post,
+                            currentUserId: currentUserId,
+                            onEdit: {
+
+                                selectedPostForEditing = post
+                            },
+                            onDelete: {
+
+                                Task {
+
+                                    await viewModel.deletePost(
+                                        postId: post.id
+                                    )
+                                }
+                            },
+                            onMove: {
+
+                                selectedPostForMoving = post
+                            },
+                            onHide: {
+
+                                Task {
+
+                                    await viewModel.setPostHidden(
+                                        postId: post.id,
+                                        hidden: !post.isHidden
+                                    )
+                                }
+                            }
+                        )
+
+                        Divider()
+                            .overlay(
+                                RawdeaPalette.divider
+                            )
+                            .padding(
+                                .horizontal,
+                                RawdeaSpacing.screenInset
+                            )
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+                }
+
+                if let error = viewModel.errorMessage {
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: RawdeaSpacing.xs
+                    ) {
+
+                        RawdeaInlineError(
+                            message:
+                                "Couldn't refresh posts. \(error)"
+                        )
+
+                        Button("Try Again") {
+
+                            Task {
+
+                                await viewModel.loadPosts(
+                                    projectId: project.id
+                                )
+                            }
+                        }
+                        .frame(
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
+                    }
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(RawdeaPalette.canvas)
+            .refreshable {
+
+                await viewModel.loadPosts(
+                    projectId: project.id
+                )
+            }
+        }
+    }
+}

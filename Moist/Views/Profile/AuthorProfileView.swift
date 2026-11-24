@@ -122,106 +122,15 @@ struct AuthorProfileView: View {
                             profile: profile
                         )
 
-                        // MARK: - Existing Following
+                        // MARK: - Following
 
-                        VStack(spacing: 12) {
-
-                            if followViewModel.isLoading {
-
-                                ProgressView("Loading follows...")
-
-                            } else if followViewModel.hasLoaded {
-
-                                HStack(spacing: 24) {
-
-                                    VStack(spacing: 4) {
-
-                                        Text(
-                                            "\(followViewModel.followerCount)"
-                                        )
-                                        .fontWeight(.semibold)
-
-                                        Text("Followers")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    VStack(spacing: 4) {
-
-                                        Text(
-                                            "\(followViewModel.followingCount)"
-                                        )
-                                        .fontWeight(.semibold)
-
-                                        Text("Following")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-
-                                if !followViewModel.isOwnProfile {
-
-                                    Button {
-
-                                        Task {
-
-                                            await followViewModel.toggleFollow(
-                                                userId: userId
-                                            )
-                                        }
-
-                                    } label: {
-
-                                        HStack(spacing: 8) {
-
-                                            if followViewModel.isUpdating {
-
-                                                ProgressView()
-                                            }
-
-                                            Label(
-                                                followViewModel.isFollowing
-                                                ? "Following"
-                                                : "Follow",
-                                                systemImage:
-                                                    followViewModel.isFollowing
-                                                ? "checkmark"
-                                                : "person.badge.plus"
-                                            )
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(
-                                        followViewModel.isUpdating ||
-                                        blockViewModel.isUpdating
-                                    )
-                                }
-                            }
-
-                            if let error = followViewModel.errorMessage {
-
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundStyle(.red)
-                                    .multilineTextAlignment(.center)
-
-                                if !followViewModel.hasLoaded {
-
-                                    Button("Retry Follow Status") {
-
-                                        Task {
-                                            await followViewModel.load(
-                                                userId: userId
-                                            )
-                                        }
-                                    }
-                                    .buttonStyle(.bordered)
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-
+                        RawdeaUserFollowSection(
+                            userId: userId,
+                            viewModel: followViewModel,
+                            isInteractionBlocked:
+                                blockViewModel.isUpdating
+                        )
+                        
                         Divider()
 
                         // Preserve existing public
@@ -231,7 +140,14 @@ struct AuthorProfileView: View {
                             userId: userId
                         )
                     }
-                    .padding()
+                    .padding(
+                        .horizontal,
+                        RawdeaSpacing.screenInset
+                    )
+                    .padding(
+                        .vertical,
+                        RawdeaSpacing.lg
+                    )
                 }
 
             } else {
@@ -243,6 +159,10 @@ struct AuthorProfileView: View {
                     )
             }
         }
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
 
