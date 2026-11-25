@@ -235,8 +235,11 @@ final class FeedViewModel: ObservableObject {
             return false
         }
         
-        guard trimmedContent.count <= 500 else {
+        guard RawdeaTextLength.count(trimmedContent) <=
+                RawdeaPostDraft.characterLimit else {
+
             editErrorMessage = "Post cannot exceed 500 characters."
+
             return false
         }
         

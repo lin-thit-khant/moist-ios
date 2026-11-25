@@ -9,6 +9,14 @@ import SwiftUI
 
 struct ProfileView: View {
     
+    var isSelected: Bool = true
+
+    @State private var isProfileContentVisible = false
+
+    @State private var isRefreshingProfileContent = false
+
+    @State private var needsProfileContentRefresh = false
+    
     @StateObject private var viewModel = ProfileViewModel()
         
     @State private var isAccountSuspended = false
@@ -190,29 +198,6 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.bordered)
                         .frame(maxWidth: .infinity)
-                        
-                        #if DEBUG
-
-                        // Temporary design-system testing entry.
-                        // Only included in development builds.
-
-                        NavigationLink {
-
-                            RawdeaDesignPreviewView()
-
-                        } label: {
-
-                            Label(
-                                "Design System Preview",
-                                systemImage: "paintpalette"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
-
-                        #endif
-
 
                         VStack(alignment: .leading, spacing: 12) {
                             
@@ -401,7 +386,7 @@ struct ProfileView: View {
                                             newProjectName.trimmingCharacters(
                                                 in: .whitespacesAndNewlines
                                             ).isEmpty ||
-                                            newProjectName.count > 80 ||
+                                            RawdeaTextLength.count(newProjectName) > 80 ||
                                             projectsViewModel.isCreating
                                         )
                                     }
@@ -419,25 +404,61 @@ struct ProfileView: View {
                         RawdeaSpacing.lg
                     )
                 }
-                .task(id: profile.id) {
-                    await postsViewModel.loadPosts(userId: profile.id)
-                    
-                    await projectsViewModel.loadProjects(userId: profile.id)
+                
+                .onAppear {
+
+                    isProfileContentVisible = true
+
+                    guard isSelected else {
+                        return
+                    }
+
+                    Task {
+
+                        await refreshProfileContent(
+                            userId: profile.id
+                        )
+                    }
+                }
+                .onDisappear {
+
+                    isProfileContentVisible = false
+                }
+                .onChange(of: isSelected) { _, selected in
+
+                    guard selected,
+                          isProfileContentVisible else {
+
+                        return
+                    }
+
+                    Task {
+
+                        await refreshProfileContent(
+                            userId: profile.id
+                        )
+                    }
                 }
                 .refreshable {
+
                     await viewModel.loadProfile()
-                    
+
                     isAccountSuspended = (
                         try? await ModerationService()
                             .isMyAccountSuspended()
                     ) ?? false
 
-                    if let profile = viewModel.profile {
-                        await postsViewModel.loadPosts(userId: profile.id)
+                    guard let currentProfile =
+                        viewModel.profile else {
+
+                        return
                     }
-                    
-                    await projectsViewModel.loadProjects(userId: profile.id)
+
+                    await refreshProfileContent(
+                        userId: currentProfile.id
+                    )
                 }
+
             } else {
                 ProgressView("Preparing profile...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -569,9 +590,11 @@ struct ProfileView: View {
                             projectNameDraft.trimmingCharacters(
                                 in: .whitespacesAndNewlines
                             ).isEmpty ||
-                            projectNameDraft.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            ).count > 80 ||
+                            RawdeaTextLength.count(
+                                projectNameDraft.trimmingCharacters(
+                                    in: .whitespacesAndNewlines
+                                )
+                            ) > 80 ||
                             projectsViewModel.isUpdating
                         )
                     }
@@ -619,13 +642,67 @@ struct ProfileView: View {
         }
     }
     
+    // MARK: - Refresh Profile Content
+
+    @MainActor
+    private func refreshProfileContent(
+        userId: UUID
+    ) async {
+
+        guard viewModel.profile?.id == userId else {
+            return
+        }
+
+        // If another refresh is already running,
+        // request one more pass instead of
+        // starting competing requests.
+
+        if isRefreshingProfileContent {
+
+            needsProfileContentRefresh = true
+
+            return
+        }
+
+        isRefreshingProfileContent = true
+
+        defer {
+
+            isRefreshingProfileContent = false
+            needsProfileContentRefresh = false
+        }
+
+        repeat {
+
+            needsProfileContentRefresh = false
+
+            guard !Task.isCancelled,
+                  viewModel.profile?.id == userId else {
+
+                return
+            }
+
+            await postsViewModel.loadPosts(
+                userId: userId
+            )
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            await projectsViewModel.loadProjects(
+                userId: userId
+            )
+
+        } while needsProfileContentRefresh &&
+                !Task.isCancelled
+    }
+
     private func latestNote(for projectId: UUID) -> String? {
         postsViewModel.posts.first {
             $0.projectId == projectId && !$0.isHidden
         }?.content
     }
-    
-    
     
     private func projectRow(
         _ project: Project

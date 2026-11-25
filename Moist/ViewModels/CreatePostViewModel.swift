@@ -33,8 +33,11 @@ final class CreatePostViewModel: ObservableObject {
             return false
         }
         
-        guard trimmedContent.count <= 500 else {
+        guard RawdeaTextLength.count(trimmedContent) <=
+                RawdeaPostDraft.characterLimit else {
+
             errorMessage = "Posts can be up to 500 characters."
+
             return false
         }
         

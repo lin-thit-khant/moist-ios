@@ -66,9 +66,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F98789E43094A0E600FD8EE0"
-            BuildableName = "Moist.app"
-            BlueprintName = "Moist"
-            ReferencedContainer = "container:Moist.xcodeproj">
+            BuildableName = "Rawdea.app"
+            BlueprintName = "Rawdea"
+            ReferencedContainer = "container:Rawdeag.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </LaunchAction>

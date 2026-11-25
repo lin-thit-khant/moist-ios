@@ -156,15 +156,14 @@ struct RawdeaMainTabView: View {
             }
             .tag(RawdeaTab.activity)
             .badge(notificationsViewModel.unreadCount)
-
-            // PROFILE
-
             
             // PROFILE
 
             RawdeaPostNavigationStack {
 
-                ProfileView()
+                ProfileView(
+                    isSelected: selectedTab == .profile
+                )
             }
             .tabItem {
                 Label(

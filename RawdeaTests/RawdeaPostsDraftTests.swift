@@ -141,4 +141,72 @@ final class RawdeaPostDraftTests: XCTestCase {
             )
         )
     }
+    
+    func testFamilyEmojiMatchesDatabaseLength() {
+
+        let draft = RawdeaPostDraft(
+            content: "👨‍👩‍👧‍👦"
+        )
+
+        XCTAssertEqual(draft.characterCount, 7)
+        XCTAssertEqual(draft.remainingCharacters, 493)
+        XCTAssertTrue(draft.isValid)
+    }
+
+    func testUnicodeExactlyAtDatabaseLimit() {
+
+        let draft = RawdeaPostDraft(
+            content: String(
+                repeating: "🇲🇲",
+                count: 250
+            )
+        )
+
+        XCTAssertEqual(draft.characterCount, 500)
+        XCTAssertEqual(draft.remainingCharacters, 0)
+        XCTAssertTrue(draft.isValid)
+    }
+
+    func testUnicodeOverDatabaseLimit() {
+
+        let draft = RawdeaPostDraft(
+            content: String(
+                repeating: "🇲🇲",
+                count: 250
+            ) + "a"
+        )
+
+        XCTAssertEqual(draft.characterCount, 501)
+        XCTAssertEqual(draft.remainingCharacters, -1)
+        XCTAssertTrue(draft.isOverLimit)
+        XCTAssertFalse(draft.isValid)
+    }
+
+    func testBurmeseCombiningCharacters() {
+
+        let text = "\u{1000}\u{103A}"
+
+        XCTAssertEqual(
+            RawdeaTextLength.count(text),
+            2
+        )
+    }
+
+    func testCombiningAccentMatchesDatabaseLength() {
+
+        let composed = "\u{00E9}"
+
+        let decomposed = "e\u{0301}"
+
+        XCTAssertEqual(
+            RawdeaTextLength.count(composed),
+            1
+        )
+
+        XCTAssertEqual(
+            RawdeaTextLength.count(decomposed),
+            2
+        )
+    }
+
 }

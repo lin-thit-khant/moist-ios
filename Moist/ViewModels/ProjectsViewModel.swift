@@ -46,7 +46,7 @@ final class ProjectsViewModel: ObservableObject {
         )
         
         guard !trimmedName.isEmpty,
-              trimmedName.count <= 80 else {
+              RawdeaTextLength.count(trimmedName) <= 80 else {
             errorMessage = "Enter a name of up to 80 characters."
             return false
         }
@@ -77,7 +77,8 @@ final class ProjectsViewModel: ObservableObject {
             in: .whitespacesAndNewlines
         )
         
-        guard !trimmed.isEmpty, trimmed.count <= 80 else {
+        guard !trimmed.isEmpty,
+              RawdeaTextLength.count(trimmed) <= 80 else {
             errorMessage = "Enter a name of up to 80 characters."
             return false
         }

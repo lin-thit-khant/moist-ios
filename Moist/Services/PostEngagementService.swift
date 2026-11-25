@@ -304,10 +304,12 @@ struct PostEngagementService {
         )
 
         guard !cleaned.isEmpty else {
+
             throw PostEngagementError.emptyComment
         }
 
-        guard cleaned.count <= 500 else {
+        guard RawdeaTextLength.count(cleaned) <= 500 else {
+
             throw PostEngagementError.commentTooLong
         }
 

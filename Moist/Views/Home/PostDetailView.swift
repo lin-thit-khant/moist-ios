@@ -51,9 +51,20 @@ struct PostDetailView: View {
         )
     }
 
+    private var commentCharacterCount: Int {
+
+        RawdeaTextLength.count(commentDraft)
+    }
+
+    private var editCharacterCount: Int {
+
+        RawdeaTextLength.count(editDraft)
+    }
+    
     private var canSendComment: Bool {
+
         !trimmedComment.isEmpty &&
-        commentDraft.count <= 500 &&
+        commentCharacterCount <= 500 &&
         !viewModel.isSubmittingComment &&
         !viewModel.isLoading
     }
@@ -694,20 +705,20 @@ struct PostDetailView: View {
 
             HStack {
 
-                Text("\(commentDraft.count)/500")
+                Text("\(commentCharacterCount)/500")
                     .font(RawdeaTypography.caption)
                     .foregroundStyle(
-                        commentDraft.count > 500
+                        commentCharacterCount > 500
                         ? RawdeaPalette.danger
                         : RawdeaPalette.secondaryText
                     )
                     .accessibilityLabel(
-                        "\(commentDraft.count) of 500 characters"
+                        "\(commentCharacterCount) of 500 characters"
                     )
 
                 Spacer(minLength: 0)
 
-                if commentDraft.count > 500 {
+                if commentCharacterCount > 500 {
 
                     Text("Comment is too long")
                         .font(
@@ -920,7 +931,7 @@ struct PostDetailView: View {
 
                     Spacer(minLength: 0)
 
-                    Text("\(editDraft.count)/500")
+                    Text("\(editCharacterCount)/500")
                         .font(
                             RawdeaTypography.caption
                         )
@@ -947,7 +958,7 @@ struct PostDetailView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(
                         trimmedEdit.isEmpty ||
-                        editDraft.count > 500 ||
+                        editCharacterCount > 500 ||
                         trimmedEdit == comment.content ||
                         viewModel.isEditingComment
                     )

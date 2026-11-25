@@ -47,9 +47,20 @@ struct EditProfileView: View {
         )
     }
 
+    private var displayNameCharacterCount: Int {
+
+        RawdeaTextLength.count(displayName)
+    }
+
+    private var bioCharacterCount: Int {
+
+        RawdeaTextLength.count(bio)
+    }
+
     private var isValid: Bool {
-        displayName.count <= 80 &&
-        bio.count <= 160
+
+        displayNameCharacterCount <= 80 &&
+        bioCharacterCount <= 160
     }
 
     private var hasUnsavedChanges: Bool {
@@ -92,9 +103,10 @@ struct EditProfileView: View {
                 .autocorrectionDisabled()
                 .font(RawdeaTypography.body)
                 .accessibilityLabel("Display name")
-
+                .disabled(viewModel.isSaving)
+                
                 characterStatus(
-                    count: displayName.count,
+                    count: displayNameCharacterCount,
                     limit: 80
                 )
 
@@ -116,9 +128,10 @@ struct EditProfileView: View {
                     .frame(minHeight: 130)
                     .scrollContentBackground(.hidden)
                     .accessibilityLabel("Bio")
-
+                    .disabled(viewModel.isSaving)
+                
                 characterStatus(
-                    count: bio.count,
+                    count: bioCharacterCount,
                     limit: 160
                 )
 

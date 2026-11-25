@@ -53,10 +53,21 @@ struct AuthFlowView: View {
 
             case .signedIn:
 
-                RawdeaMainTabView(
-                    authViewModel: authViewModel
-                )
+                if let userId = authViewModel.sessionUserId {
 
+                    RawdeaMainTabView(
+                        authViewModel: authViewModel
+                    )
+                    .id(userId)
+
+                } else {
+
+                    ProgressView("Preparing your account...")
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: .infinity
+                        )
+                }
             case .passwordRecovery:
 
                 NavigationStack {
@@ -65,6 +76,7 @@ struct AuthFlowView: View {
                         authViewModel: authViewModel
                     )
                 }
+                .id(authViewModel.sessionUserId)
             }
         }
         .background(

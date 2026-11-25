@@ -13,7 +13,7 @@ import Supabase
 final class AuthViewModel: ObservableObject {
 
     @Published private(set) var isLoading = false
-
+    @Published private(set) var sessionUserId: UUID?
     @Published private(set) var errorMessage: String?
     @Published private(set) var statusMessage: String?
     @Published private(set) var callBackError: String?
@@ -165,9 +165,7 @@ final class AuthViewModel: ObservableObject {
             try await SupabaseManager.client.auth
                 .signOut(scope: .local)
 
-            clearRecoveryState()
-
-            state = .signedOut
+            applySession(nil)
 
         } catch {
 
@@ -274,7 +272,7 @@ final class AuthViewModel: ObservableObject {
 
             clearRecoveryState()
 
-            state = .signedIn
+            applySession(session)
 
             statusMessage =
                 "Your password has been updated successfully."
@@ -388,6 +386,7 @@ final class AuthViewModel: ObservableObject {
         )
     }
 
+    
     private func applySession(
         _ session: Session?
     ) {
@@ -396,9 +395,18 @@ final class AuthViewModel: ObservableObject {
 
             clearRecoveryState()
 
+            sessionUserId = nil
             state = .signedOut
 
             return
+        }
+
+        // The signed-in interface belongs to
+        // this authenticated user's identity.
+
+        if sessionUserId != session.user.id {
+
+            sessionUserId = session.user.id
         }
 
         if recoveryUserId ==
@@ -413,6 +421,7 @@ final class AuthViewModel: ObservableObject {
             state = .signedIn
         }
     }
+
 
     // MARK: - Messages
 
@@ -481,9 +490,7 @@ final class AuthViewModel: ObservableObject {
 
                 case .signedOut:
 
-                    self.clearRecoveryState()
-
-                    self.state = .signedOut
+                    self.applySession(nil)
 
                 default:
 
