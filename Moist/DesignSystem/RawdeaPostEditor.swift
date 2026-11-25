@@ -99,6 +99,8 @@ struct RawdeaPostEditor: View {
                     RawdeaPalette.activityOutline,
                     lineWidth: 1
                 )
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
 
             // MARK: - Character status

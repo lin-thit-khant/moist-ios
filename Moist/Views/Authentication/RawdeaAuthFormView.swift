@@ -412,6 +412,27 @@ struct RawdeaAuthFormView: View {
                 authViewModel.isLoading
             )
         }
+        
+        if mode == .resetPassword {
+
+            Button("Cancel and Log Out") {
+
+                Task {
+
+                    await authViewModel.signOut()
+                }
+            }
+            .font(RawdeaTypography.secondary)
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+            .frame(
+                maxWidth: .infinity,
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
+            )
+            .disabled(authViewModel.isLoading)
+        }
     }
 
     // MARK: - Submit

@@ -17,7 +17,18 @@
 		F9878A2D30964C0D00FD8EE0 /* Local.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = F9878A2B30964C0D00FD8EE0 /* Local.xcconfig */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		F917F32E30B6A10800C5C19D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F98789DD3094A0E600FD8EE0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F98789E43094A0E600FD8EE0;
+			remoteInfo = Rawdea;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		F917F32A30B6A10800C5C19D /* RawdeaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RawdeaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F98789E53094A0E600FD8EE0 /* Rawdea.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rawdea.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F9878A2A30964C0D00FD8EE0 /* Hosted.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Hosted.xcconfig; sourceTree = "<group>"; };
 		F9878A2B30964C0D00FD8EE0 /* Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = "<group>"; };
@@ -34,6 +45,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F917F32B30B6A10800C5C19D /* RawdeaTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RawdeaTests;
+			sourceTree = "<group>";
+		};
 		F98789E73094A0E600FD8EE0 /* Moist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -45,6 +61,11 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F917F32730B6A10800C5C19D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 		F98789E23094A0E600FD8EE0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
@@ -65,6 +86,7 @@
 				F98789E73094A0E600FD8EE0 /* Moist */,
 				F9878A2A30964C0D00FD8EE0 /* Hosted.xcconfig */,
 				F9878A2B30964C0D00FD8EE0 /* Local.xcconfig */,
+				F917F32B30B6A10800C5C19D /* RawdeaTests */,
 				F98789E63094A0E600FD8EE0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -73,6 +95,7 @@
 			isa = PBXGroup;
 			children = (
 				F98789E53094A0E600FD8EE0 /* Rawdea.app */,
+				F917F32A30B6A10800C5C19D /* RawdeaTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,6 +103,27 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F917F32930B6A10800C5C19D /* RawdeaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F917F33030B6A10800C5C19D /* Build configuration list for PBXNativeTarget "RawdeaTests" */;
+			buildPhases = (
+				F917F32630B6A10800C5C19D /* Sources */,
+				F917F32730B6A10800C5C19D /* Frameworks */,
+				F917F32830B6A10800C5C19D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F917F32F30B6A10800C5C19D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F917F32B30B6A10800C5C19D /* RawdeaTests */,
+			);
+			name = RawdeaTests;
+			productName = RawdeaTests;
+			productReference = F917F32A30B6A10800C5C19D /* RawdeaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		F98789E43094A0E600FD8EE0 /* Rawdea */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F98789F03094A0E700FD8EE0 /* Build configuration list for PBXNativeTarget "Rawdea" */;
@@ -116,6 +160,10 @@
 				LastSwiftUpdateCheck = 2710;
 				LastUpgradeCheck = 2710;
 				TargetAttributes = {
+					F917F32930B6A10800C5C19D = {
+						CreatedOnToolsVersion = 27.1;
+						TestTargetID = F98789E43094A0E600FD8EE0;
+					};
 					F98789E43094A0E600FD8EE0 = {
 						CreatedOnToolsVersion = 27.1;
 					};
@@ -139,11 +187,17 @@
 			projectRoot = "";
 			targets = (
 				F98789E43094A0E600FD8EE0 /* Rawdea */,
+				F917F32930B6A10800C5C19D /* RawdeaTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		F917F32830B6A10800C5C19D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 		F98789E33094A0E600FD8EE0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
@@ -154,6 +208,11 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F917F32630B6A10800C5C19D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 		F98789E13094A0E600FD8EE0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -161,7 +220,103 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		F917F32F30B6A10800C5C19D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F98789E43094A0E600FD8EE0 /* Rawdea */;
+			targetProxy = F917F32E30B6A10800C5C19D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		F917F33130B6A10800C5C19D /* Debug configuration for PBXNativeTarget "RawdeaTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 92FTD89LAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.khant.linthit.RawdeaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rawdea.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Rawdea";
+			};
+			name = Debug;
+		};
+		F917F33230B6A10800C5C19D /* Local configuration for PBXNativeTarget "RawdeaTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 92FTD89LAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.khant.linthit.RawdeaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rawdea.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Rawdea";
+			};
+			name = Local;
+		};
+		F917F33330B6A10800C5C19D /* Hosted configuration for PBXNativeTarget "RawdeaTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 92FTD89LAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.khant.linthit.RawdeaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rawdea.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Rawdea";
+			};
+			name = Hosted;
+		};
+		F917F33430B6A10800C5C19D /* Release configuration for PBXNativeTarget "RawdeaTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 92FTD89LAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.khant.linthit.RawdeaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rawdea.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Rawdea";
+			};
+			name = Release;
+		};
 		F98789EE3094A0E700FD8EE0 /* Debug configuration for PBXProject "Rawdea" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -564,6 +719,16 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F917F33030B6A10800C5C19D /* Build configuration list for PBXNativeTarget "RawdeaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F917F33130B6A10800C5C19D /* Debug configuration for PBXNativeTarget "RawdeaTests" */,
+				F917F33230B6A10800C5C19D /* Local configuration for PBXNativeTarget "RawdeaTests" */,
+				F917F33330B6A10800C5C19D /* Hosted configuration for PBXNativeTarget "RawdeaTests" */,
+				F917F33430B6A10800C5C19D /* Release configuration for PBXNativeTarget "RawdeaTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
 		F98789E03094A0E600FD8EE0 /* Build configuration list for PBXProject "Rawdea" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -98,6 +98,10 @@ struct RawdeaPostNavigationStack<Content: View>: View {
             \.rawdeaOpenPostRoute,
             { route in
 
+                guard path.last != route else {
+                    return
+                }
+
                 path.append(route)
             }
         )

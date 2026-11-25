@@ -23,21 +23,44 @@ struct RawdeaPrimaryButton: View {
         isEnabled: Bool = true,
         action: @escaping () -> Void
     ) {
+
         self.title = title
         self.isLoading = isLoading
         self.isEnabled = isEnabled
         self.action = action
     }
 
+    private var usesAccent: Bool {
+
+        isEnabled || isLoading
+    }
+
+    private var foregroundColor: Color {
+
+        usesAccent
+        ? RawdeaPalette.onAccent
+        : RawdeaPalette.secondaryText
+    }
+
+    private var backgroundColor: Color {
+
+        usesAccent
+        ? RawdeaPalette.accent
+        : RawdeaPalette.surface
+    }
+
     var body: some View {
 
         Button(action: action) {
 
-            HStack(spacing: RawdeaSpacing.sm) {
+            HStack(
+                spacing: RawdeaSpacing.sm
+            ) {
 
                 if isLoading {
+
                     ProgressView()
-                        .tint(RawdeaPalette.onAccent)
+                        .tint(foregroundColor)
                         .accessibilityHidden(true)
                 }
 
@@ -48,25 +71,52 @@ struct RawdeaPrimaryButton: View {
                 )
                 .font(RawdeaTypography.button)
                 .multilineTextAlignment(.center)
+                .fixedSize(
+                    horizontal: false,
+                    vertical: true
+                )
             }
             .frame(maxWidth: .infinity)
             .frame(
-                minHeight: RawdeaSpacing.minimumTouchTarget
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
             )
-            .padding(.horizontal, RawdeaSpacing.md)
-            .padding(.vertical, RawdeaSpacing.xs)
-            .foregroundStyle(RawdeaPalette.onAccent)
+            .padding(
+                .horizontal,
+                RawdeaSpacing.md
+            )
+            .padding(
+                .vertical,
+                RawdeaSpacing.xs
+            )
+            .foregroundStyle(foregroundColor)
             .background(
-                RawdeaPalette.accent,
+                backgroundColor,
                 in: RoundedRectangle(
-                    cornerRadius: RawdeaSpacing.buttonRadius,
+                    cornerRadius:
+                        RawdeaSpacing.buttonRadius,
                     style: .continuous
                 )
             )
+            .overlay {
+
+                if !usesAccent {
+
+                    RoundedRectangle(
+                        cornerRadius:
+                            RawdeaSpacing.buttonRadius,
+                        style: .continuous
+                    )
+                    .strokeBorder(
+                        RawdeaPalette.activityOutline,
+                        lineWidth: 1
+                    )
+                    .allowsHitTesting(false)
+                }
+            }
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled || isLoading)
-        .opacity(isEnabled ? 1 : 0.6)
         .accessibilityLabel(
             isLoading
             ? "\(title), in progress"

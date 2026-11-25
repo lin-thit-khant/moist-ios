@@ -30,15 +30,7 @@ struct ProjectDetailView: View {
 
     var body: some View {
 
-        VStack(spacing: 0) {
-
-            projectHeader
-
-            Divider()
-                .overlay(RawdeaPalette.divider)
-
-            projectPosts
-        }
+        projectPosts
         .frame(
             maxWidth: .infinity,
             maxHeight: .infinity
@@ -300,51 +292,87 @@ struct ProjectDetailView: View {
 
     // MARK: - Project posts
 
-    @ViewBuilder
     private var projectPosts: some View {
 
-        if viewModel.isLoading &&
-           viewModel.posts.isEmpty {
+        List {
 
-            ProgressView("Loading posts...")
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
-                )
+            // The header now scrolls with the
+            // remaining Project content.
 
-        } else if let error =
-            viewModel.errorMessage,
-            viewModel.posts.isEmpty {
+            VStack(spacing: 0) {
 
-            RawdeaEmptyState(
-                symbol: "exclamationmark.circle",
-                title: "Couldn't load posts",
-                message: error,
-                actionTitle: "Try Again"
-            ) {
+                projectHeader
 
-                Task {
-
-                    await viewModel.loadPosts(
-                        projectId: project.id
-                    )
-                }
+                Divider()
+                    .overlay(RawdeaPalette.divider)
             }
-
-        } else if viewModel.posts.isEmpty {
-
-            RawdeaEmptyState(
-                symbol: "text.bubble",
-                title: "An unfinished beginning",
-                message:
-                    isOwner
-                    ? "Move a thought here whenever you're ready."
-                    : "No public posts are available in this Project yet."
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(
+                RawdeaPalette.canvas
             )
 
-        } else {
+            // MARK: - Loading
 
-            List {
+            if viewModel.isLoading &&
+               viewModel.posts.isEmpty {
+
+                ProgressView("Loading posts...")
+                    .frame(maxWidth: .infinity)
+                    .padding(
+                        .vertical,
+                        RawdeaSpacing.xl
+                    )
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RawdeaPalette.canvas
+                    )
+
+            // MARK: - Initial error
+
+            } else if let error =
+                viewModel.errorMessage,
+                viewModel.posts.isEmpty {
+
+                RawdeaEmptyState(
+                    symbol: "exclamationmark.circle",
+                    title: "Couldn't load posts",
+                    message: error,
+                    actionTitle: "Try Again"
+                ) {
+
+                    Task {
+
+                        await viewModel.loadPosts(
+                            projectId: project.id
+                        )
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
+
+            // MARK: - Empty Project
+
+            } else if viewModel.posts.isEmpty {
+
+                RawdeaEmptyState(
+                    symbol: "text.bubble",
+                    title: "An unfinished beginning",
+                    message:
+                        isOwner
+                        ? "Move a thought here whenever you're ready."
+                        : "No public posts are available in this Project yet."
+                )
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RawdeaPalette.canvas
+                )
+
+            // MARK: - Posts
+
+            } else {
 
                 ForEach(viewModel.posts) { post in
 
@@ -383,9 +411,7 @@ struct ProjectDetailView: View {
                         )
 
                         Divider()
-                            .overlay(
-                                RawdeaPalette.divider
-                            )
+                            .overlay(RawdeaPalette.divider)
                             .padding(
                                 .horizontal,
                                 RawdeaSpacing.screenInset
@@ -430,15 +456,17 @@ struct ProjectDetailView: View {
                     )
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(RawdeaPalette.canvas)
-            .refreshable {
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(RawdeaPalette.canvas)
 
-                await viewModel.loadPosts(
-                    projectId: project.id
-                )
-            }
+        .refreshable {
+
+            await viewModel.loadPosts(
+                projectId: project.id
+            )
         }
     }
+
 }

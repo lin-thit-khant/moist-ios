@@ -835,20 +835,17 @@ struct PostDetailView: View {
                     spacing: RawdeaSpacing.xxs
                 ) {
 
-                    NavigationLink {
-
-                        AuthorProfileView(
-                            userId: comment.userId
+                    
+                    NavigationLink(
+                        value: RawdeaPostRoute.author(
+                            comment.userId
                         )
-
-                    } label: {
+                    ) {
 
                         Text(
                             commentAuthorName(comment)
                         )
-                        .font(
-                            RawdeaTypography.authorName
-                        )
+                        .font(RawdeaTypography.authorName)
                         .foregroundStyle(
                             RawdeaPalette.primaryText
                         )
@@ -856,11 +853,20 @@ struct PostDetailView: View {
                             horizontal: false,
                             vertical: true
                         )
+                        .frame(
+                            minWidth:
+                                RawdeaSpacing.minimumTouchTarget,
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget,
+                            alignment: .leading
+                        )
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(
                         "View profile for \(commentAuthorName(comment))"
                     )
+
 
                     Text(
                         comment.createdAt,
