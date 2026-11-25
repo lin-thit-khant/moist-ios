@@ -108,7 +108,11 @@ struct BlockedUsersView: View {
             }
         }
         .listStyle(.insetGrouped)
-
+        .scrollContentBackground(.hidden)
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationTitle("Blocked Accounts")
         .navigationBarTitleDisplayMode(.inline)
 

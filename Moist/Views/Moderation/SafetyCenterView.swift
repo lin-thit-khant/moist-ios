@@ -212,22 +212,12 @@ struct SafetyCenterView: View {
                 }
             }
 
-            Section("Account") {
-
-                NavigationLink {
-
-                    DeleteAccountView()
-
-                } label: {
-
-                    Label(
-                        "Delete My Account",
-                        systemImage: "person.crop.circle.badge.minus"
-                    )
-                    .foregroundStyle(.red)
-                }
-            }
         }
+        .scrollContentBackground(.hidden)
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationTitle("Safety & Support")
         .navigationBarTitleDisplayMode(.inline)
 

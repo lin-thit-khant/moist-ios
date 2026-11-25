@@ -85,6 +85,12 @@ struct DeleteAccountView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
+        .navigationBarBackButtonHidden(isDeleting)
         .navigationTitle("Delete Account")
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(isDeleting)

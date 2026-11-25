@@ -35,6 +35,9 @@ final class AuthViewModel: ObservableObject {
     }
     
     func signUp(email: String, password: String) async {
+        guard !isLoading else {
+            return
+        }
         errorMessage = nil
         statusMessage = nil
         isLoading = true
@@ -61,6 +64,9 @@ final class AuthViewModel: ObservableObject {
     }
     
     func signIn(email: String, password: String) async {
+        guard !isLoading else {
+            return
+        }
         errorMessage = nil
         statusMessage = nil
         isLoading = true
@@ -80,6 +86,9 @@ final class AuthViewModel: ObservableObject {
     }
     
     func signOut() async {
+        guard !isLoading else {
+            return
+        }
         errorMessage = nil
         statusMessage = nil
         isLoading = true
@@ -96,6 +105,9 @@ final class AuthViewModel: ObservableObject {
     }
     
     func resetPassword(email: String) async {
+        guard !isLoading else {
+            return
+        }
         errorMessage = nil
         statusMessage = nil
         isLoading = true
@@ -128,6 +140,9 @@ final class AuthViewModel: ObservableObject {
     }
     
     func updatePassword(newPassword: String) async {
+        guard !isLoading else {
+            return
+        }
         errorMessage = nil
         statusMessage = nil
         isLoading = true
@@ -173,6 +188,16 @@ final class AuthViewModel: ObservableObject {
         }
 
         SupabaseManager.client.auth.handle(url)
+    }
+    
+    func clearMessages() {
+
+        guard !isLoading else {
+            return
+        }
+
+        errorMessage = nil
+        statusMessage = nil
     }
     
     func clearCallbackError() {

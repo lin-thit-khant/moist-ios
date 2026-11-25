@@ -13,10 +13,8 @@ enum RawdeaPostRoute: Hashable {
     case discussion(UUID)
     case project(UUID)
     case savedPosts
-
-    // Profile → Following participates in
-    // the same value-based navigation path.
     case following
+    case settings
 }
 
 private struct RawdeaPostRouteActionKey:
@@ -89,6 +87,10 @@ struct RawdeaPostNavigationStack<Content: View>: View {
                     case .following:
 
                         FollowingView()
+                        
+                    case .settings:
+
+                        RawdeaSettingsView()
                     }
                 }
         }

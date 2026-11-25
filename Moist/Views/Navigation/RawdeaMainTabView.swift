@@ -47,7 +47,6 @@ struct RawdeaMainTabView: View {
     @State private var recentlyCreatedPost: Post?
 
     @State private var isShowingCompose = false
-    @State private var logoutError: String?
 
     @Environment(\.scenePhase)
     private var scenePhase
@@ -160,38 +159,12 @@ struct RawdeaMainTabView: View {
 
             // PROFILE
 
+            
+            // PROFILE
+
             RawdeaPostNavigationStack {
 
                 ProfileView()
-                    .toolbar {
-
-                        // Temporary access to Log Out.
-                        // The approved Settings structure
-                        // is implemented in Batch 7.
-
-                        ToolbarItem(
-                            placement: .topBarTrailing
-                        ) {
-
-                            Button {
-                                Task {
-                                    await authViewModel.signOut()
-
-                                    if let error = authViewModel.errorMessage {
-                                        logoutError = error
-                                    }
-                                }
-                            } label: {
-                                if authViewModel.isLoading {
-                                    ProgressView()
-                                } else {
-                                    Text("Log Out")
-                                }
-                            }
-                            .disabled(authViewModel.isLoading)
-                            .accessibilityLabel("Log Out")
-                        }
-                    }
             }
             .tabItem {
                 Label(
@@ -203,8 +176,9 @@ struct RawdeaMainTabView: View {
                 )
             }
             .tag(RawdeaTab.profile)
-        }
 
+        }
+        .environmentObject(authViewModel)
         // Native five-tab styling.
         // There is no raised Create button.
         .tint(RawdeaPalette.accent)
@@ -256,27 +230,6 @@ struct RawdeaMainTabView: View {
                 await notificationsViewModel
                     .refreshUnreadCount()
             }
-        }
-
-        
-        .alert(
-            "Couldn't log out",
-            isPresented: Binding(
-                get: {
-                    logoutError != nil
-                },
-                set: { presented in
-                    if !presented {
-                        logoutError = nil
-                    }
-                }
-            )
-        ) {
-            Button("OK", role: .cancel) {
-                logoutError = nil
-            }
-        } message: {
-            Text(logoutError ?? "")
         }
     }
 

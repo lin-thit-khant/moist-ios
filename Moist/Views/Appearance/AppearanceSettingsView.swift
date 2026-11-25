@@ -108,6 +108,11 @@ struct AppearanceSettingsView: View {
             }
         }
         .navigationTitle("Appearance")
+        .scrollContentBackground(.hidden)
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationBarTitleDisplayMode(.inline)
     }
 }

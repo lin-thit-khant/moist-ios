@@ -5,7 +5,6 @@
 //  Created by Lin Thit Khant on 30/10/2569 BE.
 //
 
-
 import Foundation
 import SwiftUI
 
@@ -22,11 +21,31 @@ struct AuthFlowView: View {
 
             case .loading:
 
-                ProgressView("Loading Rawdea...")
+                VStack(
+                    spacing: RawdeaSpacing.md
+                ) {
+
+                    Text("Rawdea")
+                        .font(
+                            RawdeaTypography.screenTitle
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.primaryText
+                        )
+
+                    ProgressView(
+                        "Loading Rawdea..."
+                    )
+                }
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
 
             case .signedOut:
 
                 NavigationStack {
+
                     WelcomeView(
                         authViewModel: authViewModel
                     )
@@ -40,32 +59,41 @@ struct AuthFlowView: View {
 
             case .passwordRecovery:
 
-                ResetPasswordView(
-                    authViewModel: authViewModel
-                )
+                NavigationStack {
+
+                    ResetPasswordView(
+                        authViewModel: authViewModel
+                    )
+                }
             }
         }
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
 
-        // Preserve existing password-recovery
-        // and authentication deep-link handling.
+        // Preserve the existing deep-link flow.
+
         .onOpenURL { url in
 
             Task {
+
                 await authViewModel
                     .handleAuthCallback(url: url)
             }
         }
 
-        // Preserve the existing callback alert.
         .alert(
             "Authentication",
             isPresented: Binding(
                 get: {
+
                     authViewModel.callBackError != nil
                 },
                 set: { presented in
 
                     if !presented {
+
                         authViewModel.clearCallbackError()
                     }
                 }
@@ -73,6 +101,7 @@ struct AuthFlowView: View {
         ) {
 
             Button("OK", role: .cancel) {
+
                 authViewModel.clearCallbackError()
             }
 
@@ -84,3 +113,4 @@ struct AuthFlowView: View {
         }
     }
 }
+

@@ -10,9 +10,7 @@ import SwiftUI
 struct ProfileView: View {
     
     @StateObject private var viewModel = ProfileViewModel()
-    
-    @State private var canModerate = false
-    
+        
     @State private var isAccountSuspended = false
     
     @StateObject private var postsViewModel = FeedViewModel()
@@ -178,79 +176,6 @@ struct ProfileView: View {
                         .frame(maxWidth: .infinity)
                         
                         
-                        // MARK: - Safety and Support
-
-                        NavigationLink {
-
-                            SafetyCenterView()
-
-                        } label: {
-
-                            Label(
-                                "Safety & Support",
-                                systemImage: "heart.text.square"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
-
-                        
-                        // MARK: - Blocked Accounts
-
-                        NavigationLink {
-
-                            BlockedUsersView()
-
-                        } label: {
-
-                            Label(
-                                "Blocked Accounts",
-                                systemImage: "person.crop.circle.badge.xmark"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
-                        
-                        // MARK: - Moderation Dashboard
-
-                        if canModerate {
-
-                            NavigationLink {
-
-                                ModerationQueueView()
-
-                            } label: {
-
-                                Label(
-                                    "Moderation Queue",
-                                    systemImage: "checkmark.shield"
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .frame(maxWidth: .infinity)
-                            
-                            
-                            NavigationLink {
-
-                                ModerationSafetyInboxView()
-
-                            } label: {
-
-                                Label(
-                                    "Safety Support Inbox",
-                                    systemImage: "tray.full"
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .frame(maxWidth: .infinity)
-
-                        }
-
-                        
                         // MARK: - Saved Posts
 
                         NavigationLink(
@@ -266,23 +191,6 @@ struct ProfileView: View {
                         .buttonStyle(.bordered)
                         .frame(maxWidth: .infinity)
                         
-                        // MARK: - Appearance
-
-                        NavigationLink {
-
-                            AppearanceSettingsView()
-
-                        } label: {
-
-                            Label(
-                                "Appearance",
-                                systemImage: "circle.lefthalf.filled"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
-
                         #if DEBUG
 
                         // Temporary design-system testing entry.
@@ -541,28 +449,37 @@ struct ProfileView: View {
         )
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
+        
+        .toolbar {
+
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+
+                NavigationLink(
+                    value: RawdeaPostRoute.settings
+                ) {
+
+                    Image(systemName: "gearshape")
+                        .font(.system(.body))
+                        .frame(
+                            width:
+                                RawdeaSpacing.minimumTouchTarget,
+                            height:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Settings")
+                .accessibilityHint(
+                    "Opens account settings"
+                )
+            }
+        }
+
         .task {
             await viewModel.loadProfile()
         }
-        
-        .task(id: viewModel.profile?.id) {
-
-            guard viewModel.profile != nil else {
-                canModerate = false
-                return
-            }
-
-            do {
-
-                canModerate = try await ModerationService()
-                    .isModerator()
-
-            } catch {
-
-                canModerate = false
-            }
-        }
-
         
         .task(id: viewModel.profile?.id) {
 

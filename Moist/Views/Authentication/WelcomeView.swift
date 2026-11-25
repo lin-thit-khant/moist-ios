@@ -8,51 +8,174 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    @ObservedObject var authViewModel: AuthViewModel
-    
+
+    @ObservedObject var authViewModel:
+        AuthViewModel
+
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                Spacer()
-                
-                Text("Rawdea")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
 
-                Text("A quiet space for unfinished ideas.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                
-                Spacer()
-                
-                NavigationLink("Create account") {
-                    SignUpView(authViewModel: authViewModel)
-                }
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
-                
-                NavigationLink("Log in") {
-                    LoginView(authViewModel: authViewModel)
-                }
-                .buttonStyle(.bordered)
-                .frame(maxWidth: .infinity)
-                
-                
-                NavigationLink {
+        GeometryReader { geometry in
 
-                    SafetyInformationView()
+            ScrollView {
 
-                } label: {
+                VStack(
+                    spacing: RawdeaSpacing.lg
+                ) {
 
-                    Label(
-                        "Community Guidelines & Support",
-                        systemImage: "shield"
+                    Spacer(
+                        minLength: RawdeaSpacing.xl
                     )
-                }
-                .buttonStyle(.bordered)
 
+                    RawdeaAuthBrand()
+
+                    Spacer(
+                        minLength: RawdeaSpacing.xl
+                    )
+
+                    accountActions
+
+                    safetyLink
+                }
+                .frame(maxWidth: 480)
+                .padding(
+                    .horizontal,
+                    RawdeaSpacing.screenInset
+                )
+                .padding(
+                    .vertical,
+                    RawdeaSpacing.lg
+                )
+                .frame(
+                    minHeight: geometry.size.height
+                )
+                .frame(maxWidth: .infinity)
             }
-            .padding(24)
         }
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
+        .navigationBarTitleDisplayMode(.inline)
+
+        .onAppear {
+
+            authViewModel.clearMessages()
+        }
+    }
+
+    // MARK: - Account actions
+
+    private var accountActions: some View {
+
+        VStack(
+            spacing: RawdeaSpacing.sm
+        ) {
+
+            NavigationLink {
+
+                SignUpView(
+                    authViewModel: authViewModel
+                )
+
+            } label: {
+
+                Text("Create account")
+                    .font(
+                        RawdeaTypography.button
+                    )
+                    .foregroundStyle(
+                        RawdeaPalette.onAccent
+                    )
+                    .multilineTextAlignment(.center)
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight:
+                            RawdeaSpacing.minimumTouchTarget
+                    )
+                    .padding(
+                        .vertical,
+                        RawdeaSpacing.xs
+                    )
+                    .background(
+                        RawdeaPalette.accent,
+                        in: RoundedRectangle(
+                            cornerRadius:
+                                RawdeaSpacing.buttonRadius
+                        )
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
+
+                LoginView(
+                    authViewModel: authViewModel
+                )
+
+            } label: {
+
+                Text("Log in")
+                    .font(
+                        RawdeaTypography.button
+                    )
+                    .foregroundStyle(
+                        RawdeaPalette.accent
+                    )
+                    .multilineTextAlignment(.center)
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight:
+                            RawdeaSpacing.minimumTouchTarget
+                    )
+                    .padding(
+                        .vertical,
+                        RawdeaSpacing.xs
+                    )
+                    .overlay {
+
+                        RoundedRectangle(
+                            cornerRadius:
+                                RawdeaSpacing.buttonRadius
+                        )
+                        .strokeBorder(
+                            RawdeaPalette.accent,
+                            lineWidth: 1
+                        )
+                    }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .disabled(authViewModel.isLoading)
+    }
+
+    // MARK: - Public safety information
+
+    private var safetyLink: some View {
+
+        NavigationLink {
+
+            SafetyInformationView()
+
+        } label: {
+
+            Label(
+                "Community Guidelines & Support",
+                systemImage: "shield"
+            )
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+            .multilineTextAlignment(.center)
+            .frame(
+                maxWidth: .infinity,
+                minHeight:
+                    RawdeaSpacing.minimumTouchTarget
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(authViewModel.isLoading)
     }
 }

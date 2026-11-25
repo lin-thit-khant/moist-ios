@@ -94,9 +94,7 @@ struct SafetyInformationView: View {
 
                 Text(
                     """
-                    If you believe a moderation decision was incorrect, you can submit an appeal from Safety & Support in your profile.
-
-                    Suspended accounts can still sign in and submit an appeal.
+                    If you believe a moderation decision was incorrect, open Profile, then Settings, and select Safety & Support to submit an appeal.
                     """
                 )
             }
@@ -159,6 +157,12 @@ struct SafetyInformationView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .navigationTitle("Community & Safety")
         .navigationBarTitleDisplayMode(.inline)
     }
