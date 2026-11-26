@@ -285,7 +285,9 @@ struct DiscoveryView: View {
                     categoryResults
 
                     Text(
-                        "\(viewModel.currentResultCount) results loaded"
+                        viewModel.currentResultCount == 1
+                        ? "1 result loaded"
+                        : "\(viewModel.currentResultCount) results loaded"
                     )
                     .font(RawdeaTypography.caption)
                     .foregroundStyle(

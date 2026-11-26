@@ -315,7 +315,7 @@ struct EditPostView: View {
             } else {
 
                 Label(
-                    "Free post",
+                    "Not in a Project",
                     systemImage: "text.alignleft"
                 )
                 .font(RawdeaTypography.metadata)

@@ -276,7 +276,7 @@ struct CreatePostView: View {
 
                         Text(
                             selectedProject == nil
-                            ? "Publish to your free posts"
+                            ? "Publish to your profile"
                             : "Publish inside this Project"
                         )
                         .font(
@@ -320,7 +320,7 @@ struct CreatePostView: View {
                 "Post destination, \(selectedProject?.name ?? "No Project")"
             )
             .accessibilityHint(
-                "Choose a Project or free post"
+                "Choose a Project, or publish to your profile"
             )
         }
     }
