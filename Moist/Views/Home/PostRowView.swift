@@ -90,6 +90,15 @@ struct PostRowView: View {
         return "@\(username)"
     }
 
+    /// Under a minute old, or slightly in the future because the server
+    /// clock is ahead of the device, reads as "now" instead of "in 0 sec".
+    static func relativeAge(of date: Date, at now: Date) -> String {
+        if now.timeIntervalSince(date) < 60 {
+            return "now"
+        }
+        return relativeTimeFormatter.localizedString(for: date, relativeTo: now)
+    }
+
     private static let relativeTimeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
@@ -340,9 +349,9 @@ struct PostRowView: View {
                             )
 
                         TimelineView(.periodic(from: .now, by: 60)) { context in
-                            let age = Self.relativeTimeFormatter.localizedString(
-                                for: post.createdAt,
-                                relativeTo: context.date
+                            let age = Self.relativeAge(
+                                of: post.createdAt,
+                                at: context.date
                             )
                             Text("\(authorHandle) · \(age)")
                                 .font(RawdeaTypography.metadata)

@@ -283,20 +283,6 @@ struct DiscoveryView: View {
                 } else {
 
                     categoryResults
-
-                    Text(
-                        viewModel.currentResultCount == 1
-                        ? "1 result loaded"
-                        : "\(viewModel.currentResultCount) results loaded"
-                    )
-                    .font(RawdeaTypography.caption)
-                    .foregroundStyle(
-                        RawdeaPalette.secondaryText
-                    )
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(
-                        RawdeaPalette.canvas
-                    )
                 }
 
                 paginationControls
@@ -369,6 +355,11 @@ struct DiscoveryView: View {
 
     // MARK: - People result
 
+    private func displayName(for profile: Profile) -> String {
+        let name = profile.displayname.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? profile.username : name
+    }
+
     private func personRow(
         _ profile: Profile
     ) -> some View {
@@ -384,26 +375,14 @@ struct DiscoveryView: View {
                 spacing: RawdeaSpacing.sm
             ) {
 
-                Image(
-                    systemName:
-                        "person.crop.circle.fill"
-                )
-                .font(.system(size: 40))
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-                .accessibilityHidden(true)
+                RawdeaInitialAvatar(name: displayName(for: profile))
 
                 VStack(
                     alignment: .leading,
                     spacing: RawdeaSpacing.xxs
                 ) {
 
-                    Text(
-                        profile.displayname.isEmpty
-                        ? profile.username
-                        : profile.displayname
-                    )
+                    Text(displayName(for: profile))
                     .font(
                         RawdeaTypography.authorName
                     )
@@ -418,6 +397,10 @@ struct DiscoveryView: View {
                         .foregroundStyle(
                             RawdeaPalette.secondaryText
                         )
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .allowsTightening(true)
+                        .minimumScaleFactor(0.8)
 
                     if !profile.bio.isEmpty {
 
@@ -472,13 +455,6 @@ struct DiscoveryView: View {
                         project: project
                     )
 
-                    Text("Public Project")
-                        .font(
-                            RawdeaTypography.caption
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
                 }
                 .frame(
                     minHeight:
