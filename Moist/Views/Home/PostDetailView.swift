@@ -672,6 +672,7 @@ struct PostDetailView: View {
                 )
                 .padding(.horizontal, RawdeaSpacing.sm)
                 .padding(.vertical, RawdeaSpacing.xs)
+                .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                 .background(
                     RawdeaPalette.surface,
                     in: RoundedRectangle(
@@ -679,6 +680,11 @@ struct PostDetailView: View {
                             RawdeaSpacing.lg
                     )
                 )
+                // The padding around the text focuses it too.
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isCommentFocused = true
+                }
                 .accessibilityLabel("Comment")
                 .accessibilityHint(
                     "Write up to 500 characters"
