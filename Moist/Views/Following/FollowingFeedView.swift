@@ -30,8 +30,12 @@ struct FollowingFeedView: View {
             emptyAction: onExplore,
             refresh: viewModel.refreshPosts,
             loadMore: viewModel.loadMorePosts
-        ) { post in
-            PostRowView(post: post)
+        ) { post, showsProject, continuesThread in
+            PostRowView(
+                post: post,
+                showsProjectLink: showsProject,
+                continuesThread: continuesThread
+            )
         }
         .onAppear {
             Task { await viewModel.reloadVisiblePosts() }

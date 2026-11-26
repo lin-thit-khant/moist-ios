@@ -132,6 +132,14 @@ struct HomeView: View {
         // Approved text-only compact header.
         .navigationTitle("Rawdea")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Rawdea")
+                    .font(RawdeaTypography.wordmark)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                    .accessibilityAddTraits(.isHeader)
+            }
+        }
 
         // MARK: - Current user
 
@@ -243,7 +251,7 @@ struct HomeView: View {
                 .overlay(alignment: .bottom) {
                     if isSelected {
                         Rectangle()
-                            .fill(RawdeaPalette.accent)
+                            .fill(RawdeaPalette.primaryText)
                             .frame(height: 2)
                             .accessibilityHidden(true)
                     }
@@ -299,7 +307,7 @@ struct HomeView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(RawdeaPalette.accent)
+                .foregroundStyle(RawdeaPalette.primaryText)
                 .accessibilityLabel("View published post")
                 .accessibilityFocused($isPublicationActionFocused)
             }

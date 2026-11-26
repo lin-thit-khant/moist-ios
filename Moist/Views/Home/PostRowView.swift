@@ -36,8 +36,9 @@ struct PostRowView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let horizontalInset: CGFloat
     private let showsProjectLink: Bool
-    
-    
+    private let continuesThread: Bool
+
+
     init(
         post: Post,
         currentUserId: UUID? = nil,
@@ -50,7 +51,8 @@ struct PostRowView: View {
         isUnsaveDisabled: Bool = false,
         isUnsaving: Bool = false,
         horizontalInset: CGFloat = RawdeaSpacing.screenInset,
-        showsProjectLink: Bool = true
+        showsProjectLink: Bool = true,
+        continuesThread: Bool = false
     ) {
 
         self.post = post
@@ -66,6 +68,7 @@ struct PostRowView: View {
         self.isUnsaving = isUnsaving
         self.horizontalInset = horizontalInset
         self.showsProjectLink = showsProjectLink
+        self.continuesThread = continuesThread
     }
 
 
@@ -204,6 +207,11 @@ struct PostRowView: View {
             maxWidth: .infinity,
             alignment: .leading
         )
+        .overlay(alignment: .topLeading) {
+            if continuesThread && usesAvatarColumn {
+                threadLine
+            }
+        }
         .background(RawdeaPalette.canvas)
 
         // Load lightweight action state for
@@ -281,6 +289,20 @@ struct PostRowView: View {
         }
     }
     
+    // MARK: - Thread line
+
+    // Runs down the avatar column to the next post.
+    private var threadLine: some View {
+
+        Rectangle()
+            .fill(RawdeaPalette.activityOutline)
+            .frame(width: 2)
+            .padding(.top, RawdeaSpacing.sm + RawdeaSpacing.avatarColumn + RawdeaSpacing.xxs)
+            .padding(.leading, horizontalInset + RawdeaSpacing.avatarColumn / 2 - 1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
     // MARK: - Author header
 
     // A second way into the profile with a full-size target.

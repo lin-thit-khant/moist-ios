@@ -33,14 +33,16 @@ struct FeedView: View {
             emptyAction: onCreatePost,
             refresh: viewModel.refreshPosts,
             loadMore: viewModel.loadMorePosts
-        ) { post in
+        ) { post, showsProject, continuesThread in
             PostRowView(
                 post: post,
                 currentUserId: currentUserId,
                 onEdit: { selectedPostForEditing = post },
                 onDelete: {
                     Task { await viewModel.deletePost(postId: post.id) }
-                }
+                },
+                showsProjectLink: showsProject,
+                continuesThread: continuesThread
             )
         }
         .onAppear {
@@ -83,9 +85,12 @@ struct RawdeaHomeFeedList<Row: View>: View {
     let emptyAction: () -> Void
     let refresh: () async -> Void
     let loadMore: () async -> Void
-    let postRow: (Post) -> Row
+    /// The post, whether to name its Project, and whether the
+    /// thread line continues below it.
+    let postRow: (Post, Bool, Bool) -> Row
 
     @State private var showsProgress = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var isInitialLoad: Bool {
         posts.isEmpty && !hasLoaded && !hasLoadError
@@ -105,13 +110,26 @@ struct RawdeaHomeFeedList<Row: View>: View {
                     }
                 }
 
-                ForEach(posts) { post in
+                ForEach(RawdeaFeedEntry.entries(for: posts)) { entry in
                     VStack(spacing: 0) {
-                        postRow(post)
+                        switch entry {
+                        case .post(let post, let showsProject, let continuesThread):
+                            // Large text has no thread line, so
+                            // every post names its Project.
+                            postRow(
+                                post,
+                                showsProject || dynamicTypeSize.isAccessibilitySize,
+                                continuesThread
+                            )
+                        case .more(let project, let count, _):
+                            RawdeaThreadMoreRow(project: project, count: count)
+                        }
 
-                        Divider()
-                            .overlay(RawdeaPalette.divider)
-                            .padding(.horizontal, RawdeaSpacing.screenInset)
+                        if entry.endsGroup {
+                            Divider()
+                                .overlay(RawdeaPalette.divider)
+                                .padding(.horizontal, RawdeaSpacing.screenInset)
+                        }
                     }
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
@@ -218,11 +236,68 @@ struct RawdeaHomeFeedList<Row: View>: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundStyle(RawdeaPalette.accent)
+            .foregroundStyle(RawdeaPalette.primaryText)
             .disabled(isLoading || isLoadingMore)
         }
         .padding(.vertical, RawdeaSpacing.xs)
         .listRowSeparator(.hidden)
         .listRowBackground(RawdeaPalette.canvas)
+    }
+}
+
+// MARK: - Cut-short Project thread
+
+/// Ends a long thread with a way into its Project.
+private struct RawdeaThreadMoreRow: View {
+
+    let project: PostProject
+    let count: Int
+
+    @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        if let openPostRoute {
+            Button {
+                openPostRoute(.project(project.id))
+            } label: {
+                label
+            }
+            .buttonStyle(.plain)
+        } else {
+            NavigationLink {
+                ProjectRouteView(projectId: project.id)
+            } label: {
+                label
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var label: some View {
+        HStack(spacing: RawdeaSpacing.sm) {
+            if !dynamicTypeSize.isAccessibilitySize {
+                // Closes the thread line.
+                Circle()
+                    .fill(RawdeaPalette.activityOutline)
+                    .frame(width: RawdeaSpacing.xs, height: RawdeaSpacing.xs)
+                    .frame(width: RawdeaSpacing.avatarColumn)
+                    .accessibilityHidden(true)
+            }
+
+            Text("\(count) more in \(project.name)")
+                .font(RawdeaTypography.metadata.weight(.semibold))
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(
+            maxWidth: .infinity,
+            minHeight: RawdeaSpacing.minimumTouchTarget,
+            alignment: .leading
+        )
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.bottom, RawdeaSpacing.xxs)
+        .contentShape(Rectangle())
     }
 }
