@@ -19,7 +19,8 @@ Keep this file under 60 lines.
 - Direction C Batch 0 review content + Batch 1 monochrome foundations 4674049.
 - Direction C Batch 2 post row 28fded8 (local, not pushed).
 - Direction C Batch 3 Home 3e30d5b (local, not pushed). Re-tap scroll is native.
-- XCTest suite (34) passed as of 3e30d5b.
+- Direction C Batch 4 Compose 7a5afa1 (local, not pushed).
+- XCTest suite (34) passed as of 7a5afa1.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -37,12 +38,13 @@ Keep this file under 60 lines.
 - 7 Post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
 
 ## Next
-- Direction C Batch 4: Compose.
+- Direction C Batch 5: Discussion as a thread.
 - Roadmap 10 remaining: VoiceOver pass, Dark Mode on Project, Discussion and Compose,
   Increase Contrast.
 
 ## Unverified
-- Batch 1-3 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
+- Compose "Posting…" pill (too fast to capture), red Project chip, rejected post.
+- Batch 1-4 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
 - VoiceOver playback. Dark Mode across newer states. Follow toggles.
 - Public "Nothing shared yet" and all-pinned Project states.
 
