@@ -11,8 +11,7 @@ Keep this file under 60 lines.
 - .cursor/ is local tool config. Never commit it.
 
 ## Done (milestones 1-14, then UI/UX)
-- Earlier UI/UX batches 1-10: 48884a4 to 72f9b3f (see git log).
-- Direction C Batches 0-1 4674049, 2 28fded8, 3 3e30d5b, 4 7a5afa1, 5 869e7ba,
+- Earlier UI/UX batches 1-10: 48884a4 to 72f9b3f. Direction C 0-1 4674049, 2 28fded8, 3 3e30d5b, 4 7a5afa1, 5 869e7ba,
   6 e6bdec6, 7 61c0559. Direction C is complete.
 - Accessibility sweep 421046a: Increase Contrast checked on Home, Discussion, Profile
   and Compose; Welcome, Log in and Sign up checked for Dark Mode and large text.
@@ -38,13 +37,11 @@ Keep this file under 60 lines.
 - Home (replaces the above there): no grouping; avatar header with Project name above
   author and time, options top right, 16 pt text, actions bottom left.
 
-## Next
-- Lin: VoiceOver playback pass and Reduce Motion on a device.
-- Then App Store preparation. Needs Lin's scope.
+## Next (implementation needs Lin's approval)
+- Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
 
 ## Unverified
-- Home reader: VoiceOver, Increase Contrast,
-  Reduce Motion, a device, empty and error states, own and hidden posts.
+- Home reader: VoiceOver, Contrast, Motion, device, empty/error, own/hidden posts.
 - Pull to refresh on the other 9 screens and iOS 17 (system spinner fallback).
 - Cell loader on other screens, Load More, Increase Contrast and a real device.
 - VoiceOver playback. Like bounce, haptic and Reduce Motion fade.
@@ -56,9 +53,8 @@ Keep this file under 60 lines.
 ## Open observations
 - Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
 - Publishing from a Project returns to Home.
-- Home two-line header: Project name target is under 44 pt (its avatar is 44 pt);
-  the author target overlaps the top of the post text. Avatar tints can repeat.
-- Critique P1 (header colour and repetition) is not approved.
+- Home header: Project name target under 44 pt (avatar is 44); author target overlaps
+  post text; tints can repeat. Critique P1 (header colour, repetition) not approved.
 - Switching the simulator to Dark while the app ran did not update it once; cause unchecked.
 - Accessibility audit: author name targets are 36 pt (the 44 pt avatar also opens
   the profile). Post text labels flagged as long.
