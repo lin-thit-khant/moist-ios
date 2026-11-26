@@ -20,10 +20,22 @@ struct CreatePostView: View {
 
     @State private var selectedProject: Project?
 
+    /// Project chosen before Compose opened, such as from a Project screen.
+    private let initialProject: Project?
+
     @State private var isShowingProjectPicker = false
     @State private var isShowingDiscardConfirmation = false
 
     let onPostCreated: (Post) -> Void
+
+    init(
+        initialProject: Project? = nil,
+        onPostCreated: @escaping (Post) -> Void
+    ) {
+        self.initialProject = initialProject
+        self.onPostCreated = onPostCreated
+        _selectedProject = State(initialValue: initialProject)
+    }
 
     // MARK: - Draft state
 
@@ -34,7 +46,7 @@ struct CreatePostView: View {
     private var hasUnsavedDraft: Bool {
 
         !content.isEmpty ||
-        selectedProject != nil
+        selectedProject?.id != initialProject?.id
     }
 
     private var canPublish: Bool {
@@ -97,16 +109,6 @@ struct CreatePostView: View {
                     .ignoresSafeArea()
             )
 
-            // MARK: - Primary action
-
-            .safeAreaInset(
-                edge: .bottom,
-                spacing: 0
-            ) {
-
-                publishFooter
-            }
-
             .navigationTitle("New Post")
             .navigationBarTitleDisplayMode(.inline)
 
@@ -126,6 +128,28 @@ struct CreatePostView: View {
                         minHeight:
                             RawdeaSpacing.minimumTouchTarget
                     )
+                }
+
+                // Publish stays reachable while the
+                // keyboard is up, matching Edit Profile.
+                ToolbarItem(
+                    placement: .confirmationAction
+                ) {
+
+                    if viewModel.isPublishing {
+
+                        ProgressView()
+                            .accessibilityLabel("Publishing post")
+
+                    } else {
+
+                        Button("Publish") {
+                            Task {
+                                await publish()
+                            }
+                        }
+                        .disabled(!canPublish)
+                    }
                 }
             }
 
@@ -354,45 +378,6 @@ struct CreatePostView: View {
                 vertical: true
             )
         }
-    }
-
-    // MARK: - Publish footer
-
-    private var publishFooter: some View {
-
-        VStack(spacing: 0) {
-
-            Divider()
-                .overlay(RawdeaPalette.divider)
-
-            RawdeaPrimaryButton(
-                "Publish Post",
-                isLoading:
-                    viewModel.isPublishing,
-                isEnabled:
-                    canPublish
-            ) {
-
-                Task {
-
-                    await publish()
-                }
-            }
-            .padding(
-                .horizontal,
-                RawdeaSpacing.screenInset
-            )
-            .padding(
-                .vertical,
-                RawdeaSpacing.sm
-            )
-        }
-        .background(
-            RawdeaPalette.canvas
-                .ignoresSafeArea(
-                    edges: .bottom
-                )
-        )
     }
 
     // MARK: - Dismissal

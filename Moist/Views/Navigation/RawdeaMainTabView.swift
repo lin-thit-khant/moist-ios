@@ -47,7 +47,9 @@ struct RawdeaMainTabView: View {
     @State private var pendingPublishedPostID: UUID?
     @State private var publishedPostID: UUID?
 
-    @State private var isShowingCompose = false
+    // One value per Compose presentation, so the
+    // sheet always opens with the chosen Project.
+    @State private var composeRequest: ComposeRequest?
 
     @Environment(\.scenePhase)
     private var scenePhase
@@ -64,11 +66,11 @@ struct RawdeaMainTabView: View {
 
                 if requestedTab == .create {
 
-                    guard !isShowingCompose else {
+                    guard composeRequest == nil else {
                         return
                     }
 
-                    isShowingCompose = true
+                    composeRequest = ComposeRequest(project: nil)
                     return
                 }
 
@@ -92,7 +94,9 @@ struct RawdeaMainTabView: View {
                     selectedFeed: $selectedHomeFeed,
                     publishedPostID: $publishedPostID,
                     pendingPublishedPostID: pendingPublishedPostID,
-                    onCreatePost: { isShowingCompose = true },
+                    onCreatePost: {
+                        composeRequest = ComposeRequest(project: nil)
+                    },
                     onExplore: { selectedTab = .explore }
                 )
             }
@@ -183,16 +187,19 @@ struct RawdeaMainTabView: View {
         }
         .environmentObject(authViewModel)
         .environment(\.rawdeaOpenExplore, { selectedTab = .explore })
-        .environment(\.rawdeaCreatePost, { isShowingCompose = true })
+        .environment(\.rawdeaCreatePost, { composeRequest = ComposeRequest(project: nil) })
+        .environment(\.rawdeaCreatePostInProject, { project in
+            composeRequest = ComposeRequest(project: project)
+        })
         // Native five-tab styling.
         // There is no raised Create button.
         .tint(RawdeaPalette.accent)
 
         // MARK: - Compose presentation
 
-        .sheet(isPresented: $isShowingCompose, onDismiss: showPublicationConfirmation) {
+        .sheet(item: $composeRequest, onDismiss: showPublicationConfirmation) { request in
 
-            CreatePostView { publishedPost in
+            CreatePostView(initialProject: request.project) { publishedPost in
 
                 // The existing CreatePostView calls
                 // this callback only after its
@@ -261,3 +268,7 @@ struct RawdeaMainTabView: View {
     }
 }
 
+private struct ComposeRequest: Identifiable {
+    let id = UUID()
+    let project: Project?
+}

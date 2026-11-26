@@ -25,6 +25,10 @@ private struct RawdeaCreatePostActionKey: EnvironmentKey {
     static let defaultValue: (() -> Void)? = nil
 }
 
+private struct RawdeaCreatePostInProjectActionKey: EnvironmentKey {
+    static let defaultValue: ((Project) -> Void)? = nil
+}
+
 extension EnvironmentValues {
 
     /// Switches to the Explore tab. Set by RawdeaMainTabView.
@@ -37,6 +41,12 @@ extension EnvironmentValues {
     var rawdeaCreatePost: (() -> Void)? {
         get { self[RawdeaCreatePostActionKey.self] }
         set { self[RawdeaCreatePostActionKey.self] = newValue }
+    }
+
+    /// Opens Compose with a Project already chosen. Set by RawdeaMainTabView.
+    var rawdeaCreatePostInProject: ((Project) -> Void)? {
+        get { self[RawdeaCreatePostInProjectActionKey.self] }
+        set { self[RawdeaCreatePostInProjectActionKey.self] = newValue }
     }
 }
 

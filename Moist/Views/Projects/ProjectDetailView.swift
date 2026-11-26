@@ -30,7 +30,7 @@ struct ProjectDetailView: View {
     @StateObject private var projectsViewModel = ProjectsViewModel()
     @State private var projectToRename: Project?
 
-    @Environment(\.rawdeaCreatePost) private var createPost
+    @Environment(\.rawdeaCreatePostInProject) private var createPostInProject
 
     private var isOwner: Bool {
         currentUserId == project.userId
@@ -470,8 +470,8 @@ struct ProjectDetailView: View {
                         isOwner
                         ? "Write a post and choose this Project, or move an existing post here."
                         : "Posts shared in this Project will appear here.",
-                    actionTitle: isOwner && createPost != nil ? "Write a Post" : nil,
-                    action: isOwner ? createPost : nil
+                    actionTitle: isOwner && createPostInProject != nil ? "Write a Post" : nil,
+                    action: isOwner ? { createPostInProject?(project) } : nil
                 )
                 .listRowSeparator(.hidden)
                 .listRowBackground(
