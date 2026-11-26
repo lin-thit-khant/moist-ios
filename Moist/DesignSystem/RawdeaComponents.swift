@@ -31,6 +31,33 @@ struct RawdeaInitialAvatar: View {
     }
 }
 
+// MARK: - Project Avatar
+
+/// A Project's initial in a rounded square, so it never reads
+/// as a person. Each Project keeps its own tint.
+struct RawdeaProjectAvatar: View {
+    let name: String
+    let tintSeed: UUID
+
+    var body: some View {
+        Text(String(name.first(where: \.isLetter) ?? "?").uppercased())
+            .font(RawdeaTypography.authorName)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .foregroundStyle(RawdeaPalette.primaryText)
+            .frame(width: RawdeaSpacing.avatarColumn, height: RawdeaSpacing.avatarColumn)
+            .background(
+                RawdeaPalette.avatarTint(for: tintSeed),
+                in: RoundedRectangle(cornerRadius: RawdeaSpacing.projectAvatarRadius)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: RawdeaSpacing.projectAvatarRadius)
+                    .strokeBorder(RawdeaPalette.activityOutline)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Character Limit
 
 /// Quiet until text nears its limit, then shows what is left,

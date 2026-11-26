@@ -33,7 +33,7 @@ struct FeedView: View {
             emptyAction: onCreatePost,
             refresh: viewModel.refreshPosts,
             loadMore: viewModel.loadMorePosts
-        ) { post, showsProject, continuesThread in
+        ) { post in
             PostRowView(
                 post: post,
                 currentUserId: currentUserId,
@@ -41,8 +41,7 @@ struct FeedView: View {
                 onDelete: {
                     Task { await viewModel.deletePost(postId: post.id) }
                 },
-                showsProjectLink: showsProject,
-                continuesThread: continuesThread
+                isReader: true
             )
         }
         .onAppear {
@@ -85,12 +84,10 @@ struct RawdeaHomeFeedList<Row: View>: View {
     let emptyAction: () -> Void
     let refresh: () async -> Void
     let loadMore: () async -> Void
-    /// The post, whether to name its Project, and whether the
-    /// thread line continues below it.
-    let postRow: (Post, Bool, Bool) -> Row
+    let postRow: (Post) -> Row
 
     @State private var showsProgress = false
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.rawdeaScrollingFeedHeader) private var scrollingHeader
 
     private var isInitialLoad: Bool {
         posts.isEmpty && !hasLoaded && !hasLoadError
@@ -98,6 +95,13 @@ struct RawdeaHomeFeedList<Row: View>: View {
 
     var body: some View {
         List {
+            if let scrollingHeader {
+                scrollingHeader
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(RawdeaPalette.canvas)
+            }
+
             if posts.isEmpty {
                 emptyContent
                     .listRowInsets(EdgeInsets())
@@ -110,26 +114,12 @@ struct RawdeaHomeFeedList<Row: View>: View {
                     }
                 }
 
-                ForEach(RawdeaFeedEntry.entries(for: posts)) { entry in
+                ForEach(posts) { post in
                     VStack(spacing: 0) {
-                        switch entry {
-                        case .post(let post, let showsProject, let continuesThread):
-                            // Large text has no thread line, so
-                            // every post names its Project.
-                            postRow(
-                                post,
-                                showsProject || dynamicTypeSize.isAccessibilitySize,
-                                continuesThread
-                            )
-                        case .more(let project, let count, _):
-                            RawdeaThreadMoreRow(project: project, count: count)
-                        }
+                        postRow(post)
 
-                        if entry.endsGroup {
-                            Divider()
-                                .overlay(RawdeaPalette.divider)
-                                .padding(.horizontal, RawdeaSpacing.screenInset)
-                        }
+                        Divider()
+                            .overlay(RawdeaPalette.divider)
                     }
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
@@ -245,59 +235,16 @@ struct RawdeaHomeFeedList<Row: View>: View {
     }
 }
 
-// MARK: - Cut-short Project thread
+// MARK: - Scrolling feed header
 
-/// Ends a long thread with a way into its Project.
-private struct RawdeaThreadMoreRow: View {
+private struct RawdeaScrollingFeedHeaderKey: EnvironmentKey {
+    static let defaultValue: AnyView? = nil
+}
 
-    let project: PostProject
-    let count: Int
-
-    @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    var body: some View {
-        if let openPostRoute {
-            Button {
-                openPostRoute(.project(project.id))
-            } label: {
-                label
-            }
-            .buttonStyle(.plain)
-        } else {
-            NavigationLink {
-                ProjectRouteView(projectId: project.id)
-            } label: {
-                label
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var label: some View {
-        HStack(spacing: RawdeaSpacing.sm) {
-            if !dynamicTypeSize.isAccessibilitySize {
-                // Closes the thread line.
-                Circle()
-                    .fill(RawdeaPalette.activityOutline)
-                    .frame(width: RawdeaSpacing.xs, height: RawdeaSpacing.xs)
-                    .frame(width: RawdeaSpacing.avatarColumn)
-                    .accessibilityHidden(true)
-            }
-
-            Text("\(count) more in \(project.name)")
-                .font(RawdeaTypography.metadata.weight(.semibold))
-                .foregroundStyle(RawdeaPalette.secondaryText)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(
-            maxWidth: .infinity,
-            minHeight: RawdeaSpacing.minimumTouchTarget,
-            alignment: .leading
-        )
-        .padding(.horizontal, RawdeaSpacing.screenInset)
-        .padding(.bottom, RawdeaSpacing.xxs)
-        .contentShape(Rectangle())
+extension EnvironmentValues {
+    /// A header the Home feed scrolls as its first row.
+    var rawdeaScrollingFeedHeader: AnyView? {
+        get { self[RawdeaScrollingFeedHeaderKey.self] }
+        set { self[RawdeaScrollingFeedHeaderKey.self] = newValue }
     }
 }

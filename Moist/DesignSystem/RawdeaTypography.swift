@@ -41,6 +41,11 @@ enum RawdeaTypography {
 
     static let body: Font = .body
 
+    // Home reader text, before Dynamic Type scaling.
+    static let readerBodySize: CGFloat = 16
+
+    static let readerLineSpacing: CGFloat = 5
+
     static let secondary: Font = .subheadline
 
     static let metadata: Font = .footnote
@@ -68,6 +73,12 @@ enum RawdeaSpacing {
     static let screenInset: CGFloat = 16
 
     static let cardPadding: CGFloat = 16
+
+    // How far a two-line header name's target reaches past its text.
+    static let readerNameReach: CGFloat = 24
+
+    // Corner of a Project's square avatar.
+    static let projectAvatarRadius: CGFloat = 10
 
     static let cardRadius: CGFloat = 14
 

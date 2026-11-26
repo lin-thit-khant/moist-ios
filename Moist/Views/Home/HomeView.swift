@@ -69,7 +69,11 @@ struct HomeView: View {
 
             // MARK: - Underlined selector
 
-            feedSelector
+            // At the largest text sizes the selector scrolls
+            // away with the feed instead of holding the screen.
+            if !dynamicTypeSize.isAccessibilitySize {
+                feedSelector
+            }
 
             // MARK: - Feed content
 
@@ -94,6 +98,10 @@ struct HomeView: View {
                 }
             }
         }
+        .environment(
+            \.rawdeaScrollingFeedHeader,
+            dynamicTypeSize.isAccessibilitySize ? AnyView(feedSelector) : nil
+        )
         .background(
             RawdeaPalette.canvas.ignoresSafeArea()
         )

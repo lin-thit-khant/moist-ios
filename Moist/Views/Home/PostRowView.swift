@@ -38,7 +38,7 @@ struct PostRowView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let horizontalInset: CGFloat
     private let showsProjectLink: Bool
-    private let continuesThread: Bool
+    private let isReader: Bool
 
 
     init(
@@ -54,7 +54,7 @@ struct PostRowView: View {
         isUnsaving: Bool = false,
         horizontalInset: CGFloat = RawdeaSpacing.screenInset,
         showsProjectLink: Bool = true,
-        continuesThread: Bool = false
+        isReader: Bool = false
     ) {
 
         self.post = post
@@ -70,9 +70,15 @@ struct PostRowView: View {
         self.isUnsaving = isUnsaving
         self.horizontalInset = horizontalInset
         self.showsProjectLink = showsProjectLink
-        self.continuesThread = continuesThread
+        self.isReader = isReader
     }
 
+
+    @ScaledMetric(relativeTo: .body)
+    private var readerTextSize = RawdeaTypography.readerBodySize
+
+    @ScaledMetric(relativeTo: .body)
+    private var readerLineSpacing = RawdeaTypography.readerLineSpacing
 
     // Row symbols stop growing here so they stay inside
     // their 44 pt targets.
@@ -174,43 +180,17 @@ struct PostRowView: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 0) {
-
-            HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
-
-                avatarLink
-
-                VStack(alignment: .leading, spacing: 0) {
-
-                    authorHeader
-
-                    if usesAvatarColumn {
-                        postDetails
-                    }
-                }
-            }
-
-            // Large text needs the width beside the avatar too.
-            if dynamicTypeSize.isAccessibilitySize {
-                projectLine
-            }
-
-            if !usesAvatarColumn {
-                postDetails
+        Group {
+            if isReader {
+                readerLayout
+            } else {
+                standardLayout
             }
         }
-        .padding(.horizontal, horizontalInset)
-        .padding(.top, RawdeaSpacing.sm)
-        .padding(.bottom, RawdeaSpacing.xxs)
         .frame(
             maxWidth: .infinity,
             alignment: .leading
         )
-        .overlay(alignment: .topLeading) {
-            if continuesThread && usesAvatarColumn {
-                threadLine
-            }
-        }
         .background(RawdeaPalette.canvas)
 
         // Load lightweight action state for
@@ -303,18 +283,266 @@ struct PostRowView: View {
         }
     }
     
-    // MARK: - Thread line
+    // MARK: - Layouts
 
-    // Runs down the avatar column to the next post.
-    private var threadLine: some View {
+    private var standardLayout: some View {
 
-        Rectangle()
-            .fill(RawdeaPalette.activityOutline)
-            .frame(width: 2)
-            .padding(.top, RawdeaSpacing.sm + RawdeaSpacing.avatarColumn + RawdeaSpacing.xxs)
-            .padding(.leading, horizontalInset + RawdeaSpacing.avatarColumn / 2 - 1)
-            .allowsHitTesting(false)
+        VStack(alignment: .leading, spacing: 0) {
+
+            HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
+
+                avatarLink
+
+                VStack(alignment: .leading, spacing: 0) {
+
+                    authorHeader
+
+                    if usesAvatarColumn {
+                        postDetails
+                    }
+                }
+            }
+
+            // Large text needs the width beside the avatar too.
+            if dynamicTypeSize.isAccessibilitySize {
+                projectLine
+            }
+
+            if !usesAvatarColumn {
+                postDetails
+            }
+        }
+        .padding(.horizontal, horizontalInset)
+        .padding(.top, RawdeaSpacing.sm)
+        .padding(.bottom, RawdeaSpacing.xxs)
+    }
+
+    // Home shows each post on its own: who and where, the
+    // words, then the actions.
+    private var readerLayout: some View {
+
+        VStack(alignment: .leading, spacing: 0) {
+
+            readerHeader
+                // The lower name's target reaches over the text's top edge.
+                .zIndex(1)
+
+            postContent
+                .padding(.top, dynamicTypeSize.isAccessibilitySize ? RawdeaSpacing.md : 0)
+
+            hiddenLabel
+
+            // Line the outer symbols up with the post text.
+            HStack(spacing: 0) {
+
+                likeButton
+
+                discussionButton
+
+                bookmarkButton
+            }
+            .padding(.leading, -RawdeaSpacing.sm)
+            .accessibilityElement(children: .contain)
+
+            actionError
+        }
+        .padding(.horizontal, RawdeaSpacing.lg)
+        .padding(.top, RawdeaSpacing.md)
+        .padding(.bottom, RawdeaSpacing.xxs)
+    }
+
+    private var readerProject: PostProject? {
+        showsProjectLink ? post.project : nil
+    }
+
+    private var readerHeader: some View {
+
+        HStack(
+            alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center,
+            spacing: RawdeaSpacing.xs
+        ) {
+
+            // Large text needs the width beside the avatar.
+            if !dynamicTypeSize.isAccessibilitySize {
+                readerAvatar
+            }
+
+            readerIdentity
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if showsOptions {
+                optionsButton
+                    .padding(.trailing, -RawdeaSpacing.sm)
+            }
+        }
+    }
+
+    // A Project post carries the Project's square avatar,
+    // any other post its author's round one. The names beside
+    // it are the VoiceOver route.
+    private var readerAvatar: some View {
+
+        Group {
+            if let project = readerProject {
+                RawdeaProjectAvatar(name: project.name, tintSeed: project.id)
+            } else {
+                RawdeaInitialAvatar(
+                    name: authorName,
+                    size: RawdeaSpacing.avatarColumn,
+                    tintSeed: post.userId
+                )
+            }
+        }
+        .frame(
+            width: RawdeaSpacing.minimumTouchTarget,
+            height: RawdeaSpacing.minimumTouchTarget
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if let project = readerProject {
+                openPostRoute?(.project(project.id))
+            } else {
+                openPostRoute?(.author(post.userId))
+            }
+        }
+        .padding(.leading, -(RawdeaSpacing.minimumTouchTarget - RawdeaSpacing.avatarColumn) / 2)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var readerIdentity: some View {
+
+        if let project = readerProject {
+
+            if dynamicTypeSize.isAccessibilitySize {
+
+                VStack(alignment: .leading, spacing: 0) {
+                    readerProjectLink(project)
+                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                    readerAuthorLink(stacked: true)
+                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                }
+
+            } else {
+
+                // Two tight lines centred on the avatar. Each target
+                // reaches outward, into the space above or below.
+                VStack(alignment: .leading, spacing: 0) {
+
+                    readerProjectLink(project, reach: .top)
+
+                    readerAuthorLink(stacked: false, reach: .bottom)
+                }
+            }
+
+        } else {
+
+            readerAuthorLink(stacked: dynamicTypeSize.isAccessibilitySize)
+                .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+        }
+    }
+
+    private var readerSeparator: some View {
+
+        Text("·")
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(RawdeaPalette.secondaryText)
             .accessibilityHidden(true)
+    }
+
+    private func readerProjectLink(
+        _ project: PostProject,
+        reach: Edge.Set = []
+    ) -> some View {
+
+        routedPostControl(
+            to: .project(project.id)
+        ) {
+
+            ProjectRouteView(
+                projectId: project.id
+            )
+
+        } label: {
+
+            Text(project.name)
+                .font(RawdeaTypography.metadata.weight(.semibold))
+                .foregroundStyle(RawdeaPalette.accent)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                // The row's top space limits this one; the Project
+                // avatar is the full-size way in.
+                .padding(reach, RawdeaSpacing.readerNameReach - RawdeaSpacing.xxs)
+                .contentShape(Rectangle())
+                .padding(reach, -(RawdeaSpacing.readerNameReach - RawdeaSpacing.xxs))
+        }
+        .accessibilityLabel(
+            "Open Project \(project.name)"
+        )
+    }
+
+    private func readerAuthorLink(
+        stacked: Bool,
+        reach: Edge.Set = []
+    ) -> some View {
+
+        let isPrimary = readerProject == nil
+
+        return routedPostControl(
+            to: .author(post.userId)
+        ) {
+
+            AuthorProfileView(
+                userId: post.userId
+            )
+
+        } label: {
+
+            let layout = stacked
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xxs))
+
+            layout {
+
+                Text(authorName)
+                    .font(isPrimary
+                        ? RawdeaTypography.authorName
+                        : RawdeaTypography.metadata)
+                    .foregroundStyle(isPrimary
+                        ? RawdeaPalette.primaryText
+                        : RawdeaPalette.secondaryText)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(stacked ? nil : 1)
+
+                if !stacked {
+                    readerSeparator
+                }
+
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    Text(Self.relativeAge(of: post.createdAt, at: context.date))
+                        .font(RawdeaTypography.metadata)
+                        .foregroundStyle(RawdeaPalette.secondaryText)
+                        .lineLimit(1)
+                }
+                .layoutPriority(1)
+            }
+            // A single-line header is a full-size target by itself.
+            .frame(
+                minHeight: reach.isEmpty ? RawdeaSpacing.minimumTouchTarget : nil
+            )
+            .padding(reach, RawdeaSpacing.readerNameReach)
+            .contentShape(Rectangle())
+            .padding(reach, -RawdeaSpacing.readerNameReach)
+        }
+        .accessibilityLabel(
+            "View profile for \(authorName), \(authorHandle)"
+        )
+        .accessibilityValue(Text(post.createdAt, style: .relative))
+    }
+
+    private var showsOptions: Bool {
+        guard let viewerId else { return false }
+        return viewerId != post.userId || hasOwnerActions
     }
 
     // MARK: - Author header
@@ -349,13 +577,13 @@ struct PostRowView: View {
                 authorLink
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let viewerId {
+                if viewerId != nil {
 
                     // Keeps a 44 pt target without making
                     // the name row taller.
                     Group {
 
-                        if viewerId != post.userId || hasOwnerActions {
+                        if showsOptions {
                             optionsButton
                         }
                     }
@@ -429,56 +657,68 @@ struct PostRowView: View {
 
             postContent
 
-            if post.isHidden,
-               viewerId == post.userId {
-
-                Label(
-                    "Hidden",
-                    systemImage: "eye.slash"
-                )
-                .font(RawdeaTypography.metadata)
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-                .accessibilityLabel("Hidden post")
-            }
+            hiddenLabel
 
             if showsDiscussionLink {
 
                 postActions
 
-                if let error = actions.errorMessage {
-
-                    VStack(
-                        alignment: .leading,
-                        spacing: RawdeaSpacing.xs
-                    ) {
-
-                        RawdeaInlineError(
-                            message: error
-                        )
-
-                        Button("Retry post actions") {
-
-                            Task {
-                                await actions.load(
-                                    postId: post.id
-                                )
-                            }
-                        }
-                        .font(RawdeaTypography.metadata.weight(.semibold))
-                        .foregroundStyle(
-                            RawdeaPalette.primaryText
-                        )
-                        .frame(
-                            minHeight:
-                                RawdeaSpacing.minimumTouchTarget
-                        )
-                    }
-                }
+                actionError
             }
         }
         .padding(.top, post.project == nil || !showsProjectLink ? RawdeaSpacing.xxs : 0)
+    }
+
+    @ViewBuilder
+    private var hiddenLabel: some View {
+
+        if post.isHidden,
+           viewerId == post.userId {
+
+            Label(
+                "Hidden",
+                systemImage: "eye.slash"
+            )
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+            .accessibilityLabel("Hidden post")
+        }
+    }
+
+    @ViewBuilder
+    private var actionError: some View {
+
+        if let error = actions.errorMessage {
+
+            VStack(
+                alignment: .leading,
+                spacing: RawdeaSpacing.xs
+            ) {
+
+                RawdeaInlineError(
+                    message: error
+                )
+
+                Button("Retry post actions") {
+
+                    Task {
+                        await actions.load(
+                            postId: post.id
+                        )
+                    }
+                }
+                .font(RawdeaTypography.metadata.weight(.semibold))
+                .foregroundStyle(
+                    RawdeaPalette.primaryText
+                )
+                .frame(
+                    minHeight:
+                        RawdeaSpacing.minimumTouchTarget
+                )
+            }
+        }
     }
 
     // MARK: - Post content
@@ -499,7 +739,11 @@ struct PostRowView: View {
             } label: {
 
                 Text(post.content)
-                    .font(RawdeaTypography.postBody)
+                    .font(isReader
+                        ? .system(size: readerTextSize)
+                        : RawdeaTypography.postBody)
+                    .lineSpacing(isReader ? readerLineSpacing : 0)
+                    .multilineTextAlignment(.leading)
                     .foregroundStyle(
                         RawdeaPalette.primaryText
                     )
@@ -593,129 +837,140 @@ struct PostRowView: View {
 
         HStack(spacing: RawdeaSpacing.xxs) {
 
-            Button {
+            likeButton
 
-                Task {
-                    let wasLiked = actions.isLiked
-                    await actions.toggleLike(
-                        postId: post.id
-                    )
-                    // Celebrate only a like the server accepted.
-                    if !wasLiked, actions.isLiked {
-                        likePop += 1
-                    }
-                }
-
-            } label: {
-
-                actionSymbol(
-                    actions.isLiked
-                    ? "heart.fill"
-                    : "heart",
-                    selected: actions.isLiked,
-                    selectedColor: RawdeaPalette.accent,
-                    loading: actions.isUpdatingLike,
-                    disabled: likeActionIsDisabled,
-                    popTrigger: likePop
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(likeActionIsDisabled)
-            .accessibilityLabel(
-                actions.isLiked
-                ? "Unlike post"
-                : "Like post"
-            )
-            .accessibilityAddTraits(
-                actions.isLiked ? .isSelected : []
-            )
-            .accessibilityValue(actions.isUpdatingLike ? "Updating" : "")
-            .sensoryFeedback(.impact(weight: .light), trigger: likePop)
-
-            
-            routedPostControl(
-                to: .discussion(post.id)
-            ) {
-
-                PostDetailView(
-                    postId: post.id
-                )
-
-            } label: {
-
-                Image(systemName: "bubble.left")
-                    .font(.body)
-                    .dynamicTypeSize(...Self.largestSymbolSize)
-                    .accessibilityHidden(true)
-                    .foregroundStyle(RawdeaPalette.secondaryText)
-                    .frame(
-                        minWidth: RawdeaSpacing.minimumTouchTarget,
-                        minHeight: RawdeaSpacing.minimumTouchTarget
-                    )
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel(
-                "Open discussion and comments"
-            )
-
+            discussionButton
 
             Spacer(minLength: 0)
 
-            
-            Button {
-
-                if let onUnsave {
-
-                    // Saved Posts owns the removal,
-                    // so both removal methods share
-                    // the same view model.
-
-                    onUnsave()
-
-                } else {
-
-                    // Normal feed Bookmark behavior.
-
-                    Task {
-
-                        await actions.toggleBookmark(
-                            postId: post.id
-                        )
-                    }
-                }
-
-            } label: {
-
-                actionSymbol(
-                    displayedBookmarkState
-                    ? "bookmark.fill"
-                    : "bookmark",
-                    selected: displayedBookmarkState,
-                    selectedColor: RawdeaPalette.primaryText,
-                    loading: bookmarkActionIsLoading,
-                    disabled: bookmarkActionIsDisabled
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(
-                bookmarkActionIsDisabled
-            )
-            .accessibilityLabel(
-                displayedBookmarkState
-                ? "Remove saved post"
-                : "Save post"
-            )
-            .accessibilityAddTraits(
-                displayedBookmarkState
-                ? .isSelected
-                : []
-            )
-            .accessibilityValue(bookmarkActionIsLoading ? "Updating" : "")
-
+            bookmarkButton
         }
         // Line the outer symbols up with the post text.
         .padding(.horizontal, -RawdeaSpacing.sm)
         .accessibilityElement(children: .contain)
+    }
+
+    private var likeButton: some View {
+
+        Button {
+
+            Task {
+                let wasLiked = actions.isLiked
+                await actions.toggleLike(
+                    postId: post.id
+                )
+                // Celebrate only a like the server accepted.
+                if !wasLiked, actions.isLiked {
+                    likePop += 1
+                }
+            }
+
+        } label: {
+
+            actionSymbol(
+                actions.isLiked
+                ? "heart.fill"
+                : "heart",
+                selected: actions.isLiked,
+                selectedColor: RawdeaPalette.accent,
+                loading: actions.isUpdatingLike,
+                disabled: likeActionIsDisabled,
+                popTrigger: likePop
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(likeActionIsDisabled)
+        .accessibilityLabel(
+            actions.isLiked
+            ? "Unlike post"
+            : "Like post"
+        )
+        .accessibilityAddTraits(
+            actions.isLiked ? .isSelected : []
+        )
+        .accessibilityValue(actions.isUpdatingLike ? "Updating" : "")
+        .sensoryFeedback(.impact(weight: .light), trigger: likePop)
+    }
+
+    private var discussionButton: some View {
+
+        routedPostControl(
+            to: .discussion(post.id)
+        ) {
+
+            PostDetailView(
+                postId: post.id
+            )
+
+        } label: {
+
+            Image(systemName: "bubble.left")
+                .font(.body)
+                .dynamicTypeSize(...Self.largestSymbolSize)
+                .accessibilityHidden(true)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .frame(
+                    minWidth: RawdeaSpacing.minimumTouchTarget,
+                    minHeight: RawdeaSpacing.minimumTouchTarget
+                )
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(
+            "Open discussion and comments"
+        )
+    }
+
+    private var bookmarkButton: some View {
+
+        Button {
+
+            if let onUnsave {
+
+                // Saved Posts owns the removal,
+                // so both removal methods share
+                // the same view model.
+
+                onUnsave()
+
+            } else {
+
+                // Normal feed Bookmark behavior.
+
+                Task {
+
+                    await actions.toggleBookmark(
+                        postId: post.id
+                    )
+                }
+            }
+
+        } label: {
+
+            actionSymbol(
+                displayedBookmarkState
+                ? "bookmark.fill"
+                : "bookmark",
+                selected: displayedBookmarkState,
+                selectedColor: RawdeaPalette.primaryText,
+                loading: bookmarkActionIsLoading,
+                disabled: bookmarkActionIsDisabled
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(
+            bookmarkActionIsDisabled
+        )
+        .accessibilityLabel(
+            displayedBookmarkState
+            ? "Remove saved post"
+            : "Save post"
+        )
+        .accessibilityAddTraits(
+            displayedBookmarkState
+            ? .isSelected
+            : []
+        )
+        .accessibilityValue(bookmarkActionIsLoading ? "Updating" : "")
     }
 
     private func actionSymbol(
