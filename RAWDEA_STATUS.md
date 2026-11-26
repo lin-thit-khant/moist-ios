@@ -10,48 +10,31 @@ Keep this file under 60 lines.
 - .cursor/ is local tool config. Never commit it.
 
 ## Done (milestones 1-14, then UI/UX)
-- Batch 1 Home visuals 48884a4. Batch 2 Home experience e540c83 (committed first).
-- Batch 3 Profile 53c7016, 44ce58e, cda53ab.
-- Batch 4A Project e2ce076. Copy fixes 59c9c25. 4B owner actions db3710b.
-- Batch 5 Compose 3b0fca1. Batch 6 Explore 9e7d69d. Batch 7 Discussion b6368f4.
-- Batch 8 Activity and Saved fd84c99. Display-name wrap 881dc8f.
-- Batch 9 Authentication: reviewed, no changes.
-- Batch 10 partial: profile-load retry 72f9b3f, Profile checked in Dark Mode.
-- Direction C Batch 0 review content + Batch 1 monochrome foundations 4674049.
-- Direction C Batch 2 post row 28fded8.
-- Direction C Batch 3 Home 3e30d5b. Re-tap scroll is native.
-- Direction C Batch 4 Compose 7a5afa1.
-- Direction C Batch 5 Discussion thread 869e7ba.
-- Direction C Batch 6 Profile and Project pages e6bdec6. Account follow toggle checked.
-- XCTest suite (34) passed as of e6bdec6.
+- Earlier UI/UX batches 1-10: 48884a4 to 72f9b3f (see git log).
+- Direction C Batches 0-1 4674049, 2 28fded8, 3 3e30d5b, 4 7a5afa1, 5 869e7ba,
+  6 e6bdec6, 7 61c0559. Direction C is complete.
+- XCTest suite (34) passed as of 61c0559.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
 - Native spinner only, no skeletons. No counts in the feed. No repost or share.
 - No AI attribution on commits. No new major backend features planned.
 
-## Direction C plan (each batch needs approval)
+## Direction C rules
 - Red only on the Project line and a liked heart. SF only, no serif.
-- Posts: 32-36 pt avatar column, name + time on one line, Project line under the name.
-  Thread line joins consecutive posts in the same Project, ending "N more in <Project>".
-- 2 Post row + like pop (symbolEffect .bounce, sensoryFeedback, Reduce Motion fade).
-- 3 Home: wordmark token, tabs, Project thread grouping (FeedViewModel), Home re-tap scrolls up.
-- 4 Compose: full-height sheet, keyboard up, Project chip; "Posting…" pill, "Posted" only after server OK.
-- 5 Discussion as a thread. 6 Profile and Project pages, compact Follow pill.
-- 7 Post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
+- 36 pt avatar column, name and time on one line, Project line under the name.
+  Home joins neighbouring posts of a Project and ends "N more in <Project>".
 
 ## Next
-- Direction C Batch 7: post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
-  Red remains in auth, Activity, Appearance preview and design preview.
-- Roadmap 10 remaining: VoiceOver pass, Dark Mode on Project, Discussion and Compose,
-  Increase Contrast.
+- Roadmap 10 remaining: VoiceOver playback pass, Increase Contrast, Reduce Motion
+  on device, Dark Mode and large text on auth screens.
 
 ## Unverified
+- VoiceOver playback and Increase Contrast for all Direction C screens.
+- Like bounce, haptic and Reduce Motion fade (not visible in screenshots).
 - Compose "Posting…" pill (too fast to capture), red Project chip, rejected post.
-- Batch 1-6 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
-- VoiceOver playback. Dark Mode across newer states. Project follow toggle.
-- Owner view of a Project (test account owns none).
-- Public "Nothing shared yet" and all-pinned Project states.
+- Auth screens after the link colour change. Owner view of a Project.
+- Project follow toggle. Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
 - Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
@@ -59,3 +42,6 @@ Keep this file under 60 lines.
 - Dragging down on a screen with a similar post=nil reload may need the same
   unstructured-task fix.
 - "N more" counts only loaded posts, so it can grow after Load More.
+- Accessibility audit: author name targets are 36 pt (the 44 pt avatar also opens
+  the profile). Post text labels flagged as long.
+- Comment field tap area is 29 pt tall.
