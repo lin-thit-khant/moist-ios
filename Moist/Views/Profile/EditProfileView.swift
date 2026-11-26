@@ -117,16 +117,20 @@ struct EditProfileView: View {
             } footer: {
 
                 Text(
-                    "This is the name people see on your posts and profile."
+                    "This is the name people see on your posts and profile. Up to 80 characters."
                 )
             }
 
             Section {
 
-                TextEditor(text: $bio)
+                // Grows with its content instead of reserving a fixed block.
+                TextField(
+                    "A little about you",
+                    text: $bio,
+                    axis: .vertical
+                )
                     .font(RawdeaTypography.body)
-                    .frame(minHeight: 130)
-                    .scrollContentBackground(.hidden)
+                    .lineLimit(3...8)
                     .accessibilityLabel("Bio")
                     .disabled(viewModel.isSaving)
                 
@@ -142,7 +146,7 @@ struct EditProfileView: View {
             } footer: {
 
                 Text(
-                    "Share a little about yourself and what you enjoy creating."
+                    "Share a little about yourself and what you enjoy creating. Up to 160 characters."
                 )
             }
 
@@ -163,14 +167,6 @@ struct EditProfileView: View {
         )
         .scrollDismissesKeyboard(.interactively)
 
-        .safeAreaInset(
-            edge: .bottom,
-            spacing: 0
-        ) {
-
-            saveFooter
-        }
-
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
 
@@ -189,6 +185,27 @@ struct EditProfileView: View {
                     requestDismissal()
                 }
                 .disabled(viewModel.isSaving)
+            }
+
+            ToolbarItem(
+                placement: .confirmationAction
+            ) {
+
+                if viewModel.isSaving {
+
+                    ProgressView()
+                        .accessibilityLabel("Saving profile")
+
+                } else {
+
+                    Button("Save") {
+
+                        Task {
+                            await saveProfile()
+                        }
+                    }
+                    .disabled(!canSave)
+                }
             }
         }
 
@@ -238,81 +255,35 @@ struct EditProfileView: View {
 
     // MARK: - Character counts
 
+    /// Stays quiet until the text is close to the limit, then shows
+    /// what is left, and turns into an error once the limit is passed.
+    @ViewBuilder
     private func characterStatus(
         count: Int,
         limit: Int
     ) -> some View {
 
-        HStack(spacing: RawdeaSpacing.xs) {
+        let remaining = limit - count
 
-            if count > limit {
+        if remaining < 0 {
 
-                Label(
-                    "Over character limit",
-                    systemImage:
-                        "exclamationmark.circle"
-                )
-                .foregroundStyle(
-                    RawdeaPalette.danger
-                )
-
-            } else {
-
-                Text(
-                    "Maximum \(limit) characters"
-                )
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-            }
-
-            Spacer(minLength: 0)
-
-            Text("\(count)/\(limit)")
-                .foregroundStyle(
-                    count > limit
-                    ? RawdeaPalette.danger
-                    : RawdeaPalette.secondaryText
-                )
-        }
-        .font(RawdeaTypography.caption)
-        .accessibilityElement(
-            children: .combine
-        )
-    }
-
-    // MARK: - Save footer
-
-    private var saveFooter: some View {
-
-        VStack(spacing: 0) {
-
-            Divider()
-                .overlay(RawdeaPalette.divider)
-
-            RawdeaPrimaryButton(
-                "Save Changes",
-                isLoading: viewModel.isSaving,
-                isEnabled: canSave
-            ) {
-
-                Task {
-                    await saveProfile()
-                }
-            }
-            .padding(
-                .horizontal,
-                RawdeaSpacing.screenInset
+            Label(
+                "\(-remaining) over the \(limit)-character limit",
+                systemImage: "exclamationmark.circle"
             )
-            .padding(
-                .vertical,
-                RawdeaSpacing.sm
+            .font(RawdeaTypography.caption)
+            .foregroundStyle(RawdeaPalette.danger)
+
+        } else if remaining <= 20 {
+
+            Text(
+                remaining == 1
+                ? "1 character left"
+                : "\(remaining) characters left"
             )
+            .font(RawdeaTypography.caption)
+            .foregroundStyle(RawdeaPalette.secondaryText)
         }
-        .background(
-            RawdeaPalette.canvas
-                .ignoresSafeArea(edges: .bottom)
-        )
     }
 
     // MARK: - Cancel

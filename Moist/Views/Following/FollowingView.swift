@@ -122,6 +122,10 @@ struct FollowingView: View {
                                         .foregroundStyle(
                                             RawdeaPalette.secondaryText
                                         )
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                        .allowsTightening(true)
+                                        .minimumScaleFactor(0.8)
 
                                     if !profile.bio.isEmpty {
 

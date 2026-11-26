@@ -10,14 +10,16 @@ import SwiftUI
 
 struct RawdeaInitialAvatar: View {
     let name: String
+    var size: CGFloat = RawdeaSpacing.xl
+    var font: Font = RawdeaTypography.authorName
 
     var body: some View {
         Text(String(name.first(where: \.isLetter) ?? "?").uppercased())
-            .font(RawdeaTypography.authorName)
+            .font(font)
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .foregroundStyle(RawdeaPalette.primaryText)
-            .frame(width: RawdeaSpacing.xl, height: RawdeaSpacing.xl)
+            .frame(width: size, height: size)
             .background(RawdeaPalette.surface, in: Circle())
             .accessibilityHidden(true)
     }

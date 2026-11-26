@@ -12,6 +12,8 @@ struct ProfileContentView: View {
 
     let profile: Profile
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private var displayName: String {
 
         let name = profile.displayname
@@ -31,28 +33,23 @@ struct ProfileContentView: View {
             spacing: RawdeaSpacing.md
         ) {
 
-            HStack(
-                alignment: .top,
-                spacing: RawdeaSpacing.md
-            ) {
+            // At accessibility sizes the avatar moves above the names so the
+            // display name and username get the full row width.
+            let headerLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.sm))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: RawdeaSpacing.md))
 
-                Image(
-                    systemName: "person.crop.circle.fill"
+            headerLayout {
+
+                RawdeaInitialAvatar(
+                    name: displayName,
+                    size: 64,
+                    font: .title.weight(.semibold)
                 )
-                .resizable()
-                .scaledToFit()
-                .frame(
-                    width: 68,
-                    height: 68
-                )
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-                .accessibilityHidden(true)
 
                 VStack(
                     alignment: .leading,
-                    spacing: RawdeaSpacing.xs
+                    spacing: RawdeaSpacing.xxs
                 ) {
 
                     Text(displayName)
@@ -70,6 +67,8 @@ struct ProfileContentView: View {
                             .isHeader
                         )
 
+                    // A username is one unbroken token, so wrapping splits it
+                    // mid-word. Keep it on one line; VoiceOver still reads it in full.
                     Text("@\(profile.username)")
                         .font(
                             RawdeaTypography.secondary
@@ -77,10 +76,10 @@ struct ProfileContentView: View {
                         .foregroundStyle(
                             RawdeaPalette.secondaryText
                         )
-                        .fixedSize(
-                            horizontal: false,
-                            vertical: true
-                        )
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .allowsTightening(true)
+                        .minimumScaleFactor(0.8)
                 }
                 .frame(
                     maxWidth: .infinity,
