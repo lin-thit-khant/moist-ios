@@ -221,7 +221,7 @@ struct FollowingView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(RawdeaPalette.canvas)
-        .refreshable {
+        .rawdeaRefreshable {
 
             await viewModel.loadFollowing()
         }

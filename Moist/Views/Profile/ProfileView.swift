@@ -240,7 +240,7 @@ struct ProfileView: View {
                         )
                     }
                 }
-                .refreshable {
+                .rawdeaRefreshable {
 
                     await viewModel.loadProfile()
 

@@ -575,7 +575,7 @@ struct ProjectDetailView: View {
         .scrollContentBackground(.hidden)
         .background(RawdeaPalette.canvas)
 
-        .refreshable {
+        .rawdeaRefreshable {
 
             await viewModel.loadPosts(
                 projectId: project.id

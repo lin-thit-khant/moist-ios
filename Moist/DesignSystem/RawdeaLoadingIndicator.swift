@@ -10,7 +10,7 @@ import SwiftUI
 /// With Reduce Motion the finished cell holds still and fades gently.
 struct RawdeaLoadingIndicator: View {
 
-    private static let cycle: TimeInterval = 1.6
+    fileprivate static let cycle: TimeInterval = 1.6
 
     private let title: String?
 
@@ -30,20 +30,8 @@ struct RawdeaLoadingIndicator: View {
                 let progress = cycles - cycles.rounded(.down)
                 let still = reduceMotion
 
-                Canvas { graphics, canvasSize in
-                    // A 900 unit window around the cell, leaving room
-                    // for the droplets and the overshoot.
-                    let scale = min(canvasSize.width, canvasSize.height) / 900
-                    graphics.scaleBy(x: scale, y: scale)
-                    graphics.translateBy(x: -80, y: -86)
-
-                    if still {
-                        CellLogo.drawWhole(in: graphics)
-                    } else {
-                        CellLogo.drawGathering(in: graphics, progress: progress)
-                    }
-                }
-                .opacity(still ? 0.8 + 0.2 * sin(progress * 2 * .pi) : 1)
+                CellCanvas(progress: still ? nil : progress)
+                    .opacity(still ? 0.8 + 0.2 * sin(progress * 2 * .pi) : 1)
             }
             // Capped so it stays quiet at accessibility text sizes.
             .frame(width: min(size, 44), height: min(size, 44))
@@ -61,7 +49,110 @@ struct RawdeaLoadingIndicator: View {
     }
 }
 
+// MARK: - Pull to refresh
+
+extension View {
+
+    /// `refreshable` with the cell in place of the system spinner. The
+    /// cell forms as the list is pulled, then loops until the refresh ends.
+    /// iOS still owns the gesture, haptic and trigger distance. The system
+    /// spinner is hidden in `RawdeaApp`. iOS 17 keeps the system spinner.
+    func rawdeaRefreshable(
+        action: @escaping @MainActor () async -> Void
+    ) -> some View {
+        modifier(RawdeaRefreshModifier(action: action))
+    }
+}
+
+private struct RawdeaRefreshModifier: ViewModifier {
+
+    /// Pull distance at which the cell looks complete.
+    private static let fullPull: CGFloat = 100
+
+    /// The point in the cycle where the cell is whole.
+    private static let formed = 0.8
+
+    let action: @MainActor () async -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 28
+    @State private var pull: CGFloat = 0
+    @State private var isPulling = false
+    @State private var refreshStart: Date?
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content
+                .refreshable {
+                    refreshStart = Date()
+                    defer { refreshStart = nil }
+                    await action()
+                }
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    max(0, -(geometry.contentOffset.y + geometry.contentInsets.top))
+                } action: { _, distance in
+                    pull = distance
+                }
+                .onScrollPhaseChange { _, phase in
+                    isPulling = phase == .tracking || phase == .interacting
+                }
+                .overlay(alignment: .top) { indicator }
+        } else {
+            content.refreshable { await action() }
+        }
+    }
+
+    @ViewBuilder
+    private var indicator: some View {
+        // Only a finger pull shows the cell, not a bounce at the top.
+        if refreshStart != nil || (isPulling && pull > 8) {
+            TimelineView(.animation) { context in
+                let pulled = min(1, pull / Self.fullPull)
+
+                if let refreshStart {
+                    let cycles = Self.formed
+                        + context.date.timeIntervalSince(refreshStart) / RawdeaLoadingIndicator.cycle
+                    let progress = cycles - cycles.rounded(.down)
+
+                    CellCanvas(progress: reduceMotion ? nil : progress)
+                        .opacity(reduceMotion ? 0.8 + 0.2 * cos(progress * 2 * .pi) : 1)
+                } else {
+                    CellCanvas(progress: reduceMotion ? nil : Self.formed * pulled)
+                        .opacity(reduceMotion ? pulled : 1)
+                }
+            }
+            .frame(width: min(size, 44), height: min(size, 44))
+            .padding(.top, RawdeaSpacing.md)
+            // The system control already speaks the refresh to VoiceOver.
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
+        }
+    }
+}
+
 // MARK: - Drawing
+
+/// One frame of the cell. A nil `progress` draws the finished cell.
+private struct CellCanvas: View {
+
+    let progress: Double?
+
+    var body: some View {
+        Canvas { graphics, canvasSize in
+            // A 900 unit window around the cell, leaving room
+            // for the droplets and the overshoot.
+            let scale = min(canvasSize.width, canvasSize.height) / 900
+            graphics.scaleBy(x: scale, y: scale)
+            graphics.translateBy(x: -80, y: -86)
+
+            if let progress {
+                CellLogo.drawGathering(in: graphics, progress: progress)
+            } else {
+                CellLogo.drawWhole(in: graphics)
+            }
+        }
+    }
+}
 
 /// Shapes traced from the 1024 pt app icon. The logo keeps its own
 /// colors in Light and Dark Mode.

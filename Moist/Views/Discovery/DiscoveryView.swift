@@ -293,7 +293,7 @@ struct DiscoveryView: View {
         .background(RawdeaPalette.canvas)
         .scrollDismissesKeyboard(.interactively)
 
-        .refreshable {
+        .rawdeaRefreshable {
 
             await refreshSearch()
         }

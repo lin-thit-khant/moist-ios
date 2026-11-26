@@ -227,7 +227,7 @@ struct NotificationsView: View {
             }
         }
 
-        .refreshable {
+        .rawdeaRefreshable {
 
             guard openingNotificationId == nil else {
                 return

@@ -11,6 +11,13 @@ import SwiftUI
 @main
 struct RawdeaApp: App {
 
+    init() {
+        // `rawdeaRefreshable` draws the cell instead of this spinner.
+        if #available(iOS 18.0, *) {
+            UIRefreshControl.appearance().tintColor = .clear
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             RawdeaAppearanceRootView()

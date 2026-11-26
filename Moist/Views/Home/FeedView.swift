@@ -148,7 +148,7 @@ struct RawdeaHomeFeedList<Row: View>: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(RawdeaPalette.canvas)
-        .refreshable { await refresh() }
+        .rawdeaRefreshable { await refresh() }
         .task(id: isInitialLoad || isLoadingMore) {
             showsProgress = false
             guard isInitialLoad || isLoadingMore else { return }

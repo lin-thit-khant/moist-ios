@@ -426,7 +426,7 @@ struct PostDetailView: View {
 
         // Preserve existing privacy revalidation
         // when the user refreshes Discussion.
-        .refreshable {
+        .rawdeaRefreshable {
 
             // Loading removes this List, which would cancel
             // the refresh and leave the spinner forever. An

@@ -129,7 +129,7 @@ struct ModerationSafetyInboxView: View {
             )
         }
 
-        .refreshable {
+        .rawdeaRefreshable {
 
             await viewModel.load(
                 status: selectedStatus

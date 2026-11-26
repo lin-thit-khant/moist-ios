@@ -124,7 +124,7 @@ struct BlockedUsersView: View {
 
         // MARK: - Pull to Refresh
 
-        .refreshable {
+        .rawdeaRefreshable {
             await viewModel.loadUsers()
         }
 

@@ -107,7 +107,7 @@ struct SavedPostsView: View {
             }
         }
 
-        .refreshable {
+        .rawdeaRefreshable {
 
             await viewModel.loadPosts()
         }

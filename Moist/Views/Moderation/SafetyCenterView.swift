@@ -225,7 +225,7 @@ struct SafetyCenterView: View {
             await viewModel.load()
         }
 
-        .refreshable {
+        .rawdeaRefreshable {
             await viewModel.load()
         }
     }

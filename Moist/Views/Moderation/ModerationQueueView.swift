@@ -196,7 +196,7 @@ struct ModerationQueueView: View {
         }
         .listStyle(.insetGrouped)
 
-        .refreshable {
+        .rawdeaRefreshable {
             await viewModel.reload()
         }
     }
