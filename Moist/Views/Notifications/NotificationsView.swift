@@ -163,6 +163,11 @@ struct NotificationsView: View {
 
         .toolbar {
 
+            // Only offered when there is something
+            // to mark, so an empty Activity screen
+            // stays quiet.
+            if hasUnreadNotifications || viewModel.isMarkingAll {
+
             ToolbarItem(
                 placement: .topBarTrailing
             ) {
@@ -194,6 +199,7 @@ struct NotificationsView: View {
                     ? "Marking notifications as read"
                     : "Mark all notifications as read"
                 )
+            }
             }
         }
 

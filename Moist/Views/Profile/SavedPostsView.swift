@@ -12,6 +12,8 @@ struct SavedPostsView: View {
     @StateObject private var viewModel =
         SavedPostsViewModel()
 
+    @Environment(\.rawdeaOpenExplore) private var openExplore
+
     @Environment(\.scenePhase)
     private var scenePhase
 
@@ -222,7 +224,13 @@ struct SavedPostsView: View {
             message:
                 viewModel.hasBookmarks
                 ? "Your saved posts may have become private or unavailable."
-                : "Bookmark a post to return to it whenever you want."
+                : "Save a post to come back to it whenever you want.",
+            actionTitle:
+                !viewModel.hasBookmarks && openExplore != nil
+                ? "Explore"
+                : nil,
+            action:
+                viewModel.hasBookmarks ? nil : openExplore
         )
         .listRowSeparator(.hidden)
         .listRowBackground(
