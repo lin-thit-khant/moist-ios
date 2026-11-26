@@ -5,6 +5,7 @@ Keep this file under 60 lines.
 
 ## Repository
 - Branch: feature/rawdea-migration. Direction C Batch 0+1: 4674049.
+- Lin approved pushing after every batch (2026-11-26). No force-push.
 - Review seed data (supabase/review/) is loaded in the local database.
 - .cursor/ is local tool config. Never commit it.
 
@@ -17,10 +18,11 @@ Keep this file under 60 lines.
 - Batch 9 Authentication: reviewed, no changes.
 - Batch 10 partial: profile-load retry 72f9b3f, Profile checked in Dark Mode.
 - Direction C Batch 0 review content + Batch 1 monochrome foundations 4674049.
-- Direction C Batch 2 post row 28fded8 (local, not pushed).
-- Direction C Batch 3 Home 3e30d5b (local, not pushed). Re-tap scroll is native.
-- Direction C Batch 4 Compose 7a5afa1 (local, not pushed).
-- XCTest suite (34) passed as of 7a5afa1.
+- Direction C Batch 2 post row 28fded8.
+- Direction C Batch 3 Home 3e30d5b . Re-tap scroll is native.
+- Direction C Batch 4 Compose 7a5afa1.
+- Direction C Batch 5 Discussion thread 869e7ba.
+- XCTest suite (34) passed as of 869e7ba.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -38,17 +40,19 @@ Keep this file under 60 lines.
 - 7 Post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
 
 ## Next
-- Direction C Batch 5: Discussion as a thread.
+- Direction C Batch 6: Profile and Project pages, compact Follow pill.
 - Roadmap 10 remaining: VoiceOver pass, Dark Mode on Project, Discussion and Compose,
   Increase Contrast.
 
 ## Unverified
 - Compose "Posting…" pill (too fast to capture), red Project chip, rejected post.
-- Batch 1-4 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
+- Batch 1-5 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
 - VoiceOver playback. Dark Mode across newer states. Follow toggles.
 - Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
 - Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
 - Publishing from a Project returns to Home.
+- Dragging down on a screen with a similar post=nil reload may need the same
+  unstructured-task fix.
 - "N more" counts only loaded posts, so it can grow after Load More.
