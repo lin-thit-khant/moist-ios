@@ -95,10 +95,26 @@ struct EditProfileView: View {
 
             Section {
 
+                // Wraps instead of truncating at large
+                // text sizes. Return adds nothing, and
+                // pasted line breaks become spaces.
                 TextField(
                     "Your display name",
-                    text: $displayName
+                    text: $displayName,
+                    axis: .vertical
                 )
+                .lineLimit(1...3)
+                .submitLabel(.done)
+                .onChange(of: displayName) { _, newValue in
+                    if newValue.contains(where: \.isNewline) {
+                        let trimmed = newValue.hasSuffix("\n")
+                            ? String(newValue.dropLast())
+                            : newValue
+                        displayName = trimmed
+                            .components(separatedBy: .newlines)
+                            .joined(separator: " ")
+                    }
+                }
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .font(RawdeaTypography.body)
