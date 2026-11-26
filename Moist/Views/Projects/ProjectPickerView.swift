@@ -242,7 +242,7 @@ struct ProjectPickerView: View {
                         systemName: "checkmark"
                     )
                     .foregroundStyle(
-                        RawdeaPalette.accent
+                        RawdeaPalette.primaryText
                     )
                     .accessibilityHidden(true)
                 }
@@ -305,7 +305,7 @@ struct ProjectPickerView: View {
                         systemName: "checkmark"
                     )
                     .foregroundStyle(
-                        RawdeaPalette.accent
+                        RawdeaPalette.primaryText
                     )
                     .accessibilityHidden(true)
                 }

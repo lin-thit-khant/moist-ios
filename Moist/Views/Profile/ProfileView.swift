@@ -138,90 +138,7 @@ struct ProfileView: View {
                         }
                         
                         
-                        NavigationLink {
-
-                            EditProfileView(
-                                viewModel: viewModel,
-                                profile: profile
-                            )
-
-                        } label: {
-
-                            Text("Edit Profile")
-                                .font(RawdeaTypography.button)
-                                .foregroundStyle(
-                                    RawdeaPalette.onAccent
-                                )
-                                .frame(maxWidth: .infinity)
-                                .frame(
-                                    minHeight:
-                                        RawdeaSpacing.minimumTouchTarget
-                                )
-                                .padding(
-                                    .vertical,
-                                    RawdeaSpacing.xs
-                                )
-                                .background(
-                                    RawdeaPalette.accent,
-                                    in: RoundedRectangle(
-                                        cornerRadius:
-                                            RawdeaSpacing.buttonRadius
-                                    )
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity)
-                        
-                        NavigationLink(
-                            value: RawdeaPostRoute.following
-                        ) {
-
-                            HStack(spacing: RawdeaSpacing.sm) {
-                                Group {
-                                    if dynamicTypeSize.isAccessibilitySize {
-                                        Text("Following")
-                                    } else {
-                                        Label("Following", systemImage: "person.2")
-                                    }
-                                }
-                                .font(RawdeaTypography.button)
-                                .foregroundStyle(RawdeaPalette.primaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .layoutPriority(1)
-
-                                Spacer(minLength: 0)
-
-                                Image(systemName: "chevron.right")
-                                    .font(RawdeaTypography.caption.weight(.semibold))
-                                    .foregroundStyle(RawdeaPalette.secondaryText)
-                                    .accessibilityHidden(true)
-                            }
-                            .padding(.horizontal, RawdeaSpacing.sm)
-                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                            .background(
-                                RawdeaPalette.surface,
-                                in: RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
-                            )
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Opens people and Projects you follow")
-                        
-                        
-                        // MARK: - Saved Posts
-
-                        NavigationLink(
-                            value: RawdeaPostRoute.savedPosts
-                        ) {
-
-                            Label(
-                                "Saved Posts",
-                                systemImage: "bookmark"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
+                        profileActions(profile)
 
                         RawdeaProfileWorkSections(
                             pinnedProjects: sortedActiveProjects.filter(\.isPinned),
@@ -567,7 +484,7 @@ struct ProfileView: View {
                     Button(action: createPost) {
                         Label("Write a Post", systemImage: "square.and.pencil")
                             .font(RawdeaTypography.metadata)
-                            .foregroundStyle(RawdeaPalette.accent)
+                            .foregroundStyle(RawdeaPalette.primaryText)
                             .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                             .contentShape(Rectangle())
                     }
@@ -604,6 +521,39 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // MARK: - Profile actions
+
+    // Three equal pills, stacked at accessibility sizes.
+    private func profileActions(_ profile: Profile) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 0))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: RawdeaSpacing.xs))
+
+        return layout {
+            NavigationLink {
+                EditProfileView(
+                    viewModel: viewModel,
+                    profile: profile
+                )
+            } label: {
+                RawdeaOutlinePillLabel(title: "Edit Profile")
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(value: RawdeaPostRoute.following) {
+                RawdeaOutlinePillLabel(title: "Following")
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens people and Projects you follow")
+
+            NavigationLink(value: RawdeaPostRoute.savedPosts) {
+                RawdeaOutlinePillLabel(title: "Saved")
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Saved Posts")
+        }
+    }
+
     private var projectsSection: some View {
         let archivedProjects = projectsViewModel.projects.filter(\.isArchived)
 
@@ -615,7 +565,7 @@ struct ProfileView: View {
             } label: {
                 Label("New Project", systemImage: "plus")
                     .font(RawdeaTypography.metadata)
-                    .foregroundStyle(RawdeaPalette.accent)
+                    .foregroundStyle(RawdeaPalette.primaryText)
                     .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                     .contentShape(Rectangle())
             }

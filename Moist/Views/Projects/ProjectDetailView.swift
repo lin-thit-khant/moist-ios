@@ -31,6 +31,7 @@ struct ProjectDetailView: View {
     @State private var projectToRename: Project?
 
     @Environment(\.rawdeaCreatePostInProject) private var createPostInProject
+    @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
 
     private var isOwner: Bool {
         currentUserId == project.userId
@@ -292,11 +293,15 @@ struct ProjectDetailView: View {
 
     private var projectHeader: some View {
 
-        RawdeaProjectSurface {
+        // Reads as part of the page rather than a card.
+        VStack(
+            alignment: .leading,
+            spacing: 0
+        ) {
 
             VStack(
                 alignment: .leading,
-                spacing: RawdeaSpacing.sm
+                spacing: RawdeaSpacing.xs
             ) {
 
                 RawdeaProjectCard(
@@ -307,17 +312,16 @@ struct ProjectDetailView: View {
                 // Who the Project belongs to, linking to their profile.
                 if !isOwner, let ownerName, let ownerProfile {
 
-                    NavigationLink(
-                        value: RawdeaPostRoute.author(ownerProfile.id)
-                    ) {
+                    // A button, so the List row adds no chevron
+                    // and only the name opens the profile.
+                    Button {
+                        openPostRoute?(.author(ownerProfile.id))
+                    } label: {
                         HStack(spacing: RawdeaSpacing.xs) {
                             Text("by \(ownerName)")
                                 .font(RawdeaTypography.secondary)
                                 .foregroundStyle(RawdeaPalette.primaryText)
                                 .lineLimit(2)
-
-                            // The List row supplies the disclosure chevron.
-                            Spacer(minLength: 0)
                         }
                         .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                         .contentShape(Rectangle())
@@ -386,13 +390,14 @@ struct ProjectDetailView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(
             .horizontal,
             RawdeaSpacing.screenInset
         )
         .padding(
             .vertical,
-            RawdeaSpacing.md
+            RawdeaSpacing.sm
         )
     }
 

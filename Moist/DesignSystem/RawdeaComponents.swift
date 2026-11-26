@@ -61,7 +61,7 @@ struct RawdeaCharacterLimitText: View {
 
 // MARK: - Follow Button
 
-/// Shared Follow / Following control for people and Projects.
+/// Shared compact Follow / Following pill for people and Projects.
 struct RawdeaFollowButton: View {
     let isFollowing: Bool
     let isUpdating: Bool
@@ -74,7 +74,7 @@ struct RawdeaFollowButton: View {
         let isMuted = isFollowing || isBlocked
         let foreground = isMuted ? RawdeaPalette.primaryText : RawdeaPalette.onPrimaryFill
         let background = isMuted ? RawdeaPalette.canvas : RawdeaPalette.primaryFill
-        let shape = RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+        let shape = Capsule()
 
         Button(action: action) {
             HStack(spacing: RawdeaSpacing.xs) {
@@ -90,11 +90,11 @@ struct RawdeaFollowButton: View {
                 Text(isFollowing ? "Following" : "Follow")
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .font(RawdeaTypography.button)
+            .font(RawdeaTypography.authorName)
             .foregroundStyle(foreground)
             .padding(.horizontal, RawdeaSpacing.md)
-            .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
             .padding(.vertical, RawdeaSpacing.xs)
+            .frame(minWidth: 96)
             .background(background, in: shape)
             .overlay {
                 if isMuted {
@@ -102,6 +102,8 @@ struct RawdeaFollowButton: View {
                         .allowsHitTesting(false)
                 }
             }
+            // The pill looks small but keeps a full target.
+            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -112,6 +114,30 @@ struct RawdeaFollowButton: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(isFollowing ? unfollowLabel : followLabel)
         .accessibilityValue(isUpdating ? "Updating" : isFollowing ? "Following" : "Not following")
+    }
+}
+
+// MARK: - Outline Pill
+
+/// A quiet secondary action, such as Edit Profile.
+struct RawdeaOutlinePillLabel: View {
+
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(RawdeaTypography.authorName)
+            .foregroundStyle(RawdeaPalette.primaryText)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, RawdeaSpacing.xs)
+            .padding(.vertical, RawdeaSpacing.xs)
+            .frame(maxWidth: .infinity)
+            .background {
+                Capsule().strokeBorder(RawdeaPalette.activityOutline)
+            }
+            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+            .contentShape(Rectangle())
     }
 }
 
@@ -385,7 +411,7 @@ struct RawdeaEmptyState: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(RawdeaPalette.accent)
+                .foregroundStyle(RawdeaPalette.primaryText)
             }
         }
         .frame(maxWidth: .infinity)

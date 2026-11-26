@@ -51,7 +51,7 @@ struct RawdeaProjectCard: View {
                     Image(systemName: "pin.fill")
                         .font(RawdeaTypography.caption)
                         .foregroundStyle(
-                            RawdeaPalette.accent
+                            RawdeaPalette.secondaryText
                         )
                         .accessibilityLabel("Pinned")
                 }
