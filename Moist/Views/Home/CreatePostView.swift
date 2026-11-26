@@ -68,17 +68,23 @@ struct CreatePostView: View {
                     spacing: RawdeaSpacing.lg
                 ) {
 
-                    introduction
+                    // The destination and the draft read as one block.
+                    VStack(
+                        alignment: .leading,
+                        spacing: RawdeaSpacing.xs
+                    ) {
 
-                    RawdeaPostEditor(
-                        content: $content,
-                        placeholder:
-                            "Share something worth remembering.",
-                        isEnabled:
-                            !viewModel.isPublishing
-                    )
+                        projectChip
 
-                    projectDestination
+                        RawdeaPostEditor(
+                            content: $content,
+                            placeholder:
+                                "Share something worth remembering.",
+                            isEnabled:
+                                !viewModel.isPublishing,
+                            isPlain: true
+                        )
+                    }
 
                     moderationNotice
 
@@ -96,7 +102,7 @@ struct CreatePostView: View {
                 )
                 .padding(
                     .top,
-                    RawdeaSpacing.md
+                    RawdeaSpacing.xs
                 )
                 .padding(
                     .bottom,
@@ -136,20 +142,17 @@ struct CreatePostView: View {
                     placement: .confirmationAction
                 ) {
 
-                    if viewModel.isPublishing {
-
-                        ProgressView()
-                            .accessibilityLabel("Publishing post")
-
-                    } else {
-
-                        Button("Publish") {
-                            Task {
-                                await publish()
-                            }
+                    Button("Publish") {
+                        Task {
+                            await publish()
                         }
-                        .disabled(!canPublish)
                     }
+                    .disabled(!canPublish)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if viewModel.isPublishing {
+                    postingPill
                 }
             }
 
@@ -217,135 +220,84 @@ struct CreatePostView: View {
         }
     }
 
-    // MARK: - Introduction
+    // MARK: - Project destination
 
-    private var introduction: some View {
+    private var projectChip: some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: RawdeaSpacing.xs
-        ) {
+        Button {
 
-            Text("A new thought")
-                .font(
-                    RawdeaTypography.screenTitle
-                )
-                .foregroundStyle(
-                    RawdeaPalette.primaryText
-                )
+            isShowingProjectPicker = true
 
-            Text(
-                "Write freely, then choose where it belongs."
-            )
-            .font(RawdeaTypography.secondary)
+        } label: {
+
+            HStack(spacing: RawdeaSpacing.xxs) {
+
+                Image(systemName: "folder")
+                    .accessibilityHidden(true)
+
+                Text(selectedProject?.name ?? "Add to Project")
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Image(systemName: "chevron.down")
+                    .font(RawdeaTypography.caption)
+                    .accessibilityHidden(true)
+            }
+            .font(RawdeaTypography.metadata.weight(.semibold))
+            // Red marks a chosen Project only.
             .foregroundStyle(
-                RawdeaPalette.secondaryText
+                selectedProject == nil
+                ? RawdeaPalette.primaryText
+                : RawdeaPalette.accent
             )
+            .padding(.horizontal, RawdeaSpacing.sm)
+            .padding(.vertical, RawdeaSpacing.xs)
+            .background(
+                RawdeaPalette.surface,
+                in: RoundedRectangle(cornerRadius: RawdeaSpacing.lg)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: RawdeaSpacing.lg)
+                    .strokeBorder(RawdeaPalette.activityOutline)
+            }
+            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+            .contentShape(Rectangle())
         }
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
+        .buttonStyle(.plain)
+        .disabled(viewModel.isPublishing)
+        .accessibilityLabel(
+            "Post destination, \(selectedProject?.name ?? "No Project")"
+        )
+        .accessibilityHint(
+            "Choose a Project, or publish to your profile"
         )
     }
 
-    // MARK: - Project destination
+    // MARK: - Publishing status
 
-    private var projectDestination: some View {
+    // The sheet stays open until the server answers, so a
+    // rejected post keeps its draft.
+    private var postingPill: some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: RawdeaSpacing.xs
-        ) {
+        HStack(spacing: RawdeaSpacing.xs) {
 
-            Text("POST DESTINATION")
-                .font(RawdeaTypography.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-                .accessibilityAddTraits(.isHeader)
+            ProgressView()
+                .accessibilityHidden(true)
 
-            Button {
-
-                isShowingProjectPicker = true
-
-            } label: {
-
-                HStack(
-                    spacing: RawdeaSpacing.sm
-                ) {
-
-                    Image(systemName: "folder")
-                        .font(.system(.body))
-                        .foregroundStyle(
-                            RawdeaPalette.accent
-                        )
-                        .accessibilityHidden(true)
-
-                    VStack(
-                        alignment: .leading,
-                        spacing: RawdeaSpacing.xxs
-                    ) {
-
-                        Text(
-                            selectedProject?.name
-                            ?? "No Project"
-                        )
-                        .font(
-                            RawdeaTypography.authorName
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.primaryText
-                        )
-
-                        Text(
-                            selectedProject == nil
-                            ? "Publish to your profile"
-                            : "Publish inside this Project"
-                        )
-                        .font(
-                            RawdeaTypography.metadata
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
-                    }
-                    .frame(
-                        maxWidth: .infinity,
-                        alignment: .leading
-                    )
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(.subheadline))
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
-                        .accessibilityHidden(true)
-                }
-                .padding(RawdeaSpacing.md)
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight:
-                        RawdeaSpacing.minimumTouchTarget,
-                    alignment: .leading
-                )
-                .background(
-                    RawdeaPalette.surface,
-                    in: RoundedRectangle(
-                        cornerRadius:
-                            RawdeaSpacing.buttonRadius
-                    )
-                )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isPublishing)
-            .accessibilityLabel(
-                "Post destination, \(selectedProject?.name ?? "No Project")"
-            )
-            .accessibilityHint(
-                "Choose a Project, or publish to your profile"
-            )
+            Text("Posting…")
+                .font(RawdeaTypography.authorName)
+                .foregroundStyle(RawdeaPalette.primaryText)
+        }
+        .padding(.horizontal, RawdeaSpacing.md)
+        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+        .background(RawdeaPalette.surface, in: Capsule())
+        .overlay {
+            Capsule().strokeBorder(RawdeaPalette.activityOutline)
+        }
+        .padding(.bottom, RawdeaSpacing.xs)
+        .accessibilityElement(children: .combine)
+        .onAppear {
+            AccessibilityNotification.Announcement("Posting").post()
         }
     }
 

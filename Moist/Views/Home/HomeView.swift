@@ -286,11 +286,10 @@ struct HomeView: View {
             : AnyLayout(HStackLayout(spacing: RawdeaSpacing.sm))
 
         return layout {
-            Label("Post published", systemImage: "checkmark.circle.fill")
+            Label("Posted", systemImage: "checkmark.circle.fill")
                 .font(RawdeaTypography.authorName)
                 .foregroundStyle(RawdeaPalette.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
             if let openPostRoute,
                feedViewModel.posts.contains(where: { $0.id == postID }) {
@@ -313,11 +312,11 @@ struct HomeView: View {
             }
         }
         .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-        .padding(.horizontal, RawdeaSpacing.sm)
+        .padding(.horizontal, RawdeaSpacing.md)
         .padding(.vertical, RawdeaSpacing.xxs)
-        .background(RawdeaPalette.surface, in: RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius))
+        .background(RawdeaPalette.surface, in: RoundedRectangle(cornerRadius: RawdeaSpacing.lg))
         .overlay {
-            RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+            RoundedRectangle(cornerRadius: RawdeaSpacing.lg)
                 .strokeBorder(RawdeaPalette.activityOutline)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)

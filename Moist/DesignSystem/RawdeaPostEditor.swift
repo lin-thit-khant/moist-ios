@@ -15,6 +15,8 @@ struct RawdeaPostEditor: View {
     let placeholder: String
     let isEnabled: Bool
     let autoFocus: Bool
+    /// Text on the bare screen, without the field surface.
+    let isPlain: Bool
 
     @FocusState private var isEditorFocused: Bool
 
@@ -22,12 +24,14 @@ struct RawdeaPostEditor: View {
         content: Binding<String>,
         placeholder: String = "What's on your mind?",
         isEnabled: Bool = true,
-        autoFocus: Bool = true
+        autoFocus: Bool = true,
+        isPlain: Bool = false
     ) {
         self._content = content
         self.placeholder = placeholder
         self.isEnabled = isEnabled
         self.autoFocus = autoFocus
+        self.isPlain = isPlain
     }
 
     private var draft: RawdeaPostDraft {
@@ -49,8 +53,11 @@ struct RawdeaPostEditor: View {
                         RawdeaPalette.primaryText
                     )
                     .scrollContentBackground(.hidden)
-                    .padding(RawdeaSpacing.xs)
-                    .frame(minHeight: 230)
+                    // A plain editor cancels TextEditor's own
+                    // inset so text lines up with the screen.
+                    .padding(.horizontal, isPlain ? -5 : RawdeaSpacing.xs)
+                    .padding(.vertical, isPlain ? 0 : RawdeaSpacing.xs)
+                    .frame(minHeight: isPlain ? 160 : 230)
                     .focused($isEditorFocused)
                     .disabled(!isEnabled)
                     .textInputAutocapitalization(.sentences)
@@ -68,11 +75,11 @@ struct RawdeaPostEditor: View {
                         )
                         .padding(
                             .horizontal,
-                            RawdeaSpacing.md
+                            isPlain ? 0 : RawdeaSpacing.md
                         )
                         .padding(
                             .top,
-                            RawdeaSpacing.md
+                            isPlain ? RawdeaSpacing.xs : RawdeaSpacing.md
                         )
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
@@ -82,25 +89,26 @@ struct RawdeaPostEditor: View {
                 maxWidth: .infinity,
                 alignment: .leading
             )
-            .background(
-                RawdeaPalette.surface,
-                in: RoundedRectangle(
-                    cornerRadius: RawdeaSpacing.cardRadius,
-                    style: .continuous
-                )
-            )
+            .background {
+
+                if !isPlain {
+
+                    fieldShape
+                        .fill(RawdeaPalette.surface)
+                }
+            }
             .overlay {
 
-                RoundedRectangle(
-                    cornerRadius: RawdeaSpacing.cardRadius,
-                    style: .continuous
-                )
-                .strokeBorder(
-                    RawdeaPalette.activityOutline,
-                    lineWidth: 1
-                )
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+                if !isPlain {
+
+                    fieldShape
+                        .strokeBorder(
+                            RawdeaPalette.activityOutline,
+                            lineWidth: 1
+                        )
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
             }
 
             // MARK: - Character status
@@ -127,7 +135,7 @@ struct RawdeaPostEditor: View {
                             RawdeaPalette.secondaryText
                         )
 
-                } else {
+                } else if !isPlain {
 
                     Text("Share a thought in your own words.")
                         .foregroundStyle(
@@ -168,5 +176,12 @@ struct RawdeaPostEditor: View {
 
             isEditorFocused = true
         }
+    }
+
+    private var fieldShape: RoundedRectangle {
+        RoundedRectangle(
+            cornerRadius: RawdeaSpacing.cardRadius,
+            style: .continuous
+        )
     }
 }
