@@ -346,6 +346,21 @@ struct ProfileView: View {
             } else {
                 ProgressView("Preparing profile...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // If an earlier load was cancelled (for example
+                    // when sign-in or an appearance change rebuilt
+                    // the screen), start it again. The load runs in
+                    // its own Task so this spinner disappearing
+                    // cannot cancel it.
+                    .onAppear {
+                        guard viewModel.profile == nil,
+                              viewModel.errorMessage == nil,
+                              !viewModel.isLoading else {
+                            return
+                        }
+                        Task {
+                            await viewModel.loadProfile()
+                        }
+                    }
             }
         }
         .background(
