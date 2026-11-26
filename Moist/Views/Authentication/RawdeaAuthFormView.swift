@@ -367,11 +367,12 @@ struct RawdeaAuthFormView: View {
             } label: {
 
                 Text("Forgot password?")
+                    .underline()
                     .font(
                         RawdeaTypography.secondary
                     )
                     .foregroundStyle(
-                        RawdeaPalette.accent
+                        RawdeaPalette.primaryText
                     )
                     .frame(
                         maxWidth: .infinity,
@@ -394,11 +395,12 @@ struct RawdeaAuthFormView: View {
             } label: {
 
                 Text("Read our Community Guidelines")
+                    .underline()
                     .font(
                         RawdeaTypography.metadata
                     )
                     .foregroundStyle(
-                        RawdeaPalette.accent
+                        RawdeaPalette.primaryText
                     )
                     .multilineTextAlignment(.center)
                     .frame(

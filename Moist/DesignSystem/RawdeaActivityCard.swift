@@ -34,7 +34,7 @@ struct RawdeaActivityCard: View {
                 .font(.system(.title3))
                 .foregroundStyle(
                     isUnread
-                    ? RawdeaPalette.accent
+                    ? RawdeaPalette.primaryText
                     : RawdeaPalette.secondaryText
                 )
                 .frame(
@@ -86,7 +86,7 @@ struct RawdeaActivityCard: View {
                             RawdeaTypography.caption
                         )
                         .foregroundStyle(
-                            RawdeaPalette.accent
+                            RawdeaPalette.primaryText
                         )
 
                     } else {

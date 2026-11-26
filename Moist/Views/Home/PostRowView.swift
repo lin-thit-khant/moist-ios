@@ -31,6 +31,8 @@ struct PostRowView: View {
     @State private var reportTarget: ReportTarget?
     @State private var isShowingDeleteConfirmation = false
     @State private var likePop = 0
+    @State private var isShowingOptions = false
+    @State private var pendingOption: PostOption?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -257,6 +259,21 @@ struct PostRowView: View {
             }
         }
 
+        // The chosen action runs once the sheet has closed,
+        // so it can present its own sheet or confirmation.
+        .sheet(
+            isPresented: $isShowingOptions,
+            onDismiss: {
+                pendingOption?.action()
+                pendingOption = nil
+            }
+        ) {
+            PostOptionsSheet(options: postOptions) { option in
+                pendingOption = option
+                isShowingOptions = false
+            }
+        }
+
         .sheet(item: $reportTarget) { target in
 
             ReportContentView(target: target)
@@ -303,29 +320,21 @@ struct PostRowView: View {
     // MARK: - Author header
 
     // A second way into the profile with a full-size target.
-    // VoiceOver uses the name instead.
+    // A tap gesture keeps it out of VoiceOver, which uses the name.
     private var avatarLink: some View {
 
-        routedPostControl(
-            to: .author(post.userId)
-        ) {
-
-            AuthorProfileView(
-                userId: post.userId
-            )
-
-        } label: {
-
-            RawdeaInitialAvatar(
-                name: authorName,
-                size: RawdeaSpacing.avatarColumn,
-                tintSeed: post.userId
-            )
-            .frame(
-                width: RawdeaSpacing.minimumTouchTarget,
-                height: RawdeaSpacing.minimumTouchTarget
-            )
-            .contentShape(Rectangle())
+        RawdeaInitialAvatar(
+            name: authorName,
+            size: RawdeaSpacing.avatarColumn,
+            tintSeed: post.userId
+        )
+        .frame(
+            width: RawdeaSpacing.minimumTouchTarget,
+            height: RawdeaSpacing.minimumTouchTarget
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            openPostRoute?(.author(post.userId))
         }
         .padding(-(RawdeaSpacing.minimumTouchTarget - RawdeaSpacing.avatarColumn) / 2)
         .accessibilityHidden(true)
@@ -346,15 +355,8 @@ struct PostRowView: View {
                     // the name row taller.
                     Group {
 
-                        if viewerId == post.userId {
-
-                            if hasOwnerActions {
-                                ownerOptions
-                            }
-
-                        } else {
-
-                            reportingOptions
+                        if viewerId != post.userId || hasOwnerActions {
+                            optionsButton
                         }
                     }
                     .padding(.vertical, -RawdeaSpacing.sm)
@@ -363,12 +365,7 @@ struct PostRowView: View {
             }
 
             if !dynamicTypeSize.isAccessibilitySize {
-
-                // The 44 pt target reaches up into the name row
-                // so the two lines still read as one block.
                 projectLine
-                    .padding(.top, -10)
-                    .zIndex(1)
             }
         }
     }
@@ -412,9 +409,11 @@ struct PostRowView: View {
                 }
                 .layoutPriority(1)
             }
-            .padding(.vertical, RawdeaSpacing.sm)
+            // Reaches into the row's top padding only, so it
+            // never overlaps the Project line below.
+            .padding(.top, RawdeaSpacing.sm)
             .contentShape(Rectangle())
-            .padding(.vertical, -RawdeaSpacing.sm)
+            .padding(.top, -RawdeaSpacing.sm)
         }
         .accessibilityLabel(
             "View profile for \(authorName), \(authorHandle)"
@@ -572,10 +571,13 @@ struct PostRowView: View {
             .foregroundStyle(
                 RawdeaPalette.accent
             )
-            .padding(.vertical, RawdeaSpacing.sm)
+            // Text sits at the top of its target, close to the name.
+            .padding(.top, RawdeaSpacing.xxs)
+            .padding(.bottom, RawdeaSpacing.sm)
             .frame(
                 minHeight:
-                    RawdeaSpacing.minimumTouchTarget
+                    RawdeaSpacing.minimumTouchTarget,
+                alignment: .top
             )
             .contentShape(Rectangle())
         }
@@ -759,85 +761,73 @@ struct PostRowView: View {
         .contentShape(Rectangle())
     }
 
-    // MARK: - Owner menu
+    // MARK: - Post options
 
-    private var ownerOptions: some View {
+    private var optionsButton: some View {
 
-        Menu {
-
-            if let onEdit {
-
-                Button(
-                    "Edit Post",
-                    systemImage: "pencil",
-                    action: onEdit
-                )
-            }
-
-            if onDelete != nil {
-
-                Button(
-                    "Delete Post",
-                    systemImage: "trash",
-                    role: .destructive
-                ) {
-                    isShowingDeleteConfirmation = true
-                }
-            }
-
-            if let onMove {
-
-                Button(
-                    "Move to Project",
-                    systemImage: "folder",
-                    action: onMove
-                )
-            }
-
-            if let onHide {
-
-                Button(
-                    post.isHidden
-                    ? "Unhide Post"
-                    : "Hide Post",
-                    systemImage:
-                        post.isHidden
-                        ? "eye"
-                        : "eye.slash",
-                    action: onHide
-                )
-            }
-
+        Button {
+            isShowingOptions = true
         } label: {
-
             optionsSymbol
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("Post options")
     }
 
-    // MARK: - Report menu
+    private var ownerOptions: [PostOption] {
 
-    private var reportingOptions: some View {
+        var options: [PostOption] = []
 
-        Menu {
-
-            Button {
-
-                reportTarget = .post(post.id)
-
-            } label: {
-
-                Label(
-                    "Report Post",
-                    systemImage: "flag"
-                )
-            }
-
-        } label: {
-
-            optionsSymbol
+        if let onEdit {
+            options.append(PostOption(
+                title: "Edit Post",
+                symbol: "pencil",
+                action: onEdit
+            ))
         }
-        .accessibilityLabel("Post options")
+
+        if let onMove {
+            options.append(PostOption(
+                title: "Move to Project",
+                symbol: "folder",
+                action: onMove
+            ))
+        }
+
+        if let onHide {
+            options.append(PostOption(
+                title: post.isHidden ? "Unhide Post" : "Hide Post",
+                symbol: post.isHidden ? "eye" : "eye.slash",
+                action: onHide
+            ))
+        }
+
+        if onDelete != nil {
+            options.append(PostOption(
+                title: "Delete Post",
+                symbol: "trash",
+                isDestructive: true,
+                action: { isShowingDeleteConfirmation = true }
+            ))
+        }
+
+        return options
+    }
+
+    private var postOptions: [PostOption] {
+
+        if viewerId == post.userId {
+            return ownerOptions
+        }
+
+        return [
+            PostOption(
+                title: "Report Post",
+                symbol: "flag",
+                isDestructive: true,
+                action: { reportTarget = .post(post.id) }
+            )
+        ]
     }
 
     private var optionsSymbol: some View {

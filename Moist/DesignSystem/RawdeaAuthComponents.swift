@@ -302,7 +302,7 @@ struct RawdeaAuthStatus: View {
                 systemName: "checkmark.circle"
             )
             .foregroundStyle(
-                RawdeaPalette.accent
+                RawdeaPalette.primaryText
             )
             .accessibilityHidden(true)
 

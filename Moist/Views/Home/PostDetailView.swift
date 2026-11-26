@@ -859,19 +859,19 @@ struct PostDetailView: View {
             ) {
 
                 // A second way into the profile with a full-size
-                // target. VoiceOver uses the name instead.
-                authorControl(comment.userId) {
-
-                    RawdeaInitialAvatar(
-                        name: commentAuthorName(comment),
-                        size: RawdeaSpacing.avatarColumn,
-                        tintSeed: comment.userId
-                    )
-                    .frame(
-                        width: RawdeaSpacing.minimumTouchTarget,
-                        height: RawdeaSpacing.minimumTouchTarget
-                    )
-                    .contentShape(Rectangle())
+                // target. A tap gesture keeps it out of VoiceOver.
+                RawdeaInitialAvatar(
+                    name: commentAuthorName(comment),
+                    size: RawdeaSpacing.avatarColumn,
+                    tintSeed: comment.userId
+                )
+                .frame(
+                    width: RawdeaSpacing.minimumTouchTarget,
+                    height: RawdeaSpacing.minimumTouchTarget
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    openPostRoute?(.author(comment.userId))
                 }
                 .padding(-(RawdeaSpacing.minimumTouchTarget - RawdeaSpacing.avatarColumn) / 2)
                 .accessibilityHidden(true)
@@ -945,9 +945,9 @@ struct PostDetailView: View {
                     }
                     .layoutPriority(1)
                 }
-                .padding(.vertical, RawdeaSpacing.sm)
+                .padding(.top, RawdeaSpacing.sm)
                 .contentShape(Rectangle())
-                .padding(.vertical, -RawdeaSpacing.sm)
+                .padding(.top, -RawdeaSpacing.sm)
             }
             .accessibilityLabel(
                 "View profile for \(commentAuthorName(comment))"
