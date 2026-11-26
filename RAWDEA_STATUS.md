@@ -13,7 +13,9 @@ Keep this file under 60 lines.
 - Earlier UI/UX batches 1-10: 48884a4 to 72f9b3f (see git log).
 - Direction C Batches 0-1 4674049, 2 28fded8, 3 3e30d5b, 4 7a5afa1, 5 869e7ba,
   6 e6bdec6, 7 61c0559. Direction C is complete.
-- XCTest suite (34) passed as of 61c0559.
+- Accessibility sweep 421046a: Increase Contrast checked on Home, Discussion, Profile
+  and Compose; Welcome, Log in and Sign up checked for Dark Mode and large text.
+- XCTest suite (34) passed as of 421046a.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -26,22 +28,18 @@ Keep this file under 60 lines.
   Home joins neighbouring posts of a Project and ends "N more in <Project>".
 
 ## Next
-- Roadmap 10 remaining: VoiceOver playback pass, Increase Contrast, Reduce Motion
-  on device, Dark Mode and large text on auth screens.
+- Lin: VoiceOver playback pass and Reduce Motion on a device.
+- Then App Store preparation. Needs Lin's scope.
 
 ## Unverified
-- VoiceOver playback and Increase Contrast for all Direction C screens.
-- Like bounce, haptic and Reduce Motion fade (not visible in screenshots).
+- VoiceOver playback. Like bounce, haptic and Reduce Motion fade.
 - Compose "Posting…" pill (too fast to capture), red Project chip, rejected post.
-- Auth screens after the link colour change. Owner view of a Project.
-- Project follow toggle. Public "Nothing shared yet" and all-pinned Project states.
+- Reset password screen. Owner view of a Project. Project follow toggle.
+- Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
 - Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
 - Publishing from a Project returns to Home.
-- Dragging down on a screen with a similar post=nil reload may need the same
-  unstructured-task fix.
 - "N more" counts only loaded posts, so it can grow after Load More.
 - Accessibility audit: author name targets are 36 pt (the 44 pt avatar also opens
   the profile). Post text labels flagged as long.
-- Comment field tap area is 29 pt tall.
