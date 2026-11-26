@@ -52,15 +52,39 @@ struct PublicProfileSectionsView: View {
         }?.content
     }
 
+    @State private var hasLoaded = false
+
+    /// Both lists loaded without errors and nothing is public.
+    private var hasNothingPublic: Bool {
+        hasLoaded &&
+        postsViewModel.errorMessage == nil &&
+        projectsViewModel.errorMessage == nil &&
+        standalonePosts.isEmpty &&
+        publicProjects.isEmpty
+    }
+
     var body: some View {
 
-        RawdeaProfileWorkSections(
-            pinnedProjects: publicProjects.filter(\.isPinned),
-            projectRow: projectRow,
-            posts: { postsSection },
-            projects: { projectsSection }
-        )
+        Group {
+            if hasNothingPublic {
+                // One message instead of an empty Posts tab and an empty Projects tab.
+                RawdeaEmptyState(
+                    symbol: "doc.text",
+                    title: "Nothing shared yet",
+                    message: "Public posts and Projects will appear here."
+                )
+            } else {
+                RawdeaProfileWorkSections(
+                    pinnedProjects: publicProjects.filter(\.isPinned),
+                    projectRow: projectRow,
+                    posts: { postsSection },
+                    projects: { projectsSection }
+                )
+            }
+        }
         .task(id: userId) {
+
+            hasLoaded = false
 
             await postsViewModel.loadPosts(
                 userId: userId
@@ -69,6 +93,8 @@ struct PublicProfileSectionsView: View {
             await projectsViewModel.loadProjects(
                 userId: userId
             )
+
+            hasLoaded = true
         }
     }
 

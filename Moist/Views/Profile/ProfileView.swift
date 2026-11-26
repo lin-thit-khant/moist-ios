@@ -12,6 +12,7 @@ struct ProfileView: View {
     var isSelected: Bool = true
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.rawdeaCreatePost) private var createPost
 
     @State private var isProfileContentVisible = false
 
@@ -600,8 +601,21 @@ struct ProfileView: View {
                         .contentShape(Rectangle())
                 }
             } else if posts.isEmpty {
-                Text("Your thoughts will appear here.")
-                    .foregroundStyle(.secondary)
+                Text("Posts you share outside a Project appear here.")
+                    .font(RawdeaTypography.secondary)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let createPost {
+                    Button(action: createPost) {
+                        Label("Write a Post", systemImage: "square.and.pencil")
+                            .font(RawdeaTypography.metadata)
+                            .foregroundStyle(RawdeaPalette.accent)
+                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(posts) { post in
@@ -660,11 +674,20 @@ struct ProfileView: View {
                 ProgressView("Loading projects...")
             } else if projectsViewModel.projects.isEmpty {
                 if projectsViewModel.errorMessage == nil {
-                    Text("Your Projects will appear here.")
-                        .foregroundStyle(.secondary)
+                    projectsNote("Projects keep related posts together. Start one for something you're working on.")
                 }
             } else {
-                ForEach(sortedActiveProjects.filter { !$0.isPinned }, content: projectRow)
+                let unpinnedProjects = sortedActiveProjects.filter { !$0.isPinned }
+
+                if unpinnedProjects.isEmpty {
+                    projectsNote(
+                        sortedActiveProjects.isEmpty
+                        ? "You have no active Projects."
+                        : "All your active Projects are pinned above."
+                    )
+                }
+
+                ForEach(unpinnedProjects, content: projectRow)
 
                 if !archivedProjects.isEmpty {
                     DisclosureGroup {
@@ -679,6 +702,13 @@ struct ProfileView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func projectsNote(_ text: String) -> some View {
+        Text(text)
+            .font(RawdeaTypography.secondary)
+            .foregroundStyle(RawdeaPalette.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func latestNote(for projectId: UUID) -> String? {

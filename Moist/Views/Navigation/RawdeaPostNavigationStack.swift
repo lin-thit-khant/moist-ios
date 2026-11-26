@@ -17,6 +17,29 @@ enum RawdeaPostRoute: Hashable {
     case settings
 }
 
+private struct RawdeaOpenExploreActionKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
+}
+
+private struct RawdeaCreatePostActionKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
+}
+
+extension EnvironmentValues {
+
+    /// Switches to the Explore tab. Set by RawdeaMainTabView.
+    var rawdeaOpenExplore: (() -> Void)? {
+        get { self[RawdeaOpenExploreActionKey.self] }
+        set { self[RawdeaOpenExploreActionKey.self] = newValue }
+    }
+
+    /// Opens Compose. Set by RawdeaMainTabView.
+    var rawdeaCreatePost: (() -> Void)? {
+        get { self[RawdeaCreatePostActionKey.self] }
+        set { self[RawdeaCreatePostActionKey.self] = newValue }
+    }
+}
+
 private struct RawdeaPostRouteActionKey:
     EnvironmentKey {
 

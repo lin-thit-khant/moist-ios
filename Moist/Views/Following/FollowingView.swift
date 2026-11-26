@@ -12,6 +12,8 @@ struct FollowingView: View {
     @StateObject private var viewModel =
         FollowingViewModel()
 
+    @Environment(\.rawdeaOpenExplore) private var openExplore
+
     var body: some View {
 
         Group {
@@ -43,6 +45,19 @@ struct FollowingView: View {
                         await viewModel.loadFollowing()
                     }
                 }
+
+            } else if viewModel.followedPeople.isEmpty &&
+                      viewModel.followedProjects.isEmpty &&
+                      !viewModel.isLoading {
+
+                RawdeaEmptyState(
+                    symbol: "person.2",
+                    title: "Not following anyone yet",
+                    message: "Follow people and Projects to see their posts in your Following feed.",
+                    actionTitle: openExplore == nil ? nil : "Explore",
+                    action: openExplore
+                )
+                .frame(maxHeight: .infinity)
 
             } else {
 

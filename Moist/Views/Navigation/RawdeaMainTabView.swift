@@ -182,6 +182,8 @@ struct RawdeaMainTabView: View {
 
         }
         .environmentObject(authViewModel)
+        .environment(\.rawdeaOpenExplore, { selectedTab = .explore })
+        .environment(\.rawdeaCreatePost, { isShowingCompose = true })
         // Native five-tab styling.
         // There is no raised Create button.
         .tint(RawdeaPalette.accent)
