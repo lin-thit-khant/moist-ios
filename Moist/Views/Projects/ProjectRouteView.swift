@@ -58,7 +58,10 @@ struct ProjectRouteView: View {
 
                 ProjectDetailView(
                     project: project,
-                    projects: ownerProjects
+                    projects: ownerProjects,
+                    onProjectChanged: {
+                        await loadProject()
+                    }
                 )
 
             } else {

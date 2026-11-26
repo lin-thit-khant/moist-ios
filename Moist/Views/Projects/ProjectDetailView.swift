@@ -13,6 +13,7 @@ struct ProjectDetailView: View {
 
     let project: Project
     let projects: [Project]
+    var onProjectChanged: () async -> Void = {}
 
     @StateObject private var viewModel =
         FeedViewModel()
@@ -24,6 +25,10 @@ struct ProjectDetailView: View {
     @State private var selectedPostForMoving: Post?
     @State private var currentUserId: UUID?
     @State private var ownerProfile: Profile?
+
+    // Owner actions
+    @StateObject private var projectsViewModel = ProjectsViewModel()
+    @State private var projectToRename: Project?
 
     @Environment(\.rawdeaCreatePost) private var createPost
 
@@ -44,6 +49,40 @@ struct ProjectDetailView: View {
         )
         .navigationTitle(project.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isOwner {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ownerMenu
+                }
+            }
+        }
+        .sheet(item: $projectToRename) { project in
+            ProjectRenameSheet(
+                viewModel: projectsViewModel,
+                project: project,
+                onRenamed: onProjectChanged
+            )
+        }
+        .alert(
+            "Couldn't update Project",
+            isPresented: Binding(
+                get: {
+                    projectToRename == nil &&
+                    projectsViewModel.errorMessage != nil
+                },
+                set: { presented in
+                    if !presented {
+                        projectsViewModel.clearError()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                projectsViewModel.clearError()
+            }
+        } message: {
+            Text(projectsViewModel.errorMessage ?? "")
+        }
 
         // MARK: - Load posts
 
@@ -163,6 +202,78 @@ struct ProjectDetailView: View {
             Text(
                 viewModel.visibilityErrorMessage ?? ""
             )
+        }
+    }
+
+    // MARK: - Owner menu
+
+    private var ownerMenu: some View {
+        Menu {
+            Button {
+                projectToRename = project
+            } label: {
+                Label("Rename", systemImage: "pencil")
+            }
+
+            Button {
+                runOwnerAction {
+                    await projectsViewModel.setPinned(
+                        projectId: project.id,
+                        pinned: !project.isPinned
+                    )
+                }
+            } label: {
+                Label(
+                    project.isPinned ? "Unpin" : "Pin",
+                    systemImage: project.isPinned ? "pin.slash" : "pin"
+                )
+            }
+
+            Button {
+                runOwnerAction {
+                    await projectsViewModel.setHidden(
+                        projectId: project.id,
+                        hidden: !project.isHidden
+                    )
+                }
+            } label: {
+                Label(
+                    project.isHidden ? "Make Public" : "Hide",
+                    systemImage: project.isHidden ? "eye" : "eye.slash"
+                )
+            }
+
+            Button {
+                runOwnerAction {
+                    await projectsViewModel.setArchived(
+                        projectId: project.id,
+                        archived: !project.isArchived
+                    )
+                }
+            } label: {
+                Label(
+                    project.isArchived ? "Unarchive" : "Archive",
+                    systemImage: "archivebox"
+                )
+            }
+        } label: {
+            if projectsViewModel.isUpdating {
+                ProgressView()
+            } else {
+                Image(systemName: "ellipsis")
+            }
+        }
+        .disabled(projectsViewModel.isUpdating)
+        .accessibilityLabel("Project options")
+    }
+
+    private func runOwnerAction(
+        _ action: @escaping () async -> Bool
+    ) {
+        Task {
+            if await action() {
+                await onProjectChanged()
+            }
         }
     }
 

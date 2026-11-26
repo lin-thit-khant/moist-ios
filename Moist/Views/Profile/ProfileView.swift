@@ -33,7 +33,6 @@ struct ProfileView: View {
     @State private var selectedPostForEditing: Post?
     @State private var selectedPostForMoving: Post?
     @State private var projectToRename: Project?
-    @State private var projectNameDraft = ""
     
     private var sortedActiveProjects: [Project] {
         projectsViewModel.projects
@@ -424,69 +423,12 @@ struct ProfileView: View {
                 }
             )
         })
-        .sheet(item: $projectToRename, content: { project in
-            NavigationStack {
-                Form {
-                    Section("Project name") {
-                        TextField(
-                            "Name",
-                            text: $projectNameDraft
-                        )
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled()
-                    }
-                    
-                    if let error = projectsViewModel.errorMessage {
-                        Section {
-                            Text(error)
-                                .foregroundStyle(.red)
-                        }
-                    }
-                }
-                .scrollContentBackground(.hidden)
-                .background(
-                    RawdeaPalette.canvas
-                )
-                .navigationTitle("Rename Project")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            projectToRename = nil
-                        }
-                        .disabled(projectsViewModel.isUpdating)
-                    }
-                    
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            Task {
-                                let success = await projectsViewModel
-                                    .renameProject(
-                                        projectId: project.id,
-                                        name: projectNameDraft
-                                    )
-                                
-                                if success {
-                                    projectToRename = nil
-                                }
-                            }
-                        }
-                        .disabled(
-                            projectNameDraft.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            ).isEmpty ||
-                            RawdeaTextLength.count(
-                                projectNameDraft.trimmingCharacters(
-                                    in: .whitespacesAndNewlines
-                                )
-                            ) > 80 ||
-                            projectsViewModel.isUpdating
-                        )
-                    }
-                }
-                .interactiveDismissDisabled(projectsViewModel.isUpdating)
-            }
-        })
+        .sheet(item: $projectToRename) { project in
+            ProjectRenameSheet(
+                viewModel: projectsViewModel,
+                project: project
+            )
+        }
         .alert(
             "Couldn't delete post",
             isPresented: Binding(
@@ -761,7 +703,6 @@ struct ProfileView: View {
 
                     Button {
 
-                        projectNameDraft = project.name
 
                         projectsViewModel.clearError()
 
