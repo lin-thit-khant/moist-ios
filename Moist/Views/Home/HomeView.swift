@@ -37,7 +37,11 @@ struct HomeView: View {
 
     @Binding var selectedFeed: RawdeaHomeFeed
 
-    @Binding var recentlyCreatedPost: Post?
+    @Binding var publishedPostID: UUID?
+
+    let pendingPublishedPostID: UUID?
+    let onCreatePost: () -> Void
+    let onExplore: () -> Void
 
     @StateObject private var followingFeedViewModel =
         FollowingFeedViewModel()
@@ -46,6 +50,18 @@ struct HomeView: View {
 
     @Environment(\.scenePhase)
     private var scenePhase
+
+    @Environment(\.dynamicTypeSize)
+    private var dynamicTypeSize
+
+    @Environment(\.rawdeaOpenPostRoute)
+    private var openPostRoute
+
+    @Environment(\.accessibilityVoiceOverEnabled)
+    private var voiceOverEnabled
+
+    @AccessibilityFocusState(for: .voiceOver)
+    private var isPublicationActionFocused: Bool
 
     var body: some View {
 
@@ -68,7 +84,8 @@ struct HomeView: View {
                 case .following:
 
                     FollowingFeedView(
-                        viewModel: followingFeedViewModel
+                        viewModel: followingFeedViewModel,
+                        onExplore: onExplore
                     )
                     .frame(
                         maxWidth: .infinity,
@@ -80,6 +97,37 @@ struct HomeView: View {
         .background(
             RawdeaPalette.canvas.ignoresSafeArea()
         )
+        .overlay(alignment: .bottom) {
+            if selectedFeed == .all, let publishedPostID {
+                publicationConfirmation(postID: publishedPostID)
+                    .padding(.horizontal, RawdeaSpacing.screenInset)
+                    .padding(.bottom, RawdeaSpacing.xs)
+            }
+        }
+        .task(id: publishedPostID) {
+            guard let publishedPostID else { return }
+            AccessibilityNotification.Announcement("Post published").post()
+
+            do {
+                try await Task.sleep(for: .seconds(voiceOverEnabled ? 10 : 5))
+                while isPublicationActionFocused {
+                    try await Task.sleep(for: .seconds(1))
+                }
+                if self.publishedPostID == publishedPostID {
+                    self.publishedPostID = nil
+                }
+            } catch {
+                return
+            }
+        }
+        .onChange(of: selectedFeed) { _, feed in
+            if feed != .all {
+                publishedPostID = nil
+            }
+        }
+        .onDisappear {
+            publishedPostID = nil
+        }
 
         // Approved text-only compact header.
         .navigationTitle("Rawdea")
@@ -218,102 +266,59 @@ struct HomeView: View {
     // MARK: - All Posts
 
     private var allPostsContent: some View {
-
-        VStack(spacing: 0) {
-
-            if let post = recentlyCreatedPost {
-
-                publishedPostConfirmation(post)
-            }
-
-            FeedView(
-                viewModel: feedViewModel,
-                currentUserId: currentUserId
-            )
-            .frame(
-                maxWidth: .infinity,
-                maxHeight: .infinity
-            )
-
-            // Preserve the existing behavior:
-            // remove the temporary publication
-            // banner if the visible feed no
-            // longer contains the published post.
-            .onChange(
-                of: feedViewModel.posts.map(\.id)
-            ) { _, postIds in
-
-                guard let recentlyCreatedPost else {
-                    return
-                }
-
-                if !postIds.contains(
-                    recentlyCreatedPost.id
-                ) {
-
-                    self.recentlyCreatedPost = nil
-                }
-            }
-        }
+        FeedView(
+            viewModel: feedViewModel,
+            currentUserId: currentUserId,
+            newlyPublishedPostID: pendingPublishedPostID ?? publishedPostID,
+            onCreatePost: onCreatePost
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Publication confirmation
 
-    private func publishedPostConfirmation(
-        _ post: Post
-    ) -> some View {
+    private func publicationConfirmation(postID: UUID) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.sm))
 
-        HStack(
-            alignment: .top,
-            spacing: RawdeaSpacing.sm
-        ) {
+        return layout {
+            Label("Post published", systemImage: "checkmark.circle.fill")
+                .font(RawdeaTypography.authorName)
+                .foregroundStyle(RawdeaPalette.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Image(systemName: "checkmark.circle")
-                .foregroundStyle(
-                    RawdeaPalette.accent
-                )
-                .accessibilityHidden(true)
-
-            VStack(
-                alignment: .leading,
-                spacing: RawdeaSpacing.xxs
-            ) {
-
-                Text("Your post was published")
-                    .font(
-                        RawdeaTypography.authorName
-                    )
-                    .foregroundStyle(
-                        RawdeaPalette.primaryText
-                    )
-
-                Text(
-                    feedViewModel.posts.first(
-                        where: { $0.id == post.id }
-                    )?.content ?? post.content
-                )
-                .font(RawdeaTypography.metadata)
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-                .lineLimit(2)
+            if let openPostRoute,
+               feedViewModel.posts.contains(where: { $0.id == postID }) {
+                Button {
+                    publishedPostID = nil
+                    openPostRoute(.discussion(postID))
+                } label: {
+                    Text("View")
+                        .font(RawdeaTypography.authorName)
+                        .frame(
+                            minWidth: RawdeaSpacing.minimumTouchTarget,
+                            minHeight: RawdeaSpacing.minimumTouchTarget
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(RawdeaPalette.accent)
+                .accessibilityLabel("View published post")
+                .accessibilityFocused($isPublicationActionFocused)
             }
-
-            Spacer(minLength: 0)
         }
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
-        )
-        .padding(RawdeaSpacing.sm)
-        .background(
-            RawdeaPalette.surface,
-            in: RoundedRectangle(
-                cornerRadius: RawdeaSpacing.buttonRadius
-            )
-        )
-        .padding(.horizontal, RawdeaSpacing.screenInset)
-        .padding(.vertical, RawdeaSpacing.xs)
-        .accessibilityElement(children: .combine)
+        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+        .padding(.horizontal, RawdeaSpacing.sm)
+        .padding(.vertical, RawdeaSpacing.xxs)
+        .background(RawdeaPalette.surface, in: RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+                .strokeBorder(RawdeaPalette.activityOutline)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .contain)
     }
 }

@@ -13,6 +13,7 @@ final class FeedViewModel: ObservableObject {
     
     @Published private(set) var posts: [Post] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var hasLoaded = false
     @Published private(set) var errorMessage: String?
     
     // MARK: - Home Feed Pagination
@@ -22,6 +23,7 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var paginationErrorMessage: String?
 
     private var nextPageCursor: RawdeaPageCursor?
+    private var lastPublishedPostID: UUID?
 
     private let pagingService = FeedPagingService()
     
@@ -43,7 +45,7 @@ final class FeedViewModel: ObservableObject {
     
     // MARK: - Revalidate Feed Visibility
 
-    func reloadVisiblePosts() async {
+    func reloadVisiblePosts(keepingPublishedPost publishedPostID: UUID? = nil) async {
 
         guard !isLoading && !isLoadingMore else {
             return
@@ -52,7 +54,10 @@ final class FeedViewModel: ObservableObject {
         // Remove potentially outdated content before
         // requesting the latest RLS-filtered posts.
 
-        posts = []
+        posts = posts.filter { $0.id == publishedPostID }
+        hasLoaded = false
+        errorMessage = nil
+        paginationErrorMessage = nil
         nextPageCursor = nil
         hasMore = false
 
@@ -70,8 +75,7 @@ final class FeedViewModel: ObservableObject {
         }
 
         isLoading = true
-        errorMessage = nil
-        paginationErrorMessage = nil
+        let publicationAtStart = lastPublishedPostID
 
         defer {
             isLoading = false
@@ -87,7 +91,18 @@ final class FeedViewModel: ObservableObject {
             // Replace the current feed with
             // the latest first page.
 
-            posts = page.items
+            // A request already in flight can predate a successful publication.
+            let insertedPost = lastPublishedPostID != publicationAtStart
+                ? posts.first { $0.id == lastPublishedPostID }
+                : nil
+            var updatedPosts = page.items
+            if let insertedPost, !updatedPosts.contains(where: { $0.id == insertedPost.id }) {
+                updatedPosts.insert(insertedPost, at: 0)
+            }
+            posts = updatedPosts
+            hasLoaded = true
+            errorMessage = nil
+            paginationErrorMessage = nil
             nextPageCursor = page.nextCursor
             hasMore = page.hasMore
 
@@ -119,7 +134,6 @@ final class FeedViewModel: ObservableObject {
         }
 
         isLoadingMore = true
-        paginationErrorMessage = nil
 
         defer {
             isLoadingMore = false
@@ -147,6 +161,7 @@ final class FeedViewModel: ObservableObject {
 
             nextPageCursor = page.nextCursor
             hasMore = page.hasMore
+            paginationErrorMessage = nil
 
         } catch is CancellationError {
             return
@@ -190,6 +205,7 @@ final class FeedViewModel: ObservableObject {
     }
     
     func addPost(_ post: Post) {
+        lastPublishedPostID = post.id
         posts.removeAll { $0.id == post.id }
         posts.insert(post, at: 0)
     }

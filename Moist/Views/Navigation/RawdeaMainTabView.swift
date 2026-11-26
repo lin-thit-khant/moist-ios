@@ -44,7 +44,8 @@ struct RawdeaMainTabView: View {
     @State private var selectedHomeFeed:
         RawdeaHomeFeed = .all
 
-    @State private var recentlyCreatedPost: Post?
+    @State private var pendingPublishedPostID: UUID?
+    @State private var publishedPostID: UUID?
 
     @State private var isShowingCompose = false
 
@@ -89,7 +90,10 @@ struct RawdeaMainTabView: View {
                 HomeView(
                     feedViewModel: feedViewModel,
                     selectedFeed: $selectedHomeFeed,
-                    recentlyCreatedPost: $recentlyCreatedPost
+                    publishedPostID: $publishedPostID,
+                    pendingPublishedPostID: pendingPublishedPostID,
+                    onCreatePost: { isShowingCompose = true },
+                    onExplore: { selectedTab = .explore }
                 )
             }
             .tabItem {
@@ -184,7 +188,7 @@ struct RawdeaMainTabView: View {
 
         // MARK: - Compose presentation
 
-        .sheet(isPresented: $isShowingCompose) {
+        .sheet(isPresented: $isShowingCompose, onDismiss: showPublicationConfirmation) {
 
             CreatePostView { publishedPost in
 
@@ -240,12 +244,18 @@ struct RawdeaMainTabView: View {
         // the published post immediately.
         feedViewModel.addPost(post)
 
-        recentlyCreatedPost = post
+        pendingPublishedPostID = post.id
 
         // Required by Specification v1.1:
         // return to Home → All Posts.
         selectedHomeFeed = .all
         selectedTab = .home
+    }
+
+    private func showPublicationConfirmation() {
+        guard let pendingPublishedPostID else { return }
+        publishedPostID = pendingPublishedPostID
+        self.pendingPublishedPostID = nil
     }
 }
 

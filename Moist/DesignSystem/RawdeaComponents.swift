@@ -209,6 +209,9 @@ struct RawdeaActivitySurface<Content: View>: View {
 
 struct RawdeaEmptyState: View {
 
+    @Environment(\.dynamicTypeSize)
+    private var dynamicTypeSize
+
     let symbol: String
     let title: String
     let message: String
@@ -234,12 +237,14 @@ struct RawdeaEmptyState: View {
 
         VStack(spacing: RawdeaSpacing.sm) {
 
-            Image(systemName: symbol)
-                .font(.system(.title, weight: .regular))
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-                .accessibilityHidden(true)
+            if !dynamicTypeSize.isAccessibilitySize {
+                Image(systemName: symbol)
+                    .font(.system(.title, weight: .regular))
+                    .foregroundStyle(
+                        RawdeaPalette.secondaryText
+                    )
+                    .accessibilityHidden(true)
+            }
 
             Text(title)
                 .font(RawdeaTypography.sectionTitle)
@@ -263,13 +268,17 @@ struct RawdeaEmptyState: View {
             if let actionTitle,
                let action {
 
-                Button(actionTitle, action: action)
-                    .font(RawdeaTypography.button)
-                    .tint(RawdeaPalette.accent)
-                    .frame(
-                        minHeight:
-                            RawdeaSpacing.minimumTouchTarget
-                    )
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(RawdeaTypography.button)
+                        .frame(
+                            minWidth: RawdeaSpacing.minimumTouchTarget,
+                            minHeight: RawdeaSpacing.minimumTouchTarget
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(RawdeaPalette.accent)
             }
         }
         .frame(maxWidth: .infinity)

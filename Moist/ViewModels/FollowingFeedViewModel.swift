@@ -53,6 +53,8 @@ final class FollowingFeedViewModel: ObservableObject {
         hasLoaded = false
         hasFollowedSources = false
         hasMore = false
+        errorMessage = nil
+        paginationErrorMessage = nil
 
         nextPageCursor = nil
 
@@ -69,8 +71,6 @@ final class FollowingFeedViewModel: ObservableObject {
         }
 
         isLoading = true
-        errorMessage = nil
-        paginationErrorMessage = nil
 
         defer {
             isLoading = false
@@ -96,6 +96,8 @@ final class FollowingFeedViewModel: ObservableObject {
                 hasMore = false
                 nextPageCursor = nil
                 hasLoaded = true
+                errorMessage = nil
+                paginationErrorMessage = nil
 
                 return
             }
@@ -115,6 +117,8 @@ final class FollowingFeedViewModel: ObservableObject {
             hasMore = page.hasMore
 
             hasLoaded = true
+            errorMessage = nil
+            paginationErrorMessage = nil
 
         } catch is CancellationError {
             return
@@ -141,7 +145,6 @@ final class FollowingFeedViewModel: ObservableObject {
         }
 
         isLoadingMore = true
-        paginationErrorMessage = nil
 
         defer {
             isLoadingMore = false
@@ -166,6 +169,7 @@ final class FollowingFeedViewModel: ObservableObject {
 
             nextPageCursor = page.nextCursor
             hasMore = page.hasMore
+            paginationErrorMessage = nil
 
         } catch is CancellationError {
             return
