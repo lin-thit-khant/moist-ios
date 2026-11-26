@@ -18,7 +18,8 @@ Keep this file under 60 lines.
 - Batch 10 partial: profile-load retry 72f9b3f, Profile checked in Dark Mode.
 - Direction C Batch 0 review content + Batch 1 monochrome foundations 4674049.
 - Direction C Batch 2 post row 28fded8 (local, not pushed).
-- XCTest suite (29) passed as of 28fded8.
+- Direction C Batch 3 Home 3e30d5b (local, not pushed). Re-tap scroll is native.
+- XCTest suite (34) passed as of 3e30d5b.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -36,15 +37,16 @@ Keep this file under 60 lines.
 - 7 Post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
 
 ## Next
-- Direction C Batch 3: Home (wordmark, tabs, Project thread grouping, re-tap scrolls up).
+- Direction C Batch 4: Compose.
 - Roadmap 10 remaining: VoiceOver pass, Dark Mode on Project, Discussion and Compose,
   Increase Contrast.
 
 ## Unverified
-- Batch 1-2 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
+- Batch 1-3 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
 - VoiceOver playback. Dark Mode across newer states. Follow toggles.
 - Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
 - Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
 - Publishing from a Project returns to Home.
+- "N more" counts only loaded posts, so it can grow after Load More.
