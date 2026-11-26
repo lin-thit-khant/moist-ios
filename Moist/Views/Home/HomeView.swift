@@ -187,7 +187,11 @@ struct HomeView: View {
 
     private var feedSelector: some View {
 
-        HStack(alignment: .bottom, spacing: 0) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 0))
+            : AnyLayout(HStackLayout(alignment: .bottom, spacing: 0))
+
+        return layout {
 
             ForEach(RawdeaHomeFeed.allCases, id: \.self) {
                 feed in
@@ -196,15 +200,14 @@ struct HomeView: View {
             }
         }
         .padding(.horizontal, RawdeaSpacing.screenInset)
-        .padding(.top, RawdeaSpacing.xs)
-        .background(RawdeaPalette.canvas)
-        .overlay(alignment: .bottom) {
+        .background(alignment: .bottom) {
 
             Rectangle()
                 .fill(RawdeaPalette.divider)
                 .frame(height: 0.5)
                 .accessibilityHidden(true)
         }
+        .background(RawdeaPalette.canvas)
     }
 
     private func feedTabButton(
@@ -223,44 +226,36 @@ struct HomeView: View {
 
         } label: {
 
-            VStack(spacing: RawdeaSpacing.xs) {
-
-                Text(feed.title)
-                    .font(
-                        RawdeaTypography.authorName
-                    )
-                    .foregroundStyle(
-                        isSelected
-                        ? RawdeaPalette.primaryText
-                        : RawdeaPalette.secondaryText
-                    )
-                    .multilineTextAlignment(.center)
-                    .fixedSize(
-                        horizontal: false,
-                        vertical: true
-                    )
-                    .frame(
-                        maxWidth: .infinity,
-                        minHeight: RawdeaSpacing.minimumTouchTarget
-                    )
-
-                Rectangle()
-                    .fill(
-                        isSelected
-                        ? RawdeaPalette.accent
-                        : Color.clear
-                    )
-                    .frame(height: 2)
-                    .accessibilityHidden(true)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            Text(feed.title)
+                .font(RawdeaTypography.authorName)
+                .foregroundStyle(
+                    isSelected
+                    ? RawdeaPalette.primaryText
+                    : RawdeaPalette.secondaryText
+                )
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, RawdeaSpacing.xxs)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: RawdeaSpacing.minimumTouchTarget
+                )
+                .overlay(alignment: .bottom) {
+                    if isSelected {
+                        Rectangle()
+                            .fill(RawdeaPalette.accent)
+                            .frame(height: 2)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(feed.title)
         .accessibilityAddTraits(
             isSelected ? .isSelected : []
         )
+        .accessibilityIdentifier("home-feed-\(feed.rawValue)")
     }
 
     // MARK: - All Posts

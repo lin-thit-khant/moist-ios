@@ -31,6 +31,7 @@ struct PostRowView: View {
     @State private var reportTarget: ReportTarget?
     @State private var isShowingDeleteConfirmation = false
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     
     
     init(
@@ -83,6 +84,19 @@ struct PostRowView: View {
         return "@\(username)"
     }
 
+    private var authorInitial: String {
+        guard let initial = authorName.first(where: \.isLetter) else {
+            return "?"
+        }
+        return String(initial).uppercased()
+    }
+
+    private static let relativeTimeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+
     private var viewerId: UUID? {
         currentUserId ?? resolvedViewerId
     }
@@ -127,6 +141,10 @@ struct PostRowView: View {
                actions.isLoading ||
                actions.isUpdatingBookmark
     }
+
+    private var likeActionIsDisabled: Bool {
+        !actions.hasLoaded || actions.isLoading || actions.isUpdatingLike
+    }
     // MARK: - Body
 
     var body: some View {
@@ -136,9 +154,12 @@ struct PostRowView: View {
             spacing: RawdeaSpacing.sm
         ) {
 
-            authorHeader
+            VStack(alignment: .leading, spacing: RawdeaSpacing.xs) {
 
-            postContent
+                authorHeader
+
+                postContent
+            }
 
             if let project = post.project {
                 projectLink(project)
@@ -296,18 +317,18 @@ struct PostRowView: View {
             } label: {
 
                 HStack(
-                    alignment: .top,
-                    spacing: RawdeaSpacing.sm
+                    alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center,
+                    spacing: RawdeaSpacing.xs
                 ) {
 
-                    Image(
-                        systemName: "person.crop.circle.fill"
-                    )
-                    .font(.system(size: 40))
-                    .foregroundStyle(
-                        RawdeaPalette.secondaryText
-                    )
-                    .accessibilityHidden(true)
+                    Text(authorInitial)
+                        .font(RawdeaTypography.authorName)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .foregroundStyle(RawdeaPalette.primaryText)
+                        .frame(width: RawdeaSpacing.xl, height: RawdeaSpacing.xl)
+                        .background(RawdeaPalette.surface, in: Circle())
+                        .accessibilityHidden(true)
 
                     VStack(
                         alignment: .leading,
@@ -326,26 +347,16 @@ struct PostRowView: View {
                                 vertical: true
                             )
 
-                        Text(authorHandle)
-                            .font(
-                                RawdeaTypography.metadata
+                        TimelineView(.periodic(from: .now, by: 60)) { context in
+                            let age = Self.relativeTimeFormatter.localizedString(
+                                for: post.createdAt,
+                                relativeTo: context.date
                             )
-                            .foregroundStyle(
-                                RawdeaPalette.secondaryText
-                            )
-                            .fixedSize(
-                                horizontal: false,
-                                vertical: true
-                            )
-
-                        Text(
-                            post.createdAt,
-                            style: .relative
-                        )
-                        .font(RawdeaTypography.caption)
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
+                            Text("\(authorHandle) · \(age)")
+                                .font(RawdeaTypography.metadata)
+                                .foregroundStyle(RawdeaPalette.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .frame(
                         maxWidth: .infinity,
@@ -363,6 +374,7 @@ struct PostRowView: View {
             .accessibilityLabel(
                 "View profile for \(authorName), \(authorHandle)"
             )
+            .accessibilityValue(Text(post.createdAt, style: .relative))
 
             if let viewerId {
 
@@ -505,15 +517,12 @@ struct PostRowView: View {
                     ? "heart.fill"
                     : "heart",
                     selected: actions.isLiked,
-                    loading: actions.isUpdatingLike
+                    loading: actions.isUpdatingLike,
+                    disabled: likeActionIsDisabled
                 )
             }
             .buttonStyle(.plain)
-            .disabled(
-                !actions.hasLoaded ||
-                actions.isLoading ||
-                actions.isUpdatingLike
-            )
+            .disabled(likeActionIsDisabled)
             .accessibilityLabel(
                 actions.isLiked
                 ? "Unlike post"
@@ -522,6 +531,7 @@ struct PostRowView: View {
             .accessibilityAddTraits(
                 actions.isLiked ? .isSelected : []
             )
+            .accessibilityValue(actions.isUpdatingLike ? "Updating" : "")
 
             
             routedPostControl(
@@ -534,15 +544,28 @@ struct PostRowView: View {
 
             } label: {
 
-                actionSymbol(
-                    "bubble.left",
-                    selected: false,
-                    loading: false
+                HStack(spacing: RawdeaSpacing.xxs) {
+                    Image(systemName: "bubble.left")
+                        .font(.body)
+                        .accessibilityHidden(true)
+
+                    Text("Discuss")
+                        .font(RawdeaTypography.metadata.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
+                }
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .padding(.horizontal, RawdeaSpacing.xxs)
+                .frame(
+                    minWidth: RawdeaSpacing.minimumTouchTarget,
+                    minHeight: RawdeaSpacing.minimumTouchTarget
                 )
+                .contentShape(Rectangle())
             }
             .accessibilityLabel(
                 "Open discussion and comments"
             )
+            .layoutPriority(1)
 
 
             Spacer(minLength: 0)
@@ -577,7 +600,8 @@ struct PostRowView: View {
                     ? "bookmark.fill"
                     : "bookmark",
                     selected: displayedBookmarkState,
-                    loading: bookmarkActionIsLoading
+                    loading: bookmarkActionIsLoading,
+                    disabled: bookmarkActionIsDisabled
                 )
             }
             .buttonStyle(.plain)
@@ -594,6 +618,7 @@ struct PostRowView: View {
                 ? .isSelected
                 : []
             )
+            .accessibilityValue(bookmarkActionIsLoading ? "Updating" : "")
 
         }
         .accessibilityElement(children: .contain)
@@ -602,7 +627,8 @@ struct PostRowView: View {
     private func actionSymbol(
         _ name: String,
         selected: Bool,
-        loading: Bool
+        loading: Bool,
+        disabled: Bool
     ) -> some View {
 
         Group {
@@ -621,6 +647,7 @@ struct PostRowView: View {
                         ? RawdeaPalette.accent
                         : RawdeaPalette.secondaryText
                     )
+                    .opacity(disabled ? 0.5 : 1)
                     .accessibilityHidden(true)
             }
         }
