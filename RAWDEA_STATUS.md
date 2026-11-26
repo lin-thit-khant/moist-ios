@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Direction C Batch 0+1: 4674049.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest confirmed pushed code commit: 5580fdd.
+- Latest confirmed pushed code commit: 4ba8677.
 - Review seed data (supabase/review/) is loaded in the local database.
 - .cursor/ is local tool config. Never commit it.
 
@@ -19,7 +19,9 @@ Keep this file under 60 lines.
 - App icon 68ea27b: seen on the iOS 27.0 simulator Home Screen.
 - Cell loader 5580fdd (F Gather, 1.6 s, 28 pt): Home, Activity and Profile loading
   checked light, dark and largest text; Reduce Motion fade on Home.
-- XCTest suite (34) passed as of 5580fdd.
+- Pull to refresh 4ba8677 (R1, all 12 screens): Home light, dark and Reduce Motion,
+  Activity default and largest text, Profile light.
+- XCTest suite (34) passed as of 4ba8677.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -38,6 +40,7 @@ Keep this file under 60 lines.
 - Then App Store preparation. Needs Lin's scope.
 
 ## Unverified
+- Pull to refresh on the other 9 screens and iOS 17 (system spinner fallback).
 - Cell loader on other screens, Load More, Increase Contrast and a real device.
 - VoiceOver playback. Like bounce, haptic and Reduce Motion fade.
 - App icon dark and tinted variants not supplied. Not checked on a device.
