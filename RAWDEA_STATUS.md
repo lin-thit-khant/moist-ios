@@ -17,7 +17,8 @@ Keep this file under 60 lines.
 - Batch 9 Authentication: reviewed, no changes.
 - Batch 10 partial: profile-load retry 72f9b3f, Profile checked in Dark Mode.
 - Direction C Batch 0 review content + Batch 1 monochrome foundations 4674049.
-- XCTest suite passed as of 4674049.
+- Direction C Batch 2 post row 28fded8 (local, not pushed).
+- XCTest suite (29) passed as of 28fded8.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -35,12 +36,12 @@ Keep this file under 60 lines.
 - 7 Post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
 
 ## Next
-- Direction C Batch 2: post row.
+- Direction C Batch 3: Home (wordmark, tabs, Project thread grouping, re-tap scrolls up).
 - Roadmap 10 remaining: VoiceOver pass, Dark Mode on Project, Discussion and Compose,
   Increase Contrast.
 
 ## Unverified
-- Batch 1 at large text, Increase Contrast, VoiceOver.
+- Batch 1-2 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
 - VoiceOver playback. Dark Mode across newer states. Follow toggles.
 - Public "Nothing shared yet" and all-pinned Project states.
 
