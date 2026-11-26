@@ -6,6 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Direction C Batch 0+1: 4674049.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
+- Latest confirmed pushed code commit: 68ea27b.
 - Review seed data (supabase/review/) is loaded in the local database.
 - .cursor/ is local tool config. Never commit it.
 
@@ -15,7 +16,8 @@ Keep this file under 60 lines.
   6 e6bdec6, 7 61c0559. Direction C is complete.
 - Accessibility sweep 421046a: Increase Contrast checked on Home, Discussion, Profile
   and Compose; Welcome, Log in and Sign up checked for Dark Mode and large text.
-- XCTest suite (34) passed as of 421046a.
+- App icon 68ea27b: seen on the iOS 27.0 simulator Home Screen.
+- XCTest suite (34) passed as of 68ea27b.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -33,6 +35,7 @@ Keep this file under 60 lines.
 
 ## Unverified
 - VoiceOver playback. Like bounce, haptic and Reduce Motion fade.
+- App icon dark and tinted variants not supplied. Not checked on a device.
 - Reset password screen. Public "Nothing shared yet" and all-pinned Project states.
 - Checked 2026-11-26: owner Project view and post actions, red Project chip,
   rejected post keeps its draft, "Posting…" pill, Project follow toggle.
