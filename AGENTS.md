@@ -20,8 +20,8 @@ The Moist folder name is historical. Do not rename it.
 
 ## Rules
 - Reuse existing components. No new dependencies. Keep scope tight.
-- Native ProgressView only. 44 pt targets, Dynamic Type, VoiceOver, Light/Dark,
-  Increase Contrast, Reduce Motion.
+- Content loading: RawdeaLoadingIndicator. Buttons and actions: native ProgressView.
+- 44 pt targets, Dynamic Type, VoiceOver, Light/Dark, Increase Contrast, Reduce Motion.
 - Local Supabase only (http://127.0.0.1:54321). Remove only your own fixtures.
   Never weaken Auth, RLS or moderation. Never print keys.
 - Leave existing concurrency warnings.

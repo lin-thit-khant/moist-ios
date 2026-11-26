@@ -125,7 +125,7 @@ struct PostDetailView: View {
 
             } else {
 
-                ProgressView("Loading discussion...")
+                RawdeaLoadingIndicator("Loading discussion...")
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity
@@ -390,7 +390,7 @@ struct PostDetailView: View {
 
                     if viewModel.isLoadingMoreComments {
 
-                        ProgressView(
+                        RawdeaLoadingIndicator(
                             "Loading more comments..."
                         )
 

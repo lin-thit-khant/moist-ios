@@ -47,7 +47,7 @@ struct SavedPostsView: View {
                         viewModel.posts.isEmpty
                       ) {
 
-                ProgressView("Loading saved posts...")
+                RawdeaLoadingIndicator("Loading saved posts...")
                     .frame(maxWidth: .infinity)
                     .padding(
                         .vertical,

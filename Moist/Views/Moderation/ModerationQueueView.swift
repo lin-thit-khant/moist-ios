@@ -52,7 +52,7 @@ struct ModerationQueueView: View {
 
             } else {
 
-                ProgressView("Checking moderation access...")
+                RawdeaLoadingIndicator("Checking moderation access...")
             }
         }
         .navigationTitle("Moderation")
@@ -114,7 +114,7 @@ struct ModerationQueueView: View {
 
                 Section {
 
-                    ProgressView("Loading reports...")
+                    RawdeaLoadingIndicator("Loading reports...")
                         .frame(maxWidth: .infinity)
                 }
 
@@ -158,7 +158,7 @@ struct ModerationQueueView: View {
 
                             if viewModel.isLoadingMore {
 
-                                ProgressView("Loading more...")
+                                RawdeaLoadingIndicator("Loading more...")
 
                             } else {
 

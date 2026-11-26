@@ -23,7 +23,7 @@ struct BlockedUsersView: View {
 
             if viewModel.isLoading && !viewModel.hasLoaded {
 
-                ProgressView("Loading blocked accounts...")
+                RawdeaLoadingIndicator("Loading blocked accounts...")
                     .frame(maxWidth: .infinity)
 
             // MARK: - Empty State

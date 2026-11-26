@@ -41,7 +41,7 @@ struct ModerationSafetyInboxView: View {
 
             if viewModel.isLoading {
 
-                ProgressView("Loading support inbox...")
+                RawdeaLoadingIndicator("Loading support inbox...")
 
             } else if let error = viewModel.errorMessage {
 

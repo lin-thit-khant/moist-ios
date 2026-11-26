@@ -176,7 +176,7 @@ struct RawdeaHomeFeedList<Row: View>: View {
             }
             .disabled(isLoading)
         } else if isInitialLoad {
-            ProgressView("Loading posts…")
+            RawdeaLoadingIndicator("Loading posts…")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, RawdeaSpacing.xl)
                 .opacity(showsProgress ? 1 : 0)
@@ -202,7 +202,7 @@ struct RawdeaHomeFeedList<Row: View>: View {
                 .opacity(showsSpinner ? 0 : 1)
                 .overlay {
                     if showsSpinner {
-                        ProgressView()
+                        RawdeaLoadingIndicator(size: 20)
                             .accessibilityHidden(true)
                     }
                 }

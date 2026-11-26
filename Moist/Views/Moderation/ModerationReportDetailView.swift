@@ -96,7 +96,7 @@ struct ModerationReportDetailView: View {
 
             } else if viewModel.isLoading {
 
-                ProgressView("Loading report...")
+                RawdeaLoadingIndicator("Loading report...")
 
             } else {
 

@@ -50,7 +50,7 @@ struct ProfileView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.profile == nil {
-                ProgressView("Loading profile...")
+                RawdeaLoadingIndicator("Loading profile...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorMessage = viewModel.errorMessage,
                       viewModel.profile == nil {
@@ -261,7 +261,7 @@ struct ProfileView: View {
                 }
 
             } else {
-                ProgressView("Preparing profile...")
+                RawdeaLoadingIndicator("Preparing profile...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     // If an earlier load was cancelled (for example
                     // when sign-in or an appearance change rebuilt
@@ -462,7 +462,7 @@ struct ProfileView: View {
 
         return VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
             if postsViewModel.isLoading && postsViewModel.posts.isEmpty {
-                ProgressView("Loading posts...")
+                RawdeaLoadingIndicator("Loading posts...")
             } else if let errorMessage = postsViewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.secondary)
@@ -578,7 +578,7 @@ struct ProfileView: View {
             }
 
             if projectsViewModel.isLoading && projectsViewModel.projects.isEmpty {
-                ProgressView("Loading projects...")
+                RawdeaLoadingIndicator("Loading projects...")
             } else if projectsViewModel.projects.isEmpty {
                 if projectsViewModel.errorMessage == nil {
                     projectsNote("Projects keep related posts together. Start one for something you're working on.")

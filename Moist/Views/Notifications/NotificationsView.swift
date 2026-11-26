@@ -66,7 +66,7 @@ struct NotificationsView: View {
 
             } else if !viewModel.hasLoaded {
 
-                ProgressView("Loading activity...")
+                RawdeaLoadingIndicator("Loading activity...")
                     .frame(maxWidth: .infinity)
                     .padding(
                         .vertical,

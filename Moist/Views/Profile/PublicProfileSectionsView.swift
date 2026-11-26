@@ -110,7 +110,7 @@ struct PublicProfileSectionsView: View {
             if postsViewModel.isLoading &&
                postsViewModel.posts.isEmpty {
 
-                ProgressView("Loading posts...")
+                RawdeaLoadingIndicator("Loading posts...")
 
             } else if let error =
                 postsViewModel.errorMessage,
@@ -183,7 +183,7 @@ struct PublicProfileSectionsView: View {
             if projectsViewModel.isLoading &&
                projectsViewModel.projects.isEmpty {
 
-                ProgressView("Loading Projects...")
+                RawdeaLoadingIndicator("Loading Projects...")
 
             } else if let error =
                 projectsViewModel.errorMessage,

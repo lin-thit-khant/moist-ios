@@ -42,7 +42,7 @@ struct ProjectPickerView: View {
 
                     if viewModel.isLoading {
 
-                        ProgressView(
+                        RawdeaLoadingIndicator(
                             "Loading Projects..."
                         )
                     }

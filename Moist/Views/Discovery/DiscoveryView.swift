@@ -232,7 +232,7 @@ struct DiscoveryView: View {
                       viewModel.isLoading ||
                       !viewModel.hasSearched {
 
-                ProgressView("Searching...")
+                RawdeaLoadingIndicator("Searching...")
                     .frame(maxWidth: .infinity)
                     .padding(
                         .vertical,
@@ -497,7 +497,7 @@ struct DiscoveryView: View {
 
                 if viewModel.isLoadingMore {
 
-                    ProgressView("Loading more...")
+                    RawdeaLoadingIndicator("Loading more...")
 
                 } else {
 

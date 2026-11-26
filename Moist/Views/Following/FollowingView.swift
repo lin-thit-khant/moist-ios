@@ -22,7 +22,7 @@ struct FollowingView: View {
                viewModel.followedPeople.isEmpty &&
                viewModel.followedProjects.isEmpty {
 
-                ProgressView("Loading following...")
+                RawdeaLoadingIndicator("Loading following...")
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity

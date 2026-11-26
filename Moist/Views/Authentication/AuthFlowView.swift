@@ -33,7 +33,7 @@ struct AuthFlowView: View {
                             RawdeaPalette.primaryText
                         )
 
-                    ProgressView(
+                    RawdeaLoadingIndicator(
                         "Loading Rawdea..."
                     )
                 }
@@ -62,7 +62,7 @@ struct AuthFlowView: View {
 
                 } else {
 
-                    ProgressView("Preparing your account...")
+                    RawdeaLoadingIndicator("Preparing your account...")
                         .frame(
                             maxWidth: .infinity,
                             maxHeight: .infinity

@@ -334,7 +334,7 @@ struct ProjectDetailView: View {
                 if followViewModel.isLoading &&
                    !followViewModel.hasLoaded {
 
-                    ProgressView()
+                    RawdeaLoadingIndicator()
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Loading Project details")
 
@@ -428,7 +428,7 @@ struct ProjectDetailView: View {
             if viewModel.isLoading &&
                viewModel.posts.isEmpty {
 
-                ProgressView("Loading posts...")
+                RawdeaLoadingIndicator("Loading posts...")
                     .frame(maxWidth: .infinity)
                     .padding(
                         .vertical,

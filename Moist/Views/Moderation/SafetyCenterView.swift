@@ -157,7 +157,7 @@ struct SafetyCenterView: View {
 
                 if viewModel.isLoading {
 
-                    ProgressView("Loading requests...")
+                    RawdeaLoadingIndicator("Loading requests...")
 
                 } else if viewModel.requests.isEmpty {
 

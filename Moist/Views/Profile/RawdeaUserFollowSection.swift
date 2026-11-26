@@ -29,7 +29,7 @@ struct RawdeaUserFollowSection: View {
             if viewModel.isLoading &&
                !viewModel.hasLoaded {
 
-                ProgressView("Loading follows...")
+                RawdeaLoadingIndicator("Loading follows...")
                     .frame(
                         maxWidth: .infinity,
                         alignment: .center

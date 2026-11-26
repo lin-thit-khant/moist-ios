@@ -31,7 +31,7 @@ struct ProjectRouteView: View {
 
             if isLoading && project == nil {
 
-                ProgressView("Opening Project...")
+                RawdeaLoadingIndicator("Opening Project...")
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity
@@ -66,7 +66,7 @@ struct ProjectRouteView: View {
 
             } else {
 
-                ProgressView("Opening Project...")
+                RawdeaLoadingIndicator("Opening Project...")
             }
         }
 

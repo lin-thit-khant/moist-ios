@@ -63,7 +63,7 @@ struct AuthorProfileView: View {
 
                 } else {
 
-                    ProgressView("Checking account...")
+                    RawdeaLoadingIndicator("Checking account...")
                         .frame(
                             maxWidth: .infinity,
                             maxHeight: .infinity
@@ -81,7 +81,7 @@ struct AuthorProfileView: View {
             } else if viewModel.isLoading &&
                       viewModel.profile == nil {
 
-                ProgressView("Loading profile...")
+                RawdeaLoadingIndicator("Loading profile...")
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity
@@ -152,7 +152,7 @@ struct AuthorProfileView: View {
 
             } else {
 
-                ProgressView("Preparing profile...")
+                RawdeaLoadingIndicator("Preparing profile...")
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity
