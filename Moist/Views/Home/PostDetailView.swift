@@ -37,6 +37,14 @@ struct PostDetailView: View {
     @Environment(\.accessibilityReduceMotion)
     private var reduceMotion
 
+    @Environment(\.dynamicTypeSize)
+    private var dynamicTypeSize
+
+    @Environment(\.rawdeaOpenPostRoute)
+    private var openPostRoute
+
+    @State private var likePop = 0
+
     // MARK: - Validation
 
     private var trimmedComment: String {
@@ -420,13 +428,19 @@ struct PostDetailView: View {
         // when the user refreshes Discussion.
         .refreshable {
 
-            await viewModel.loadPost(
-                postId: postId
-            )
+            // Loading removes this List, which would cancel
+            // the refresh and leave the spinner forever. An
+            // unstructured task is allowed to finish.
+            await Task {
 
-            await bookmarkViewModel.load(
-                postId: postId
-            )
+                await viewModel.loadPost(
+                    postId: postId
+                )
+
+                await bookmarkViewModel.load(
+                    postId: postId
+                )
+            }.value
         }
     }
 
@@ -440,22 +454,28 @@ struct PostDetailView: View {
 
                 Task {
 
+                    let wasLiked = viewModel.isLiked
+
                     await viewModel.toggleLike(
                         postId: postId
                     )
+
+                    // Celebrate only a like the server accepted.
+                    if !wasLiked,
+                       viewModel.isLiked,
+                       viewModel.actionErrorMessage == nil {
+                        likePop += 1
+                    }
                 }
 
             } label: {
 
                 HStack(spacing: RawdeaSpacing.xs) {
 
-                    if viewModel.isUpdatingLike {
+                    ZStack {
 
-                        ProgressView()
-                            .accessibilityHidden(true)
-
-                    } else {
-
+                        // Stays in place while loading so the
+                        // like bounce has a view to animate.
                         Image(
                             systemName:
                                 viewModel.isLiked
@@ -467,6 +487,21 @@ struct PostDetailView: View {
                             ? RawdeaPalette.accent
                             : RawdeaPalette.secondaryText
                         )
+                        .font(.body)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                        .symbolEffect(.bounce, value: likePop)
+                        .symbolEffectsRemoved(reduceMotion)
+                        .opacity(viewModel.isUpdatingLike ? 0 : 1)
+                        .animation(
+                            reduceMotion ? .easeInOut(duration: 0.2) : nil,
+                            value: viewModel.isUpdatingLike
+                        )
+
+                        if viewModel.isUpdatingLike {
+
+                            ProgressView()
+                                .accessibilityHidden(true)
+                        }
                     }
 
                     // A zero count adds noise, so it only
@@ -507,6 +542,7 @@ struct PostDetailView: View {
             .accessibilityAddTraits(
                 viewModel.isLiked ? .isSelected : []
             )
+            .sensoryFeedback(.impact(weight: .light), trigger: likePop)
 
             Button {
 
@@ -515,6 +551,8 @@ struct PostDetailView: View {
             } label: {
 
                 Image(systemName: "bubble.left")
+                    .font(.body)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .foregroundStyle(
                         RawdeaPalette.secondaryText
                     )
@@ -559,9 +597,11 @@ struct PostDetailView: View {
                                 ? "bookmark.fill"
                                 : "bookmark"
                         )
+                        .font(.body)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .foregroundStyle(
                             bookmarkViewModel.isBookmarked
-                            ? RawdeaPalette.accent
+                            ? RawdeaPalette.primaryText
                             : RawdeaPalette.secondaryText
                         )
                     }
@@ -590,8 +630,9 @@ struct PostDetailView: View {
                 ? .isSelected : []
             )
         }
-        .padding(.horizontal, RawdeaSpacing.screenInset)
-        .padding(.bottom, RawdeaSpacing.sm)
+        // Line the outer symbols up with the post text.
+        .padding(.horizontal, RawdeaSpacing.screenInset - RawdeaSpacing.sm)
+        .padding(.bottom, RawdeaSpacing.xxs)
     }
 
     // MARK: - Bottom-anchored comment composer
@@ -635,7 +676,7 @@ struct PostDetailView: View {
                     RawdeaPalette.surface,
                     in: RoundedRectangle(
                         cornerRadius:
-                            RawdeaSpacing.buttonRadius
+                            RawdeaSpacing.lg
                     )
                 )
                 .accessibilityLabel("Comment")
@@ -659,9 +700,6 @@ struct PostDetailView: View {
                         if viewModel.isSubmittingComment {
 
                             ProgressView()
-                                .tint(
-                                    RawdeaPalette.onAccent
-                                )
                                 .accessibilityHidden(true)
 
                         } else {
@@ -675,6 +713,7 @@ struct PostDetailView: View {
                                     weight: .semibold
                                 )
                             )
+                            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                             .accessibilityHidden(true)
                         }
                     }
@@ -686,17 +725,14 @@ struct PostDetailView: View {
                     )
                     .foregroundStyle(
                         canSendComment
-                        ? RawdeaPalette.onAccent
+                        ? RawdeaPalette.onPrimaryFill
                         : RawdeaPalette.secondaryText
                     )
                     .background(
                         canSendComment
-                        ? RawdeaPalette.accent
+                        ? RawdeaPalette.primaryFill
                         : RawdeaPalette.divider,
-                        in: RoundedRectangle(
-                            cornerRadius:
-                                RawdeaSpacing.buttonRadius
-                        )
+                        in: Circle()
                     )
                     .contentShape(Rectangle())
                 }
@@ -803,13 +839,18 @@ struct PostDetailView: View {
 
     // MARK: - Comment row
 
+    // Comments hang from one line, like replies in a thread.
     private func commentRow(
         _ comment: PostComment
     ) -> some View {
 
-        VStack(
+        let usesColumn = !dynamicTypeSize.isAccessibilitySize
+        let continuesThread = usesColumn &&
+            comment.id != viewModel.comments.last?.id
+
+        return VStack(
             alignment: .leading,
-            spacing: RawdeaSpacing.sm
+            spacing: RawdeaSpacing.xxs
         ) {
 
             HStack(
@@ -817,13 +858,22 @@ struct PostDetailView: View {
                 spacing: RawdeaSpacing.sm
             ) {
 
-                Image(
-                    systemName: "person.crop.circle.fill"
-                )
-                .font(.system(.title2))
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
+                // A second way into the profile with a full-size
+                // target. VoiceOver uses the name instead.
+                authorControl(comment.userId) {
+
+                    RawdeaInitialAvatar(
+                        name: commentAuthorName(comment),
+                        size: RawdeaSpacing.avatarColumn,
+                        tintSeed: comment.userId
+                    )
+                    .frame(
+                        width: RawdeaSpacing.minimumTouchTarget,
+                        height: RawdeaSpacing.minimumTouchTarget
+                    )
+                    .contentShape(Rectangle())
+                }
+                .padding(-(RawdeaSpacing.minimumTouchTarget - RawdeaSpacing.avatarColumn) / 2)
                 .accessibilityHidden(true)
 
                 VStack(
@@ -831,52 +881,85 @@ struct PostDetailView: View {
                     spacing: RawdeaSpacing.xxs
                 ) {
 
-                    
-                    NavigationLink(
-                        value: RawdeaPostRoute.author(
-                            comment.userId
-                        )
-                    ) {
+                    commentHeader(comment)
 
-                        Text(
-                            commentAuthorName(comment)
-                        )
-                        .font(RawdeaTypography.authorName)
-                        .foregroundStyle(
-                            RawdeaPalette.primaryText
-                        )
-                        .fixedSize(
-                            horizontal: false,
-                            vertical: true
-                        )
-                        .frame(
-                            minWidth:
-                                RawdeaSpacing.minimumTouchTarget,
-                            minHeight:
-                                RawdeaSpacing.minimumTouchTarget,
-                            alignment: .leading
-                        )
-                        .contentShape(Rectangle())
+                    if usesColumn {
+                        commentBody(comment)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(
-                        "View profile for \(commentAuthorName(comment))"
-                    )
-
-
-                    Text(
-                        comment.createdAt,
-                        style: .relative
-                    )
-                    .font(RawdeaTypography.caption)
-                    .foregroundStyle(
-                        RawdeaPalette.secondaryText
-                    )
                 }
+            }
 
-                Spacer(minLength: 0)
+            // Large text needs the width beside the avatar too.
+            if !usesColumn {
+                commentBody(comment)
+            }
+        }
+        .frame(
+            maxWidth: .infinity,
+            minHeight: RawdeaSpacing.avatarColumn,
+            alignment: .topLeading
+        )
+        .padding(.vertical, RawdeaSpacing.sm)
+        .overlay(alignment: .topLeading) {
 
-                if let viewerId = viewModel.viewerId {
+            if continuesThread {
+
+                Rectangle()
+                    .fill(RawdeaPalette.activityOutline)
+                    .frame(width: 2)
+                    .padding(
+                        .top,
+                        RawdeaSpacing.sm + RawdeaSpacing.avatarColumn + RawdeaSpacing.xxs
+                    )
+                    .padding(.leading, RawdeaSpacing.avatarColumn / 2 - 1)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private func commentHeader(
+        _ comment: PostComment
+    ) -> some View {
+
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xs))
+
+        return HStack(alignment: .top, spacing: RawdeaSpacing.xs) {
+
+            authorControl(comment.userId) {
+
+                layout {
+
+                    Text(commentAuthorName(comment))
+                        .font(RawdeaTypography.authorName)
+                        .foregroundStyle(RawdeaPalette.primaryText)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+
+                    TimelineView(.periodic(from: .now, by: 60)) { context in
+                        Text(PostRowView.relativeAge(of: comment.createdAt, at: context.date))
+                            .font(RawdeaTypography.metadata)
+                            .foregroundStyle(RawdeaPalette.secondaryText)
+                            .lineLimit(1)
+                    }
+                    .layoutPriority(1)
+                }
+                .padding(.vertical, RawdeaSpacing.sm)
+                .contentShape(Rectangle())
+                .padding(.vertical, -RawdeaSpacing.sm)
+            }
+            .accessibilityLabel(
+                "View profile for \(commentAuthorName(comment))"
+            )
+            .accessibilityValue(Text(comment.createdAt, style: .relative))
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let viewerId = viewModel.viewerId {
+
+                // Keeps a 44 pt target without making
+                // the name row taller.
+                Group {
 
                     if viewerId == comment.userId {
 
@@ -887,91 +970,122 @@ struct PostDetailView: View {
                         reportCommentMenu(comment)
                     }
                 }
+                .padding(.vertical, -RawdeaSpacing.sm)
+                .padding(.trailing, -RawdeaSpacing.sm)
             }
+        }
+    }
 
-            // MARK: - Inline editing
+    // A button rather than a List link, which would add a chevron
+    // and make the whole row open the profile.
+    @ViewBuilder
+    private func authorControl<LabelContent: View>(
+        _ userId: UUID,
+        @ViewBuilder label: () -> LabelContent
+    ) -> some View {
 
-            if editingCommentId == comment.id {
+        if let openPostRoute {
 
-                TextField(
-                    "Edit comment",
-                    text: $editDraft,
-                    axis: .vertical
-                )
-                .lineLimit(2...5)
-                .font(RawdeaTypography.body)
+            Button {
+                openPostRoute(.author(userId))
+            } label: {
+                label()
+            }
+            .buttonStyle(.plain)
+
+        } else {
+
+            NavigationLink(value: RawdeaPostRoute.author(userId)) {
+                label()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func commentBody(
+        _ comment: PostComment
+    ) -> some View {
+
+        // MARK: Inline editing
+
+        if editingCommentId == comment.id {
+
+            TextField(
+                "Edit comment",
+                text: $editDraft,
+                axis: .vertical
+            )
+            .lineLimit(2...5)
+            .font(RawdeaTypography.body)
+            .disabled(
+                viewModel.isEditingComment
+            )
+
+            HStack(spacing: RawdeaSpacing.sm) {
+
+                Button("Cancel") {
+                    editingCommentId = nil
+                    editDraft = ""
+                }
+                .buttonStyle(.borderless)
                 .disabled(
                     viewModel.isEditingComment
                 )
 
-                HStack(spacing: RawdeaSpacing.sm) {
+                Spacer(minLength: 0)
 
-                    Button("Cancel") {
-                        editingCommentId = nil
-                        editDraft = ""
-                    }
-                    .disabled(
-                        viewModel.isEditingComment
-                    )
+                RawdeaCharacterLimitText(
+                    count: editCharacterCount,
+                    limit: 500,
+                    threshold: 50
+                )
 
-                    Spacer(minLength: 0)
+                Button("Save") {
 
-                    RawdeaCharacterLimitText(
-                        count: editCharacterCount,
-                        limit: 500,
-                        threshold: 50
-                    )
+                    Task {
 
-                    Button("Save") {
+                        let success =
+                            await viewModel.editComment(
+                                commentId: comment.id,
+                                content: editDraft
+                            )
 
-                        Task {
-
-                            let success =
-                                await viewModel.editComment(
-                                    commentId: comment.id,
-                                    content: editDraft
-                                )
-
-                            if success {
-                                editingCommentId = nil
-                                editDraft = ""
-                            }
+                        if success {
+                            editingCommentId = nil
+                            editDraft = ""
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(
-                        trimmedEdit.isEmpty ||
-                        editCharacterCount > 500 ||
-                        trimmedEdit == comment.content ||
-                        viewModel.isEditingComment
-                    )
                 }
-
-            } else {
-
-                Text(comment.content)
-                    .font(RawdeaTypography.postBody)
-                    .foregroundStyle(
-                        RawdeaPalette.primaryText
-                    )
-                    .frame(
-                        maxWidth: .infinity,
-                        alignment: .leading
-                    )
-                    .fixedSize(
-                        horizontal: false,
-                        vertical: true
-                    )
-                    .accessibilityFocused(
-                        $focusedCommentId,
-                        equals: comment.id
-                    )
+                .buttonStyle(.borderedProminent)
+                .disabled(
+                    trimmedEdit.isEmpty ||
+                    editCharacterCount > 500 ||
+                    trimmedEdit == comment.content ||
+                    viewModel.isEditingComment
+                )
             }
 
-            Divider()
-                .overlay(RawdeaPalette.divider)
+        } else {
+
+            Text(comment.content)
+                .font(RawdeaTypography.postBody)
+                .foregroundStyle(
+                    RawdeaPalette.primaryText
+                )
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+                .fixedSize(
+                    horizontal: false,
+                    vertical: true
+                )
+                .accessibilityFocused(
+                    $focusedCommentId,
+                    equals: comment.id
+                )
         }
-        .padding(.vertical, RawdeaSpacing.sm)
     }
 
     // MARK: - Author name
@@ -1066,6 +1180,8 @@ struct PostDetailView: View {
     private var commentOptionsIcon: some View {
 
         Image(systemName: "ellipsis")
+            .font(.body)
+            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             .foregroundStyle(
                 RawdeaPalette.secondaryText
             )

@@ -199,10 +199,7 @@ struct PostRowView: View {
         }
         .padding(.horizontal, horizontalInset)
         .padding(.top, RawdeaSpacing.sm)
-        .padding(
-            .bottom,
-            showsDiscussionLink ? RawdeaSpacing.xxs : RawdeaSpacing.sm
-        )
+        .padding(.bottom, RawdeaSpacing.xxs)
         .frame(
             maxWidth: .infinity,
             alignment: .leading
