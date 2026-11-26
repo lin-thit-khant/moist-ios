@@ -33,9 +33,9 @@ Keep this file under 60 lines.
 
 ## Unverified
 - VoiceOver playback. Like bounce, haptic and Reduce Motion fade.
-- Compose "Posting…" pill (too fast to capture), red Project chip, rejected post.
-- Reset password screen. Owner view of a Project. Project follow toggle.
-- Public "Nothing shared yet" and all-pinned Project states.
+- Reset password screen. Public "Nothing shared yet" and all-pinned Project states.
+- Checked 2026-11-26: owner Project view and post actions, red Project chip,
+  rejected post keeps its draft, "Posting…" pill, Project follow toggle.
 
 ## Open observations
 - Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
