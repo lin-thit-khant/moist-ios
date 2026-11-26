@@ -18,6 +18,13 @@ enum RawdeaTypography {
         weight: .bold
     )
 
+    // Rawdea's name at the top of Home.
+    static let wordmark: Font = .system(
+        .title3,
+        design: .default,
+        weight: .heavy
+    )
+
     static let sectionTitle: Font = .system(
         .headline,
         design: .default,

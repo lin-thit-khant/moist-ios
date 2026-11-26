@@ -58,6 +58,47 @@ enum RawdeaPalette {
         dark: 0x30262B
     )
 
+    // MARK: - Monochrome fill
+
+    // Primary actions are charcoal in Light Mode and
+    // near-white in Dark Mode. The brand accent is kept
+    // for Projects and likes.
+
+    static let primaryFill = adaptive(
+        light: 0x20262C,
+        dark: 0xF3F4F5
+    )
+
+    // Use on top of primaryFill.
+
+    static let onPrimaryFill = adaptive(
+        light: 0xFFFFFF,
+        dark: 0x17191C
+    )
+
+    // MARK: - Avatar tints
+
+    // Soft backgrounds for initial avatars. Primary text
+    // keeps at least 4.5:1 contrast on every tint.
+
+    static let avatarTints: [Color] = [
+        adaptive(light: 0xF4DEDF, dark: 0x3A2A30), // blush
+        adaptive(light: 0xE3E8EF, dark: 0x2A3340), // slate
+        adaptive(light: 0xE2ECE5, dark: 0x263A2E), // sage
+        adaptive(light: 0xF2E8D8, dark: 0x3A3226), // sand
+        adaptive(light: 0xE9E3F0, dark: 0x332C3D), // lilac
+        adaptive(light: 0xDFECEC, dark: 0x243838)  // mist
+    ]
+
+    /// The same person always gets the same tint, even after
+    /// changing their display name.
+    static func avatarTint(for id: UUID) -> Color {
+        let sum = withUnsafeBytes(of: id.uuid) { bytes in
+            bytes.reduce(0) { $0 &+ Int($1) }
+        }
+        return avatarTints[sum % avatarTints.count]
+    }
+
     // MARK: - Dividers and borders
 
     static let divider = adaptive(

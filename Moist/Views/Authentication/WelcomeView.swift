@@ -84,7 +84,7 @@ struct WelcomeView: View {
                         RawdeaTypography.button
                     )
                     .foregroundStyle(
-                        RawdeaPalette.onAccent
+                        RawdeaPalette.onPrimaryFill
                     )
                     .multilineTextAlignment(.center)
                     .frame(
@@ -97,7 +97,7 @@ struct WelcomeView: View {
                         RawdeaSpacing.xs
                     )
                     .background(
-                        RawdeaPalette.accent,
+                        RawdeaPalette.primaryFill,
                         in: RoundedRectangle(
                             cornerRadius:
                                 RawdeaSpacing.buttonRadius
@@ -120,7 +120,7 @@ struct WelcomeView: View {
                         RawdeaTypography.button
                     )
                     .foregroundStyle(
-                        RawdeaPalette.accent
+                        RawdeaPalette.primaryText
                     )
                     .multilineTextAlignment(.center)
                     .frame(
@@ -139,7 +139,7 @@ struct WelcomeView: View {
                                 RawdeaSpacing.buttonRadius
                         )
                         .strokeBorder(
-                            RawdeaPalette.accent,
+                            RawdeaPalette.activityOutline,
                             lineWidth: 1
                         )
                     }

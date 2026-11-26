@@ -32,7 +32,7 @@ private struct RawdeaAppearanceRootView: View {
 
     var body: some View {
         AuthFlowView()
-            .tint(RawdeaPalette.accent)
+            .tint(RawdeaPalette.primaryText)
             .preferredColorScheme(
                 activeAppearance.preferredColorScheme
             )

@@ -44,7 +44,8 @@ struct ProfileContentView: View {
                 RawdeaInitialAvatar(
                     name: displayName,
                     size: 64,
-                    font: .title.weight(.semibold)
+                    font: .title.weight(.semibold),
+                    tintSeed: profile.id
                 )
 
                 VStack(

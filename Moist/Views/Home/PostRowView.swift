@@ -329,7 +329,7 @@ struct PostRowView: View {
                     spacing: RawdeaSpacing.xs
                 ) {
 
-                    RawdeaInitialAvatar(name: authorName)
+                    RawdeaInitialAvatar(name: authorName, tintSeed: post.userId)
 
                     VStack(
                         alignment: .leading,

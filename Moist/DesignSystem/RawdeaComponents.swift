@@ -12,6 +12,9 @@ struct RawdeaInitialAvatar: View {
     let name: String
     var size: CGFloat = RawdeaSpacing.xl
     var font: Font = RawdeaTypography.authorName
+    /// The person's id. When given, the avatar uses that
+    /// person's tint; otherwise the neutral surface.
+    var tintSeed: UUID? = nil
 
     var body: some View {
         Text(String(name.first(where: \.isLetter) ?? "?").uppercased())
@@ -20,7 +23,10 @@ struct RawdeaInitialAvatar: View {
             .minimumScaleFactor(0.5)
             .foregroundStyle(RawdeaPalette.primaryText)
             .frame(width: size, height: size)
-            .background(RawdeaPalette.surface, in: Circle())
+            .background(
+                tintSeed.map(RawdeaPalette.avatarTint(for:)) ?? RawdeaPalette.surface,
+                in: Circle()
+            )
             .accessibilityHidden(true)
     }
 }
@@ -66,8 +72,8 @@ struct RawdeaFollowButton: View {
 
     var body: some View {
         let isMuted = isFollowing || isBlocked
-        let foreground = isMuted ? RawdeaPalette.primaryText : RawdeaPalette.onAccent
-        let background = isMuted ? RawdeaPalette.surface : RawdeaPalette.accent
+        let foreground = isMuted ? RawdeaPalette.primaryText : RawdeaPalette.onPrimaryFill
+        let background = isMuted ? RawdeaPalette.canvas : RawdeaPalette.primaryFill
         let shape = RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
 
         Button(action: action) {
@@ -139,14 +145,14 @@ struct RawdeaPrimaryButton: View {
     private var foregroundColor: Color {
 
         usesAccent
-        ? RawdeaPalette.onAccent
+        ? RawdeaPalette.onPrimaryFill
         : RawdeaPalette.secondaryText
     }
 
     private var backgroundColor: Color {
 
         usesAccent
-        ? RawdeaPalette.accent
+        ? RawdeaPalette.primaryFill
         : RawdeaPalette.surface
     }
 

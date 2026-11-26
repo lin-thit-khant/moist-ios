@@ -191,9 +191,9 @@ struct RawdeaMainTabView: View {
         .environment(\.rawdeaCreatePostInProject, { project in
             composeRequest = ComposeRequest(project: project)
         })
-        // Native five-tab styling.
+        // Native five-tab styling, monochrome selection.
         // There is no raised Create button.
-        .tint(RawdeaPalette.accent)
+        .tint(RawdeaPalette.primaryText)
 
         // MARK: - Compose presentation
 
