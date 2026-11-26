@@ -469,13 +469,17 @@ struct PostDetailView: View {
                         )
                     }
 
-                    Text("\(viewModel.likeCount)")
-                        .font(
-                            RawdeaTypography.metadata
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
+                    // A zero count adds noise, so it only
+                    // appears once someone has liked the post.
+                    if viewModel.likeCount > 0 {
+                        Text("\(viewModel.likeCount)")
+                            .font(
+                                RawdeaTypography.metadata
+                            )
+                            .foregroundStyle(
+                                RawdeaPalette.secondaryText
+                            )
+                    }
                 }
                 .frame(
                     minWidth:
@@ -496,7 +500,9 @@ struct PostDetailView: View {
                 : "Like post"
             )
             .accessibilityValue(
-                "\(viewModel.likeCount) likes"
+                viewModel.likeCount == 1
+                ? "1 like"
+                : "\(viewModel.likeCount) likes"
             )
             .accessibilityAddTraits(
                 viewModel.isLiked ? .isSelected : []
@@ -703,32 +709,11 @@ struct PostDetailView: View {
                 )
             }
 
-            HStack {
-
-                Text("\(commentCharacterCount)/500")
-                    .font(RawdeaTypography.caption)
-                    .foregroundStyle(
-                        commentCharacterCount > 500
-                        ? RawdeaPalette.danger
-                        : RawdeaPalette.secondaryText
-                    )
-                    .accessibilityLabel(
-                        "\(commentCharacterCount) of 500 characters"
-                    )
-
-                Spacer(minLength: 0)
-
-                if commentCharacterCount > 500 {
-
-                    Text("Comment is too long")
-                        .font(
-                            RawdeaTypography.caption
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.danger
-                        )
-                }
-            }
+            RawdeaCharacterLimitText(
+                count: commentCharacterCount,
+                limit: 500,
+                threshold: 50
+            )
         }
         .padding(.horizontal, RawdeaSpacing.screenInset)
         .padding(.top, RawdeaSpacing.sm)
@@ -931,13 +916,11 @@ struct PostDetailView: View {
 
                     Spacer(minLength: 0)
 
-                    Text("\(editCharacterCount)/500")
-                        .font(
-                            RawdeaTypography.caption
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
+                    RawdeaCharacterLimitText(
+                        count: editCharacterCount,
+                        limit: 500,
+                        threshold: 50
+                    )
 
                     Button("Save") {
 

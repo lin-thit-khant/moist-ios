@@ -255,35 +255,11 @@ struct EditProfileView: View {
 
     // MARK: - Character counts
 
-    /// Stays quiet until the text is close to the limit, then shows
-    /// what is left, and turns into an error once the limit is passed.
-    @ViewBuilder
     private func characterStatus(
         count: Int,
         limit: Int
     ) -> some View {
-
-        let remaining = limit - count
-
-        if remaining < 0 {
-
-            Label(
-                "\(-remaining) over the \(limit)-character limit",
-                systemImage: "exclamationmark.circle"
-            )
-            .font(RawdeaTypography.caption)
-            .foregroundStyle(RawdeaPalette.danger)
-
-        } else if remaining <= 20 {
-
-            Text(
-                remaining == 1
-                ? "1 character left"
-                : "\(remaining) characters left"
-            )
-            .font(RawdeaTypography.caption)
-            .foregroundStyle(RawdeaPalette.secondaryText)
-        }
+        RawdeaCharacterLimitText(count: count, limit: limit)
     }
 
     // MARK: - Cancel

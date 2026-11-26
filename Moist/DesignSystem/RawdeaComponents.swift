@@ -25,6 +25,34 @@ struct RawdeaInitialAvatar: View {
     }
 }
 
+// MARK: - Character Limit
+
+/// Quiet until text nears its limit, then shows what is left,
+/// and becomes an error once the limit is passed.
+struct RawdeaCharacterLimitText: View {
+    let count: Int
+    let limit: Int
+    /// How close to the limit the remaining count starts showing.
+    var threshold: Int = 20
+
+    var body: some View {
+        let remaining = limit - count
+
+        if remaining < 0 {
+            Label(
+                "\(-remaining) over the \(limit)-character limit",
+                systemImage: "exclamationmark.circle"
+            )
+            .font(RawdeaTypography.caption)
+            .foregroundStyle(RawdeaPalette.danger)
+        } else if remaining <= threshold {
+            Text(remaining == 1 ? "1 character left" : "\(remaining) characters left")
+                .font(RawdeaTypography.caption)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+        }
+    }
+}
+
 // MARK: - Follow Button
 
 /// Shared Follow / Following control for people and Projects.
