@@ -19,10 +19,11 @@ Keep this file under 60 lines.
 - Batch 10 partial: profile-load retry 72f9b3f, Profile checked in Dark Mode.
 - Direction C Batch 0 review content + Batch 1 monochrome foundations 4674049.
 - Direction C Batch 2 post row 28fded8.
-- Direction C Batch 3 Home 3e30d5b . Re-tap scroll is native.
+- Direction C Batch 3 Home 3e30d5b. Re-tap scroll is native.
 - Direction C Batch 4 Compose 7a5afa1.
 - Direction C Batch 5 Discussion thread 869e7ba.
-- XCTest suite (34) passed as of 869e7ba.
+- Direction C Batch 6 Profile and Project pages e6bdec6. Account follow toggle checked.
+- XCTest suite (34) passed as of e6bdec6.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -40,14 +41,16 @@ Keep this file under 60 lines.
 - 7 Post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
 
 ## Next
-- Direction C Batch 6: Profile and Project pages, compact Follow pill.
+- Direction C Batch 7: post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
+  Red remains in auth, Activity, Appearance preview and design preview.
 - Roadmap 10 remaining: VoiceOver pass, Dark Mode on Project, Discussion and Compose,
   Increase Contrast.
 
 ## Unverified
 - Compose "Posting…" pill (too fast to capture), red Project chip, rejected post.
-- Batch 1-5 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
-- VoiceOver playback. Dark Mode across newer states. Follow toggles.
+- Batch 1-6 Increase Contrast and VoiceOver. Like bounce, haptic, Reduce Motion fade.
+- VoiceOver playback. Dark Mode across newer states. Project follow toggle.
+- Owner view of a Project (test account owns none).
 - Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
