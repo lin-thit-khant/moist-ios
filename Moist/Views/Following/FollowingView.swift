@@ -86,6 +86,8 @@ struct FollowingView: View {
                     ForEach(
                         viewModel.followedPeople
                     ) { profile in
+                        let displayName = profile.displayname.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let name = displayName.isEmpty ? profile.username : displayName
 
                         NavigationLink(
                             value: RawdeaPostRoute.author(
@@ -98,26 +100,14 @@ struct FollowingView: View {
                                 spacing: RawdeaSpacing.sm
                             ) {
 
-                                Image(
-                                    systemName:
-                                        "person.crop.circle.fill"
-                                )
-                                .font(.system(.title2))
-                                .foregroundStyle(
-                                    RawdeaPalette.secondaryText
-                                )
-                                .accessibilityHidden(true)
+                                RawdeaInitialAvatar(name: name)
 
                                 VStack(
                                     alignment: .leading,
                                     spacing: RawdeaSpacing.xxs
                                 ) {
 
-                                    Text(
-                                        profile.displayname.isEmpty
-                                        ? profile.username
-                                        : profile.displayname
-                                    )
+                                    Text(name)
                                     .font(
                                         RawdeaTypography.authorName
                                     )
@@ -150,6 +140,7 @@ struct FollowingView: View {
                                 .vertical,
                                 RawdeaSpacing.xs
                             )
+                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                         }
                         .listRowBackground(
                             RawdeaPalette.canvas
@@ -189,6 +180,7 @@ struct FollowingView: View {
                                 .vertical,
                                 RawdeaSpacing.xs
                             )
+                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                         }
                         .listRowBackground(
                             RawdeaPalette.canvas

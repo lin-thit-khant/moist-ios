@@ -17,6 +17,8 @@ struct RawdeaUserFollowSection: View {
 
     let isInteractionBlocked: Bool
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
 
         VStack(
@@ -35,46 +37,10 @@ struct RawdeaUserFollowSection: View {
 
             } else if viewModel.hasLoaded {
 
-                HStack(spacing: RawdeaSpacing.xl) {
-
-                    statistic(
-                        value: viewModel.followerCount,
-                        title: "Followers"
-                    )
-
-                    statistic(
-                        value: viewModel.followingCount,
-                        title: "Following"
-                    )
-
-                    Spacer(minLength: 0)
-                }
+                counts
 
                 if !viewModel.isOwnProfile {
-
-                    RawdeaPrimaryButton(
-                        viewModel.isFollowing
-                        ? "Following"
-                        : "Follow",
-                        isLoading:
-                            viewModel.isUpdating,
-                        isEnabled:
-                            !viewModel.isUpdating &&
-                            !isInteractionBlocked
-                    ) {
-
-                        Task {
-
-                            await viewModel.toggleFollow(
-                                userId: userId
-                            )
-                        }
-                    }
-                    .accessibilityLabel(
-                        viewModel.isFollowing
-                        ? "Unfollow account"
-                        : "Follow account"
-                    )
+                    followButton
                 }
             }
 
@@ -108,9 +74,83 @@ struct RawdeaUserFollowSection: View {
         )
     }
 
+    private var counts: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.sm))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: RawdeaSpacing.xl))
+        let followers = viewModel.followerCount
+        let following = viewModel.followingCount
+
+        return layout {
+            statistic(
+                value: followers,
+                title: followers == 1 ? "Follower" : "Followers",
+                accessibilityLabel: followers == 1 ? "1 follower" : "\(followers.formatted()) followers"
+            )
+            statistic(
+                value: following,
+                title: "Following",
+                accessibilityLabel: following == 1 ? "Following 1 person" : "Following \(following.formatted()) people"
+            )
+        }
+    }
+
+    private var followButton: some View {
+        let isFollowing = viewModel.isFollowing
+        let isDisabled = viewModel.isUpdating || isInteractionBlocked
+        let foreground = isFollowing || isInteractionBlocked
+            ? RawdeaPalette.primaryText
+            : RawdeaPalette.onAccent
+        let background = isFollowing || isInteractionBlocked
+            ? RawdeaPalette.surface
+            : RawdeaPalette.accent
+        let shape = RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+
+        return Button {
+            Task { await viewModel.toggleFollow(userId: userId) }
+        } label: {
+            HStack(spacing: RawdeaSpacing.xs) {
+                if viewModel.isUpdating {
+                    ProgressView()
+                        .tint(foreground)
+                        .accessibilityHidden(true)
+                } else if isFollowing {
+                    Image(systemName: "checkmark")
+                        .accessibilityHidden(true)
+                }
+
+                Text(isFollowing ? "Following" : "Follow")
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(RawdeaTypography.button)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, RawdeaSpacing.md)
+            .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
+            .padding(.vertical, RawdeaSpacing.xs)
+            .background(background, in: shape)
+            .overlay {
+                if isFollowing || isInteractionBlocked {
+                    shape.strokeBorder(RawdeaPalette.activityOutline)
+                        .allowsHitTesting(false)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        // One explicit element: SwiftUI otherwise drops the button role after
+        // the label changes from icon + text back to text only.
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(isFollowing ? "Unfollow account" : "Follow account")
+        .accessibilityValue(viewModel.isUpdating ? "Updating" : isFollowing ? "Following" : "Not following")
+        .accessibilityIdentifier("profile-follow-action")
+    }
+
     private func statistic(
         value: Int,
-        title: String
+        title: String,
+        accessibilityLabel: String
     ) -> some View {
 
         VStack(
@@ -136,7 +176,7 @@ struct RawdeaUserFollowSection: View {
             children: .ignore
         )
         .accessibilityLabel(
-            "\(value) \(title)"
+            accessibilityLabel
         )
     }
 }

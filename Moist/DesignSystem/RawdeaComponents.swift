@@ -8,6 +8,21 @@
 
 import SwiftUI
 
+struct RawdeaInitialAvatar: View {
+    let name: String
+
+    var body: some View {
+        Text(String(name.first(where: \.isLetter) ?? "?").uppercased())
+            .font(RawdeaTypography.authorName)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .foregroundStyle(RawdeaPalette.primaryText)
+            .frame(width: RawdeaSpacing.xl, height: RawdeaSpacing.xl)
+            .background(RawdeaPalette.surface, in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Primary Button
 
 struct RawdeaPrimaryButton: View {

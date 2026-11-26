@@ -17,7 +17,7 @@ struct PublicProfileSectionsView: View {
     @StateObject private var projectsViewModel =
         ProjectsViewModel()
 
-    private var freePosts: [Post] {
+    private var standalonePosts: [Post] {
 
         postsViewModel.posts.filter {
             $0.projectId == nil &&
@@ -54,18 +54,11 @@ struct PublicProfileSectionsView: View {
 
     var body: some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: RawdeaSpacing.xl
-        ) {
-
-            freePostsSection
-
-            projectsSection
-        }
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
+        RawdeaProfileWorkSections(
+            pinnedProjects: publicProjects.filter(\.isPinned),
+            projectRow: projectRow,
+            posts: { postsSection },
+            projects: { projectsSection }
         )
         .task(id: userId) {
 
@@ -79,16 +72,14 @@ struct PublicProfileSectionsView: View {
         }
     }
 
-    // MARK: - Free posts
+    // MARK: - Posts
 
-    private var freePostsSection: some View {
+    private var postsSection: some View {
 
         VStack(
             alignment: .leading,
             spacing: RawdeaSpacing.md
         ) {
-
-            sectionTitle("Free posts")
 
             if postsViewModel.isLoading &&
                postsViewModel.posts.isEmpty {
@@ -117,9 +108,9 @@ struct PublicProfileSectionsView: View {
                         RawdeaSpacing.minimumTouchTarget
                 )
 
-            } else if freePosts.isEmpty {
+            } else if standalonePosts.isEmpty {
 
-                Text("No public free posts yet.")
+                Text("No public posts yet.")
                     .font(
                         RawdeaTypography.secondary
                     )
@@ -131,9 +122,9 @@ struct PublicProfileSectionsView: View {
 
                 LazyVStack(spacing: 0) {
 
-                    ForEach(freePosts) { post in
+                    ForEach(standalonePosts) { post in
 
-                        PostRowView(post: post)
+                        PostRowView(post: post, horizontalInset: 0)
 
                         Divider()
                             .overlay(
@@ -162,8 +153,6 @@ struct PublicProfileSectionsView: View {
             alignment: .leading,
             spacing: RawdeaSpacing.md
         ) {
-
-            sectionTitle("Projects")
 
             if projectsViewModel.isLoading &&
                projectsViewModel.projects.isEmpty {
@@ -204,29 +193,7 @@ struct PublicProfileSectionsView: View {
 
             } else {
 
-                ForEach(publicProjects) { project in
-
-                    NavigationLink(
-                        value: RawdeaPostRoute.project(
-                            project.id
-                        )
-                    ) {
-
-                        RawdeaProjectSurface {
-
-                            RawdeaProjectCard(
-                                project: project,
-                                preview: latestPreview(
-                                    for: project.id
-                                )
-                            )
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint(
-                        "Opens Project"
-                    )
-                }
+                ForEach(publicProjects.filter { !$0.isPinned }, content: projectRow)
             }
 
             if !projectsViewModel.projects.isEmpty,
@@ -240,15 +207,17 @@ struct PublicProfileSectionsView: View {
         }
     }
 
-    private func sectionTitle(
-        _ title: String
-    ) -> some View {
-
-        Text(title)
-            .font(RawdeaTypography.sectionTitle)
-            .foregroundStyle(
-                RawdeaPalette.primaryText
-            )
-            .accessibilityAddTraits(.isHeader)
+    private func projectRow(_ project: Project) -> some View {
+        NavigationLink(value: RawdeaPostRoute.project(project.id)) {
+            RawdeaProjectSurface {
+                RawdeaProjectCard(
+                    project: project,
+                    preview: latestPreview(for: project.id)
+                )
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens Project")
     }
 }

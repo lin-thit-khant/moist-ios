@@ -32,6 +32,7 @@ struct PostRowView: View {
     @State private var isShowingDeleteConfirmation = false
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private let horizontalInset: CGFloat
     
     
     init(
@@ -44,7 +45,8 @@ struct PostRowView: View {
         showsDiscussionLink: Bool = true,
         onUnsave: (() -> Void)? = nil,
         isUnsaveDisabled: Bool = false,
-        isUnsaving: Bool = false
+        isUnsaving: Bool = false,
+        horizontalInset: CGFloat = RawdeaSpacing.screenInset
     ) {
 
         self.post = post
@@ -58,6 +60,7 @@ struct PostRowView: View {
         self.onUnsave = onUnsave
         self.isUnsaveDisabled = isUnsaveDisabled
         self.isUnsaving = isUnsaving
+        self.horizontalInset = horizontalInset
     }
 
 
@@ -82,13 +85,6 @@ struct PostRowView: View {
         }
 
         return "@\(username)"
-    }
-
-    private var authorInitial: String {
-        guard let initial = authorName.first(where: \.isLetter) else {
-            return "?"
-        }
-        return String(initial).uppercased()
     }
 
     private static let relativeTimeFormatter: RelativeDateTimeFormatter = {
@@ -214,7 +210,7 @@ struct PostRowView: View {
                 }
             }
         }
-        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.horizontal, horizontalInset)
         .padding(.vertical, RawdeaSpacing.md)
         .frame(
             maxWidth: .infinity,
@@ -321,14 +317,7 @@ struct PostRowView: View {
                     spacing: RawdeaSpacing.xs
                 ) {
 
-                    Text(authorInitial)
-                        .font(RawdeaTypography.authorName)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                        .foregroundStyle(RawdeaPalette.primaryText)
-                        .frame(width: RawdeaSpacing.xl, height: RawdeaSpacing.xl)
-                        .background(RawdeaPalette.surface, in: Circle())
-                        .accessibilityHidden(true)
+                    RawdeaInitialAvatar(name: authorName)
 
                     VStack(
                         alignment: .leading,

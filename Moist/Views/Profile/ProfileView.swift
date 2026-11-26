@@ -11,6 +11,8 @@ struct ProfileView: View {
     
     var isSelected: Bool = true
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State private var isProfileContentVisible = false
 
     @State private var isRefreshingProfileContent = false
@@ -174,14 +176,36 @@ struct ProfileView: View {
                             value: RawdeaPostRoute.following
                         ) {
 
-                            Label(
-                                "Following",
-                                systemImage: "person.2"
+                            HStack(spacing: RawdeaSpacing.sm) {
+                                Group {
+                                    if dynamicTypeSize.isAccessibilitySize {
+                                        Text("Following")
+                                    } else {
+                                        Label("Following", systemImage: "person.2")
+                                    }
+                                }
+                                .font(RawdeaTypography.button)
+                                .foregroundStyle(RawdeaPalette.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .layoutPriority(1)
+
+                                Spacer(minLength: 0)
+
+                                Image(systemName: "chevron.right")
+                                    .font(RawdeaTypography.caption.weight(.semibold))
+                                    .foregroundStyle(RawdeaPalette.secondaryText)
+                                    .accessibilityHidden(true)
+                            }
+                            .padding(.horizontal, RawdeaSpacing.sm)
+                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                            .background(
+                                RawdeaPalette.surface,
+                                in: RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
                             )
-                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Opens people and Projects you follow")
                         
                         
                         // MARK: - Saved Posts
@@ -199,152 +223,12 @@ struct ProfileView: View {
                         .buttonStyle(.bordered)
                         .frame(maxWidth: .infinity)
 
-                        VStack(alignment: .leading, spacing: 12) {
-                            
-                            Text("Free posts")
-                                .font(RawdeaTypography.sectionTitle)
-                                .foregroundStyle(
-                                    RawdeaPalette.primaryText
-                                )
-                                .accessibilityAddTraits(.isHeader)
-                            
-                            if postsViewModel.isLoading && postsViewModel.posts.isEmpty {
-                                
-                                ProgressView("Loading posts...")
-                                
-                            } else if let errorMessage = postsViewModel.errorMessage {
-                                
-                                Text(errorMessage)
-                                    .foregroundStyle(.secondary)
-                                
-                                Button("Try Again") {
-                                    Task {
-                                        await postsViewModel.loadPosts(userId: profile.id)
-                                    }
-                                }
-                                
-                            } else if postsViewModel.posts.allSatisfy({ $0.projectId != nil }) {
-                                
-                                Text("Your thoughts will appear here.")
-                                    .foregroundStyle(.secondary)
-                                
-                            } else {
-                                
-                                LazyVStack(spacing: 0) {
-                                    
-                                    ForEach(
-                                        postsViewModel.posts.filter { $0.projectId == nil }
-                                    ) { post in
-                                        
-                                        PostRowView(
-                                            post: post,
-                                            currentUserId: profile.id,
-                                            onEdit: {
-                                                selectedPostForEditing = post
-                                            },
-                                            onDelete: {
-                                                Task {
-                                                    await postsViewModel.deletePost(
-                                                        postId: post.id
-                                                    )
-                                                }
-                                            },
-                                            onMove: {
-                                                selectedPostForMoving = post
-                                            },
-                                            onHide: {
-                                                Task {
-                                                    await postsViewModel.setPostHidden(
-                                                        postId: post.id,
-                                                        hidden: !post.isHidden
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        
-                                        Divider()
-                                    }
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        VStack(alignment: .leading, spacing: 12) {
-                            
-                            HStack {
-                                Text("Projects")
-                                    .font(RawdeaTypography.sectionTitle)
-                                    .foregroundStyle(
-                                        RawdeaPalette.primaryText
-                                    )
-                                    .accessibilityAddTraits(.isHeader)
-                                
-                                Spacer()
-                                
-                                Button {
-
-                                    projectsViewModel.clearError()
-                                    newProjectName = ""
-                                    isShowingCreateProject = true
-
-                                } label: {
-
-                                    Label(
-                                        "New Project",
-                                        systemImage: "plus"
-                                    )
-                                    .font(RawdeaTypography.metadata)
-                                    .foregroundStyle(
-                                        RawdeaPalette.accent
-                                    )
-                                    .frame(
-                                        minHeight:
-                                            RawdeaSpacing.minimumTouchTarget
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            
-                            if let errorMessage = projectsViewModel.errorMessage {
-                                Text(errorMessage)
-                                    .font(.caption)
-                                    .foregroundStyle(.red)
-                            }
-                            
-                            if projectsViewModel.isLoading &&
-                                projectsViewModel.projects.isEmpty {
-                                
-                                ProgressView("Loading projects...")
-                                
-                            } else if projectsViewModel.projects.isEmpty {
-                                if projectsViewModel.errorMessage == nil {
-                                    Text("Your Projects will appear here.")
-                                        .foregroundStyle(.secondary)
-                                }
-                                
-                            } else {
-                                
-                                ForEach(
-                                    sortedActiveProjects
-                                ) { project in
-                                    projectRow(project)
-                                }
-
-                                if projectsViewModel.projects.contains(
-                                    where: { $0.isArchived }
-                                ) {
-                                    DisclosureGroup("Archived Projects") {
-                                        ForEach(
-                                            projectsViewModel.projects.filter { $0.isArchived }
-                                        ) { project in
-                                            projectRow(project)
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        RawdeaProfileWorkSections(
+                            pinnedProjects: sortedActiveProjects.filter(\.isPinned),
+                            projectRow: projectRow,
+                            posts: { postsSection(profile: profile) },
+                            projects: { projectsSection }
+                        )
                         .sheet(isPresented: $isShowingCreateProject) {
                             NavigationStack {
                                 Form {
@@ -698,6 +582,105 @@ struct ProfileView: View {
                 !Task.isCancelled
     }
 
+    private func postsSection(profile: Profile) -> some View {
+        let posts = postsViewModel.posts.filter { $0.projectId == nil }
+
+        return VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
+            if postsViewModel.isLoading && postsViewModel.posts.isEmpty {
+                ProgressView("Loading posts...")
+            } else if let errorMessage = postsViewModel.errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    Task { await postsViewModel.loadPosts(userId: profile.id) }
+                } label: {
+                    Text("Try Again")
+                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                        .contentShape(Rectangle())
+                }
+            } else if posts.isEmpty {
+                Text("Your thoughts will appear here.")
+                    .foregroundStyle(.secondary)
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(posts) { post in
+                        PostRowView(
+                            post: post,
+                            currentUserId: profile.id,
+                            onEdit: { selectedPostForEditing = post },
+                            onDelete: {
+                                Task { await postsViewModel.deletePost(postId: post.id) }
+                            },
+                            onMove: { selectedPostForMoving = post },
+                            onHide: {
+                                Task {
+                                    await postsViewModel.setPostHidden(
+                                        postId: post.id,
+                                        hidden: !post.isHidden
+                                    )
+                                }
+                            },
+                            horizontalInset: 0
+                        )
+
+                        Divider()
+                            .overlay(RawdeaPalette.divider)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var projectsSection: some View {
+        let archivedProjects = projectsViewModel.projects.filter(\.isArchived)
+
+        return VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
+            Button {
+                projectsViewModel.clearError()
+                newProjectName = ""
+                isShowingCreateProject = true
+            } label: {
+                Label("New Project", systemImage: "plus")
+                    .font(RawdeaTypography.metadata)
+                    .foregroundStyle(RawdeaPalette.accent)
+                    .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if let errorMessage = projectsViewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            if projectsViewModel.isLoading && projectsViewModel.projects.isEmpty {
+                ProgressView("Loading projects...")
+            } else if projectsViewModel.projects.isEmpty {
+                if projectsViewModel.errorMessage == nil {
+                    Text("Your Projects will appear here.")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                ForEach(sortedActiveProjects.filter { !$0.isPinned }, content: projectRow)
+
+                if !archivedProjects.isEmpty {
+                    DisclosureGroup {
+                        VStack(spacing: RawdeaSpacing.sm) {
+                            ForEach(archivedProjects, content: projectRow)
+                        }
+                    } label: {
+                        Text("Archived Projects")
+                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func latestNote(for projectId: UUID) -> String? {
         postsViewModel.posts.first {
             $0.projectId == projectId && !$0.isHidden
@@ -732,6 +715,7 @@ struct ProfileView: View {
                     )
                     .frame(
                         maxWidth: .infinity,
+                        minHeight: RawdeaSpacing.minimumTouchTarget,
                         alignment: .leading
                     )
                     .contentShape(Rectangle())
