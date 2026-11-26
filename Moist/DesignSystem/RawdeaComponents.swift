@@ -25,6 +25,62 @@ struct RawdeaInitialAvatar: View {
     }
 }
 
+// MARK: - Follow Button
+
+/// Shared Follow / Following control for people and Projects.
+struct RawdeaFollowButton: View {
+    let isFollowing: Bool
+    let isUpdating: Bool
+    var isBlocked: Bool = false
+    let followLabel: String
+    let unfollowLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        let isMuted = isFollowing || isBlocked
+        let foreground = isMuted ? RawdeaPalette.primaryText : RawdeaPalette.onAccent
+        let background = isMuted ? RawdeaPalette.surface : RawdeaPalette.accent
+        let shape = RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+
+        Button(action: action) {
+            HStack(spacing: RawdeaSpacing.xs) {
+                if isUpdating {
+                    ProgressView()
+                        .tint(foreground)
+                        .accessibilityHidden(true)
+                } else if isFollowing {
+                    Image(systemName: "checkmark")
+                        .accessibilityHidden(true)
+                }
+
+                Text(isFollowing ? "Following" : "Follow")
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(RawdeaTypography.button)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, RawdeaSpacing.md)
+            .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
+            .padding(.vertical, RawdeaSpacing.xs)
+            .background(background, in: shape)
+            .overlay {
+                if isMuted {
+                    shape.strokeBorder(RawdeaPalette.activityOutline)
+                        .allowsHitTesting(false)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isUpdating || isBlocked)
+        // One explicit element: SwiftUI otherwise drops the button role after
+        // the label changes from icon + text back to text only.
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(isFollowing ? unfollowLabel : followLabel)
+        .accessibilityValue(isUpdating ? "Updating" : isFollowing ? "Following" : "Not following")
+    }
+}
+
 // MARK: - Primary Button
 
 struct RawdeaPrimaryButton: View {

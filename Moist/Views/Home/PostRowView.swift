@@ -33,6 +33,7 @@ struct PostRowView: View {
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let horizontalInset: CGFloat
+    private let showsProjectLink: Bool
     
     
     init(
@@ -46,7 +47,8 @@ struct PostRowView: View {
         onUnsave: (() -> Void)? = nil,
         isUnsaveDisabled: Bool = false,
         isUnsaving: Bool = false,
-        horizontalInset: CGFloat = RawdeaSpacing.screenInset
+        horizontalInset: CGFloat = RawdeaSpacing.screenInset,
+        showsProjectLink: Bool = true
     ) {
 
         self.post = post
@@ -61,6 +63,7 @@ struct PostRowView: View {
         self.isUnsaveDisabled = isUnsaveDisabled
         self.isUnsaving = isUnsaving
         self.horizontalInset = horizontalInset
+        self.showsProjectLink = showsProjectLink
     }
 
 
@@ -157,7 +160,7 @@ struct PostRowView: View {
                 postContent
             }
 
-            if let project = post.project {
+            if showsProjectLink, let project = post.project {
                 projectLink(project)
             }
 

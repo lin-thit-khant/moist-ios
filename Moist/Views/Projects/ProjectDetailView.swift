@@ -23,6 +23,9 @@ struct ProjectDetailView: View {
     @State private var selectedPostForEditing: Post?
     @State private var selectedPostForMoving: Post?
     @State private var currentUserId: UUID?
+    @State private var ownerProfile: Profile?
+
+    @Environment(\.rawdeaCreatePost) private var createPost
 
     private var isOwner: Bool {
         currentUserId == project.userId
@@ -58,6 +61,13 @@ struct ProjectDetailView: View {
             await followViewModel.load(
                 project: project
             )
+        }
+
+        // MARK: - Load owner
+
+        .task(id: project.userId) {
+            ownerProfile = try? await ProfileService()
+                .fetchProfile(userId: project.userId)
         }
 
         // MARK: - Identify viewer
@@ -158,13 +168,24 @@ struct ProjectDetailView: View {
 
     // MARK: - Header
 
+    private var ownerName: String? {
+        guard let ownerProfile else { return nil }
+        let name = ownerProfile.displayname.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? ownerProfile.username : name
+    }
+
+    private var followerCountText: String {
+        let count = followViewModel.followerCount
+        return count == 1 ? "1 follower" : "\(count.formatted()) followers"
+    }
+
     private var projectHeader: some View {
 
         RawdeaProjectSurface {
 
             VStack(
                 alignment: .leading,
-                spacing: RawdeaSpacing.md
+                spacing: RawdeaSpacing.sm
             ) {
 
                 RawdeaProjectCard(
@@ -172,83 +193,57 @@ struct ProjectDetailView: View {
                     showsOwnerStatus: isOwner
                 )
 
+                // Who the Project belongs to, linking to their profile.
+                if !isOwner, let ownerName, let ownerProfile {
+
+                    NavigationLink(
+                        value: RawdeaPostRoute.author(ownerProfile.id)
+                    ) {
+                        HStack(spacing: RawdeaSpacing.xs) {
+                            Text("by \(ownerName)")
+                                .font(RawdeaTypography.secondary)
+                                .foregroundStyle(RawdeaPalette.primaryText)
+                                .lineLimit(2)
+
+                            // The List row supplies the disclosure chevron.
+                            Spacer(minLength: 0)
+                        }
+                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("By \(ownerName)")
+                    .accessibilityHint("Opens profile")
+                }
+
                 if followViewModel.isLoading &&
                    !followViewModel.hasLoaded {
 
-                    ProgressView(
-                        "Loading Project details..."
-                    )
+                    ProgressView()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityLabel("Loading Project details")
 
                 } else if followViewModel.hasLoaded {
 
-                    HStack(
-                        spacing: RawdeaSpacing.sm
-                    ) {
+                    Label(followerCountText, systemImage: "person.2")
+                        .font(RawdeaTypography.metadata)
+                        .foregroundStyle(RawdeaPalette.secondaryText)
 
-                        Label(
-                            "\(followViewModel.followerCount) followers",
-                            systemImage: "person.2"
-                        )
-                        .font(
-                            RawdeaTypography.metadata
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
+                    if !followViewModel.isOwnProject &&
+                       !project.isHidden &&
+                       !project.isArchived {
 
-                        Spacer(minLength: 0)
-
-                        if !followViewModel.isOwnProject &&
-                           !project.isHidden &&
-                           !project.isArchived {
-
-                            Button {
-
-                                Task {
-
-                                    await followViewModel
-                                        .toggleFollow(
-                                            project: project
-                                        )
-                                }
-
-                            } label: {
-
-                                HStack(
-                                    spacing: RawdeaSpacing.xs
-                                ) {
-
-                                    if followViewModel.isUpdating {
-
-                                        ProgressView()
-                                            .accessibilityHidden(true)
-                                    }
-
-                                    Text(
-                                        followViewModel.isFollowing
-                                        ? "Following"
-                                        : "Follow"
-                                    )
-                                    .font(
-                                        RawdeaTypography.authorName
-                                    )
-                                }
-                                .frame(
-                                    minHeight:
-                                        RawdeaSpacing.minimumTouchTarget
-                                )
+                        RawdeaFollowButton(
+                            isFollowing: followViewModel.isFollowing,
+                            isUpdating: followViewModel.isUpdating,
+                            followLabel: "Follow Project",
+                            unfollowLabel: "Unfollow Project"
+                        ) {
+                            Task {
+                                await followViewModel.toggleFollow(project: project)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(RawdeaPalette.accent)
-                            .disabled(
-                                followViewModel.isUpdating
-                            )
-                            .accessibilityLabel(
-                                followViewModel.isFollowing
-                                ? "Unfollow Project"
-                                : "Follow Project"
-                            )
                         }
+                        .accessibilityIdentifier("project-follow-action")
                     }
                 }
 
@@ -359,11 +354,13 @@ struct ProjectDetailView: View {
 
                 RawdeaEmptyState(
                     symbol: "text.bubble",
-                    title: "An unfinished beginning",
+                    title: isOwner ? "An unfinished beginning" : "No posts yet",
                     message:
                         isOwner
-                        ? "Move a thought here whenever you're ready."
-                        : "No public posts are available in this Project yet."
+                        ? "Write a post and choose this Project, or move an existing post here."
+                        : "Posts shared in this Project will appear here.",
+                    actionTitle: isOwner && createPost != nil ? "Write a Post" : nil,
+                    action: isOwner ? createPost : nil
                 )
                 .listRowSeparator(.hidden)
                 .listRowBackground(
@@ -407,7 +404,8 @@ struct ProjectDetailView: View {
                                         hidden: !post.isHidden
                                     )
                                 }
-                            }
+                            },
+                            showsProjectLink: false
                         )
 
                         Divider()

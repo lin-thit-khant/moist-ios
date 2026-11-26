@@ -96,54 +96,15 @@ struct RawdeaUserFollowSection: View {
     }
 
     private var followButton: some View {
-        let isFollowing = viewModel.isFollowing
-        let isDisabled = viewModel.isUpdating || isInteractionBlocked
-        let foreground = isFollowing || isInteractionBlocked
-            ? RawdeaPalette.primaryText
-            : RawdeaPalette.onAccent
-        let background = isFollowing || isInteractionBlocked
-            ? RawdeaPalette.surface
-            : RawdeaPalette.accent
-        let shape = RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
-
-        return Button {
+        RawdeaFollowButton(
+            isFollowing: viewModel.isFollowing,
+            isUpdating: viewModel.isUpdating,
+            isBlocked: isInteractionBlocked,
+            followLabel: "Follow account",
+            unfollowLabel: "Unfollow account"
+        ) {
             Task { await viewModel.toggleFollow(userId: userId) }
-        } label: {
-            HStack(spacing: RawdeaSpacing.xs) {
-                if viewModel.isUpdating {
-                    ProgressView()
-                        .tint(foreground)
-                        .accessibilityHidden(true)
-                } else if isFollowing {
-                    Image(systemName: "checkmark")
-                        .accessibilityHidden(true)
-                }
-
-                Text(isFollowing ? "Following" : "Follow")
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .font(RawdeaTypography.button)
-            .foregroundStyle(foreground)
-            .padding(.horizontal, RawdeaSpacing.md)
-            .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
-            .padding(.vertical, RawdeaSpacing.xs)
-            .background(background, in: shape)
-            .overlay {
-                if isFollowing || isInteractionBlocked {
-                    shape.strokeBorder(RawdeaPalette.activityOutline)
-                        .allowsHitTesting(false)
-                }
-            }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
-        // One explicit element: SwiftUI otherwise drops the button role after
-        // the label changes from icon + text back to text only.
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(isFollowing ? "Unfollow account" : "Follow account")
-        .accessibilityValue(viewModel.isUpdating ? "Updating" : isFollowing ? "Following" : "Not following")
         .accessibilityIdentifier("profile-follow-action")
     }
 

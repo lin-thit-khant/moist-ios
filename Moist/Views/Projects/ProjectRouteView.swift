@@ -29,7 +29,7 @@ struct ProjectRouteView: View {
 
         Group {
 
-            if isLoading {
+            if isLoading && project == nil {
 
                 ProgressView("Opening Project...")
                     .frame(
@@ -39,22 +39,20 @@ struct ProjectRouteView: View {
 
             } else if let errorMessage {
 
-                VStack(spacing: 16) {
-
-                    ContentUnavailableView(
-                        "Project Unavailable",
-                        systemImage: "folder",
-                        description: Text(errorMessage)
-                    )
-
-                    Button("Try Again") {
-
-                        Task {
-                            await loadProject()
-                        }
+                RawdeaEmptyState(
+                    symbol: "folder",
+                    title: "Project unavailable",
+                    message: errorMessage,
+                    actionTitle: "Try Again"
+                ) {
+                    Task {
+                        await loadProject(clearingContent: true)
                     }
-                    .buttonStyle(.borderedProminent)
                 }
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
 
             } else if let project {
 
@@ -73,11 +71,13 @@ struct ProjectRouteView: View {
 
         .task(id: projectId) {
 
-            await loadProject()
+            await loadProject(clearingContent: true)
         }
 
         // Revalidate an already-open route when
-        // returning from another screen.
+        // returning from another screen. The open
+        // Project stays on screen while it checks,
+        // so scroll position and loaded posts survive.
 
         .onAppear {
 
@@ -102,7 +102,7 @@ struct ProjectRouteView: View {
     // MARK: - Load Project
 
     @MainActor
-    private func loadProject() async {
+    private func loadProject(clearingContent: Bool = false) async {
 
         guard !isLoading else {
             return
@@ -110,10 +110,14 @@ struct ProjectRouteView: View {
 
         isLoading = true
 
-        // Clear old content before verifying access.
+        // A new route clears old content before
+        // verifying access. Revalidation keeps it.
 
-        project = nil
-        ownerProjects = []
+        if clearingContent || project == nil {
+            project = nil
+            ownerProjects = []
+        }
+
         errorMessage = nil
 
         defer {
