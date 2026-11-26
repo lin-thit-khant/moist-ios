@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Direction C Batch 0+1: 4674049.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest confirmed pushed code commit: 4ba8677.
+- Latest confirmed pushed code commit: c5a645f.
 - Review seed data (supabase/review/) is loaded in the local database.
 - .cursor/ is local tool config. Never commit it.
 
@@ -21,7 +21,9 @@ Keep this file under 60 lines.
   checked light, dark and largest text; Reduce Motion fade on Home.
 - Pull to refresh 4ba8677 (R1, all 12 screens): Home light, dark and Reduce Motion,
   Activity default and largest text, Profile light.
-- XCTest suite (34) passed as of 4ba8677.
+- Home reader layout c5a645f (both feeds, plus critique P2 fixes): default size light
+  and dark, largest text light and scrolled dark, tab switching, Project and name taps.
+- XCTest suite (29; five grouping tests removed) passed as of c5a645f.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -31,15 +33,18 @@ Keep this file under 60 lines.
 - No AI attribution on commits. No new major backend features planned.
 
 ## Direction C rules
-- Red only on the Project line, a liked heart and the loader. SF only, no serif.
-- 36 pt avatar column, name and time on one line, Project line under the name.
-  Home joins neighbouring posts of a Project and ends "N more in <Project>".
+- Red only on the Project name, a liked heart and the loader. SF only, no serif.
+- Outside Home: 36 pt avatar column, name and time on one line, Project line under.
+- Home (replaces the above there): no grouping; avatar header with Project name above
+  author and time, options top right, 16 pt text, actions bottom left.
 
 ## Next
 - Lin: VoiceOver playback pass and Reduce Motion on a device.
 - Then App Store preparation. Needs Lin's scope.
 
 ## Unverified
+- Home reader: VoiceOver, Increase Contrast,
+  Reduce Motion, a device, empty and error states, own and hidden posts.
 - Pull to refresh on the other 9 screens and iOS 17 (system spinner fallback).
 - Cell loader on other screens, Load More, Increase Contrast and a real device.
 - VoiceOver playback. Like bounce, haptic and Reduce Motion fade.
@@ -51,6 +56,9 @@ Keep this file under 60 lines.
 ## Open observations
 - Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
 - Publishing from a Project returns to Home.
-- "N more" counts only loaded posts, so it can grow after Load More.
+- Home two-line header: Project name target is under 44 pt (its avatar is 44 pt);
+  the author target overlaps the top of the post text. Avatar tints can repeat.
+- Critique P1 (header colour and repetition) is not approved.
+- Switching the simulator to Dark while the app ran did not update it once; cause unchecked.
 - Accessibility audit: author name targets are 36 pt (the 44 pt avatar also opens
   the profile). Post text labels flagged as long.
