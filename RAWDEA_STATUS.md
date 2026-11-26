@@ -4,11 +4,8 @@ Last updated: 2026-11-26. Verify with git before starting work.
 Keep this file under 60 lines.
 
 ## Repository
-- Branch: feature/rawdea-migration. Latest pushed commit: 72f9b3f.
-- Uncommitted, awaiting Lin's screenshot review: Direction C Batch 0 and 1
-  (monochrome tint and buttons, avatar tint by user id, 10 Swift files, supabase/review/).
-  Review seed data is loaded in the local database.
-  Screenshots: ~/Desktop/Rawdea-UI-Reviews/direction-c-batch-0-1/.
+- Branch: feature/rawdea-migration. Direction C Batch 0+1: 4674049.
+- Review seed data (supabase/review/) is loaded in the local database.
 - .cursor/ is local tool config. Never commit it.
 
 ## Done (milestones 1-14, then UI/UX)
@@ -19,19 +16,31 @@ Keep this file under 60 lines.
 - Batch 8 Activity and Saved fd84c99. Display-name wrap 881dc8f.
 - Batch 9 Authentication: reviewed, no changes.
 - Batch 10 partial: profile-load retry 72f9b3f, Profile checked in Dark Mode.
-- 29 XCTests passed as of 72f9b3f.
+- Direction C Batch 0 review content + Batch 1 monochrome foundations 4674049.
+- XCTest suite passed as of 4674049.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
 - Native spinner only, no skeletons. No counts in the feed. No repost or share.
 - No AI attribution on commits. No new major backend features planned.
 
+## Direction C plan (each batch needs approval)
+- Red only on the Project line and a liked heart. SF only, no serif.
+- Posts: 32-36 pt avatar column, name + time on one line, Project line under the name.
+  Thread line joins consecutive posts in the same Project, ending "N more in <Project>".
+- 2 Post row + like pop (symbolEffect .bounce, sensoryFeedback, Reduce Motion fade).
+- 3 Home: wordmark token, tabs, Project thread grouping (FeedViewModel), Home re-tap scrolls up.
+- 4 Compose: full-height sheet, keyboard up, Project chip; "Posting…" pill, "Posted" only after server OK.
+- 5 Discussion as a thread. 6 Profile and Project pages, compact Follow pill.
+- 7 Post options sheet; Reduce Motion, Dynamic Type, VoiceOver sweep.
+
 ## Next
-- Review Direction C Batch 0 and 1. Later batches need approval.
+- Direction C Batch 2: post row.
 - Roadmap 10 remaining: VoiceOver pass, Dark Mode on Project, Discussion and Compose,
   Increase Contrast.
 
 ## Unverified
+- Batch 1 at large text, Increase Contrast, VoiceOver.
 - VoiceOver playback. Dark Mode across newer states. Follow toggles.
 - Public "Nothing shared yet" and all-pinned Project states.
 

@@ -30,7 +30,6 @@ The Moist folder name is historical. Do not rename it.
 ## Efficient work
 - Search first, then read only the needed line ranges. Do not re-read unchanged files.
 - Send xcodebuild output to a log file and print only errors and the summary.
-- Wait for long commands with one long wait (60 s or more). Do not poll every second.
 - Build while iterating. Run all tests once before the report, and again after any fix.
 - Screenshots: view each once, using a half-size copy (`sips -Z 1311 in.png --out small.png`).
   Use full size to judge fine detail. Check text and element presence with RocketSim elements.
