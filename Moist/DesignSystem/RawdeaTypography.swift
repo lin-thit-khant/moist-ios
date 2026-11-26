@@ -74,4 +74,7 @@ enum RawdeaSpacing {
     static let buttonRadius: CGFloat = 12
 
     static let minimumTouchTarget: CGFloat = 44
+
+    // Avatar column beside a post in a feed.
+    static let avatarColumn: CGFloat = 36
 }
