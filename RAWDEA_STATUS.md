@@ -6,7 +6,8 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: 4277017. Review data: seed_project_lab.sql.
+- Latest code commit: b0f184a (not pushed). Latest confirmed pushed commit: 818ba19.
+- Review data: seed_project_lab.sql.
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
 ## Done (milestones 1-14, then UI/UX)
@@ -33,6 +34,8 @@ Keep this file under 60 lines.
 
 - Prototype gaps closed 4277017 (answer likes, usernames, removed extras, appearance follows
   the system): 45 XCTest pass; light default, Dark and largest text partly checked.
+- Like animation b0f184a (Classic pop, approved): 45 XCTest pass; feed and detail checked
+  by simulator recordings; dark and largest text predate the last Reduce Motion/count edit.
 
 ## Standing decisions
 - 1:1 with prototype Gkq2TXsyMs7N37rMVunFHx (2026-11-27): show counts; system font; darker
@@ -44,7 +47,8 @@ Keep this file under 60 lines.
 - Google sign-in parked (2026-11-27). Welcome follows Thread style (Project Lab).
 
 ## Next (implementation needs Lin's approval)
-- Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
+- Lin: VoiceOver playback, Reduce Motion and Like haptic on a device. Then App Store prep.
+- Stage change animation: prototype only (Motion Lab); not approved to build.
 - Welcome hides the Apple and Google stubs.
 - Before release: add Terms and a privacy URL.
 
@@ -57,11 +61,14 @@ Keep this file under 60 lines.
   question in Dark or large text and as reader, new counts clearing, Share sheet.
 - Home reader: VoiceOver, Contrast, Motion, device, empty/error, own/hidden posts.
 - Pull to refresh: other 9 screens, iOS 17. Cell loader: other screens, Load More, Contrast, device.
-- VoiceOver playback. Like bounce, haptic, Reduce Motion fade. Reset password screen.
+- VoiceOver playback. Reset password screen.
+- Like: haptic, device, failed like, light largest text, rows outside Home and detail.
 - App icon dark and tinted variants not supplied. Not checked on a device.
 - Auth screens: VoiceOver, Contrast, iOS 17, small phone, device, sign-up submit,
   error/loading states. Some default-dark and scrolled shots predate final tweaks.
 - Public "Nothing shared yet" and all-pinned Project states.
+- Largest text: heart briefly touches the count; stage pill overflows; username wraps
+  mid-word. Post detail Like count stays grey while the feed count turns crimson.
 
 ## Open observations
 - Explore looks at the newest 100 posts; Home makes one request per followed Project.
