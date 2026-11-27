@@ -12,16 +12,31 @@ struct FollowingFeedView: View {
     @ObservedObject var viewModel: FollowingFeedViewModel
     let onExplore: () -> Void
 
+    @AppStorage("rawdea.following.layout")
+    private var layout = FollowingLayout.projects
+
+    @Environment(\.rawdeaScrollingFeedHeader) private var scrollingHeader
+
     var body: some View {
         Group {
+            // Without a followed Project there is only the feed.
             if viewModel.projectRows.isEmpty {
                 postFeed
             } else {
-                FollowedProjectList(
-                    rows: viewModel.projectRows,
-                    hasLoadError: viewModel.errorMessage != nil,
-                    refresh: viewModel.refreshPosts
-                )
+                Group {
+                    switch layout {
+                    case .projects:
+                        FollowedProjectList(
+                            rows: viewModel.projectRows,
+                            hasLoadError: viewModel.errorMessage != nil,
+                            refresh: viewModel.refreshPosts
+                        )
+                    case .updates:
+                        postFeed
+                    }
+                }
+                // The switch scrolls as the list's first row.
+                .environment(\.rawdeaScrollingFeedHeader, AnyView(header))
             }
         }
         .onAppear {
@@ -29,7 +44,32 @@ struct FollowingFeedView: View {
         }
     }
 
-    // People followed without any Project keep the post feed.
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            scrollingHeader
+
+            // Large text stacks the chips instead of clipping them.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: RawdeaSpacing.xs) { layoutChips }
+                VStack(alignment: .leading, spacing: 0) { layoutChips }
+            }
+            .padding(.horizontal, RawdeaSpacing.screenInset)
+            .padding(.top, RawdeaSpacing.xs)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Following layout")
+        }
+    }
+
+    private var layoutChips: some View {
+        ForEach(FollowingLayout.allCases, id: \.self) { item in
+            RawdeaChip(title: item.title, isSelected: layout == item) {
+                layout = item
+            }
+        }
+    }
+
+    // Followed people's posts appear here.
     private var postFeed: some View {
         RawdeaHomeFeedList(
             posts: viewModel.posts,
@@ -53,6 +93,21 @@ struct FollowingFeedView: View {
                 post: post,
                 isReader: true
             )
+        }
+    }
+}
+
+// MARK: - Layout
+
+private enum FollowingLayout: String, CaseIterable {
+
+    case projects
+    case updates
+
+    var title: String {
+        switch self {
+        case .projects: "Project list"
+        case .updates: "Updates feed"
         }
     }
 }
