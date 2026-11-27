@@ -24,6 +24,10 @@ Keep this file under 60 lines.
   text, light and dark; mode switch, legal link, Forgot password, local email login.
 - XCTest suite (29) passed on the 607dbd3 changes.
 
+- Project Lab batch 1, data layer 0b95f6c (local, not pushed; hosted database not migrated):
+  33 XCTest pass including local Supabase tests (need TEST_RUNNER_RAWDEA_LOCAL_SERVICE_KEY,
+  otherwise skipped). Builds from before this migration cannot unfollow or count followers.
+
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
 - Content loading uses RawdeaLoadingIndicator (the logo cell); buttons and actions
@@ -38,6 +42,10 @@ Keep this file under 60 lines.
   author and time, options top right, 16 pt text, actions bottom left.
 
 ## Next (implementation needs Lin's approval)
+- Project Lab batch 2, UI in Thread style (prototype Gkq2TXsyMs7N37rMVunFHx): Home
+  (Following default: Project list), Project timeline, Compose, Question, Explore,
+  Activity, Profile, Settings, Welcome. "Remove from Project" now means the default
+  "General" Project.
 - Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
 - Before release: hide or finish the Apple and Google stubs; add Terms and a privacy URL.
 
