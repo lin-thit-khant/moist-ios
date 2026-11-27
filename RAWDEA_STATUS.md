@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: debee19 (local, not pushed).
+- Latest code commit: debee19.
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
 ## Done (milestones 1-14, then UI/UX)
@@ -40,7 +40,7 @@ Keep this file under 60 lines.
 
 ## Next (implementation needs Lin's approval)
 - Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
-- Welcome hides the Apple and Google stubs. Sign-in screens still use the old green style.
+- Welcome hides the Apple and Google stubs.
 - Before release: add Terms and a privacy URL.
 
 ## Unverified

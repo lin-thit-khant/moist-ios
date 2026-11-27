@@ -172,13 +172,6 @@ struct RawdeaOutlinePillLabel: View {
 
 struct RawdeaPrimaryButton: View {
 
-    enum Look {
-        case standard
-        case auth
-    }
-
-    var look = Look.standard
-
     let title: String
     let isLoading: Bool
     let isEnabled: Bool
@@ -188,11 +181,9 @@ struct RawdeaPrimaryButton: View {
         _ title: String,
         isLoading: Bool = false,
         isEnabled: Bool = true,
-        look: Look = .standard,
         action: @escaping () -> Void
     ) {
 
-        self.look = look
         self.title = title
         self.isLoading = isLoading
         self.isEnabled = isEnabled
@@ -206,35 +197,16 @@ struct RawdeaPrimaryButton: View {
 
     private var foregroundColor: Color {
 
-        guard usesAccent else {
-            return look == .auth
-            ? RawdeaPalette.authSecondaryText
-            : RawdeaPalette.secondaryText
-        }
-
-        return look == .auth
-        ? RawdeaPalette.onAuthAccent
-        : RawdeaPalette.onPrimaryFill
+        usesAccent
+        ? RawdeaPalette.onPrimaryFill
+        : RawdeaPalette.secondaryText
     }
 
     private var backgroundColor: Color {
 
-        guard usesAccent else {
-            return look == .auth
-            ? RawdeaPalette.authLine.opacity(0.35)
-            : RawdeaPalette.surface
-        }
-
-        return look == .auth
-        ? RawdeaPalette.authAccent
-        : RawdeaPalette.primaryFill
-    }
-
-    private var radius: CGFloat {
-
-        look == .auth
-        ? RawdeaSpacing.authButtonRadius
-        : RawdeaSpacing.buttonRadius
+        usesAccent
+        ? RawdeaPalette.primaryFill
+        : RawdeaPalette.surface
     }
 
     var body: some View {
@@ -266,12 +238,7 @@ struct RawdeaPrimaryButton: View {
             }
             .frame(maxWidth: .infinity)
             .frame(
-                minHeight:
-                    look == .auth
-                    // Includes the vertical padding below.
-                    ? RawdeaSpacing.authButtonHeight
-                        - RawdeaSpacing.xs * 2
-                    : RawdeaSpacing.minimumTouchTarget
+                minHeight: RawdeaSpacing.minimumTouchTarget
             )
             .padding(
                 .horizontal,
@@ -285,7 +252,7 @@ struct RawdeaPrimaryButton: View {
             .background(
                 backgroundColor,
                 in: RoundedRectangle(
-                    cornerRadius: radius,
+                    cornerRadius: RawdeaSpacing.buttonRadius,
                     style: .continuous
                 )
             )
@@ -294,13 +261,11 @@ struct RawdeaPrimaryButton: View {
                 if !usesAccent {
 
                     RoundedRectangle(
-                        cornerRadius: radius,
+                        cornerRadius: RawdeaSpacing.buttonRadius,
                         style: .continuous
                     )
                     .strokeBorder(
-                        look == .auth
-                        ? RawdeaPalette.authLine
-                        : RawdeaPalette.activityOutline,
+                        RawdeaPalette.activityOutline,
                         lineWidth: 1
                     )
                     .allowsHitTesting(false)

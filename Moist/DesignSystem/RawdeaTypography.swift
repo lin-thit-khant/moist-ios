@@ -86,7 +86,6 @@ enum RawdeaSpacing {
 
     // Welcome and sign-in screens.
     static let authInset: CGFloat = 24
-    static let authButtonRadius: CGFloat = 10
     static let authButtonHeight: CGFloat = 52
 
     static let minimumTouchTarget: CGFloat = 44

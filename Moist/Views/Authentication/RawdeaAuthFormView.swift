@@ -113,7 +113,7 @@ struct RawdeaAuthFormView: View {
         _mode = State(initialValue: mode)
     }
 
-    /// Log in and Create account use the welcome screen's style.
+    /// Log in and Create account keep the switch at the bottom.
     private var isEntry: Bool {
 
         mode == .login || mode == .signUp
@@ -223,9 +223,7 @@ struct RawdeaAuthFormView: View {
                         isLoading:
                             authViewModel.isLoading,
                         isEnabled:
-                            canSubmit,
-                        look:
-                            isEntry ? .auth : .standard
+                            canSubmit
                     ) {
 
                         Task {
@@ -245,9 +243,7 @@ struct RawdeaAuthFormView: View {
                 .frame(maxWidth: 480)
                 .padding(
                     .horizontal,
-                    isEntry
-                    ? RawdeaSpacing.authInset
-                    : RawdeaSpacing.screenInset
+                    RawdeaSpacing.authInset
                 )
                 .padding(
                     .vertical,
@@ -265,12 +261,8 @@ struct RawdeaAuthFormView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .background(
-            (
-                isEntry
-                ? RawdeaPalette.authCanvas
-                : RawdeaPalette.canvas
-            )
-            .ignoresSafeArea()
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
         )
         .navigationTitle(
             isEntry ? "" : mode.navigationTitle
@@ -307,44 +299,12 @@ struct RawdeaAuthFormView: View {
 
     // MARK: - Heading
 
-    @ViewBuilder
     private var heading: some View {
 
-        if isEntry {
-
-            VStack(
-                alignment: .leading,
-                spacing: RawdeaSpacing.xs
-            ) {
-
-                RawdeaAuthHeadline(
-                    mode.heading,
-                    size: 28,
-                    largest: 56
-                )
-
-                Text(mode.message)
-                    .font(RawdeaTypography.body)
-                    .foregroundStyle(
-                        RawdeaPalette.authSecondaryText
-                    )
-                    .fixedSize(
-                        horizontal: false,
-                        vertical: true
-                    )
-            }
-            .frame(
-                maxWidth: .infinity,
-                alignment: .leading
-            )
-
-        } else {
-
-            RawdeaAuthHeading(
-                title: mode.heading,
-                message: mode.message
-            )
-        }
+        RawdeaAuthHeading(
+            title: mode.heading,
+            message: mode.message
+        )
     }
 
     // MARK: - Switch and legal
@@ -397,8 +357,7 @@ struct RawdeaAuthFormView: View {
             if mode != .resetPassword {
 
                 RawdeaEmailField(
-                    email: $email,
-                    isBoxed: isEntry
+                    email: $email
                 )
             }
 
@@ -412,8 +371,7 @@ struct RawdeaAuthFormView: View {
                     password: $password,
                     isNewPassword:
                         mode == .signUp ||
-                        mode == .resetPassword,
-                    isBoxed: isEntry
+                        mode == .resetPassword
                 )
             }
 
@@ -492,7 +450,7 @@ struct RawdeaAuthFormView: View {
                         RawdeaTypography.secondary
                     )
                     .foregroundStyle(
-                        RawdeaPalette.authText
+                        RawdeaPalette.primaryText
                     )
                     .frame(
                         maxWidth: .infinity,
