@@ -21,7 +21,7 @@ struct DiscoveryView: View {
     @State private var searchText = ""
 
     @State private var selectedCategory:
-        DiscoveryCategory = .people
+        DiscoveryCategory = .projects
 
     @Environment(\.scenePhase)
     private var scenePhase
@@ -58,12 +58,19 @@ struct DiscoveryView: View {
 
         VStack(spacing: 0) {
 
-            categorySelector
+            if cleanedQuery.count < 2 {
 
-            Divider()
-                .overlay(RawdeaPalette.divider)
+                ExploreHomeSections()
 
-            resultsList
+            } else {
+
+                categorySelector
+
+                Divider()
+                    .overlay(RawdeaPalette.divider)
+
+                resultsList
+            }
         }
         .background(
             RawdeaPalette.canvas
@@ -77,7 +84,7 @@ struct DiscoveryView: View {
             placement: .navigationBarDrawer(
                 displayMode: .always
             ),
-            prompt: "Search Rawdea"
+            prompt: "Search Projects and people"
         )
 
         // MARK: - Debounced search
@@ -215,20 +222,7 @@ struct DiscoveryView: View {
 
         List {
 
-            if cleanedQuery.count < 2 {
-
-                RawdeaEmptyState(
-                    symbol: "magnifyingglass",
-                    title: "Explore Rawdea",
-                    message:
-                        "Search for people, Projects, or posts using at least two characters."
-                )
-                .listRowSeparator(.hidden)
-                .listRowBackground(
-                    RawdeaPalette.canvas
-                )
-
-            } else if !resultsAreCurrent ||
+            if !resultsAreCurrent ||
                       viewModel.isLoading ||
                       !viewModel.hasSearched {
 

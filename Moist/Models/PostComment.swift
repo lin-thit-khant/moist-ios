@@ -28,3 +28,25 @@ struct PostComment: Identifiable, Decodable {
         case author
     }
 }
+
+/// A person's comment, with the post it answers.
+struct ProfileReply: Identifiable, Decodable {
+
+    struct Original: Decodable {
+        let content: String
+    }
+
+    let id: UUID
+    let postId: UUID
+    let content: String
+    let createdAt: Date
+    let post: Original
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case postId = "post_id"
+        case content
+        case createdAt = "created_at"
+        case post
+    }
+}

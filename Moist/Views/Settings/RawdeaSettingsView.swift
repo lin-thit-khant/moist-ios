@@ -5,6 +5,7 @@
 //  Created by Lin Thit Khant on 24/11/2569 BE.
 //
 
+import Supabase
 import SwiftUI
 
 struct RawdeaSettingsView: View {
@@ -26,6 +27,15 @@ struct RawdeaSettingsView: View {
 
     @State private var showLogoutConfirmation = false
     @State private var logoutError: String?
+
+    @State private var email: String?
+
+    // Nil until loaded, so a toggle never shows a guess.
+    @State private var preferences: NotificationPreferences?
+    @State private var isSavingPreferences = false
+    @State private var preferencesError: String?
+
+    private let notificationService = NotificationService()
 
     private var appearance: RawdeaAppearance {
 
@@ -58,15 +68,19 @@ struct RawdeaSettingsView: View {
 
         List {
 
+            accountSection
+
+            notificationsSection
+
             preferencesSection
 
             safetySection
 
             moderationSection
 
-            accountSection
-
             aboutSection
+
+            signOutSection
 
             #if DEBUG
 
@@ -101,6 +115,14 @@ struct RawdeaSettingsView: View {
 
         .disabled(authViewModel.isLoading)
 
+        .task {
+
+            email = try? await SupabaseManager
+                .client.auth.session.user.email
+
+            await loadPreferences()
+        }
+
         // MARK: - Moderator authorization
 
         .task {
@@ -123,14 +145,14 @@ struct RawdeaSettingsView: View {
         // MARK: - Log out confirmation
 
         .confirmationDialog(
-            "Log out of Rawdea?",
+            "Sign out of Rawdea?",
             isPresented:
                 $showLogoutConfirmation,
             titleVisibility: .visible
         ) {
 
             Button(
-                "Log Out",
+                "Sign Out",
                 role: .destructive
             ) {
 
@@ -148,14 +170,14 @@ struct RawdeaSettingsView: View {
         } message: {
 
             Text(
-                "Your account and posts will remain available when you log in again."
+                "Your account and posts will remain available when you sign in again."
             )
         }
 
         // MARK: - Logout failure
 
         .alert(
-            "Couldn't log out",
+            "Couldn't sign out",
             isPresented: Binding(
                 get: {
 
@@ -186,7 +208,7 @@ struct RawdeaSettingsView: View {
 
     private var preferencesSection: some View {
 
-        Section("Preferences") {
+        Section("Display") {
 
             NavigationLink {
 
@@ -226,7 +248,7 @@ struct RawdeaSettingsView: View {
 
     private var safetySection: some View {
 
-        Section("Safety & Privacy") {
+        Section("Privacy and safety") {
 
             NavigationLink {
 
@@ -235,7 +257,7 @@ struct RawdeaSettingsView: View {
             } label: {
 
                 settingsRow(
-                    title: "Blocked Accounts",
+                    title: "Blocked people",
                     symbol:
                         "person.crop.circle.badge.xmark"
                 )
@@ -251,7 +273,7 @@ struct RawdeaSettingsView: View {
             } label: {
 
                 settingsRow(
-                    title: "Safety & Support",
+                    title: "Report a problem",
                     symbol: "shield"
                 )
             }
@@ -266,7 +288,7 @@ struct RawdeaSettingsView: View {
             } label: {
 
                 settingsRow(
-                    title: "Community Guidelines",
+                    title: "Community guidelines",
                     symbol: "book"
                 )
             }
@@ -349,11 +371,156 @@ struct RawdeaSettingsView: View {
         }
     }
 
-    // MARK: - Account management
+    // MARK: - Account
 
     private var accountSection: some View {
 
         Section("Account") {
+
+            LabeledContent {
+
+                Text(email ?? "—")
+                    .font(RawdeaTypography.metadata)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                    .textSelection(.enabled)
+
+            } label: {
+
+                Text("Email")
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+            }
+            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+            .listRowBackground(
+                RawdeaPalette.canvas
+            )
+        }
+    }
+
+    // MARK: - Notifications
+
+    private var notificationsSection: some View {
+
+        Section("Notify me about") {
+
+            if preferences != nil {
+
+                preferenceToggle(
+                    "Answers",
+                    detail: "When someone answers your question or picks your answer",
+                    value: \.answers
+                )
+
+                preferenceToggle(
+                    "Stage changes",
+                    detail: "When a Project you follow moves stage",
+                    value: \.stageChanges
+                )
+
+                preferenceToggle(
+                    "Likes",
+                    detail: "When someone likes your post",
+                    value: \.likes
+                )
+
+            } else if preferencesError == nil {
+
+                RawdeaLoadingIndicator("Loading notification settings...")
+                    .listRowBackground(RawdeaPalette.canvas)
+            }
+
+            if let preferencesError {
+
+                VStack(alignment: .leading, spacing: RawdeaSpacing.xs) {
+
+                    RawdeaInlineError(message: preferencesError)
+
+                    if preferences == nil {
+                        Button("Retry") {
+                            Task { await loadPreferences() }
+                        }
+                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                    }
+                }
+                .listRowBackground(RawdeaPalette.canvas)
+            }
+        }
+    }
+
+    private func preferenceToggle(
+        _ title: String,
+        detail: String,
+        value: WritableKeyPath<NotificationPreferences, Bool>
+    ) -> some View {
+
+        Toggle(
+            isOn: Binding(
+                get: { preferences?[keyPath: value] ?? true },
+                set: { isOn in
+                    Task { await savePreference(value, isOn: isOn) }
+                }
+            )
+        ) {
+            VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
+                Text(title)
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                Text(detail)
+                    .font(RawdeaTypography.metadata)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .tint(RawdeaPalette.accent)
+        .disabled(isSavingPreferences)
+        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+        .listRowBackground(RawdeaPalette.canvas)
+    }
+
+    @MainActor
+    private func loadPreferences() async {
+
+        preferencesError = nil
+
+        do {
+            preferences = try await notificationService.fetchPreferences()
+        } catch is CancellationError {
+            return
+        } catch {
+            preferencesError = "Couldn't load notification settings."
+        }
+    }
+
+    // The switch moves only after the server accepts the change.
+    @MainActor
+    private func savePreference(
+        _ value: WritableKeyPath<NotificationPreferences, Bool>,
+        isOn: Bool
+    ) async {
+
+        guard var changed = preferences, !isSavingPreferences else {
+            return
+        }
+
+        changed[keyPath: value] = isOn
+        isSavingPreferences = true
+        preferencesError = nil
+
+        defer { isSavingPreferences = false }
+
+        do {
+            try await notificationService.savePreferences(changed)
+            preferences = changed
+        } catch {
+            preferencesError = "Couldn't save that setting. Try again."
+        }
+    }
+
+    // MARK: - Sign out and delete
+
+    private var signOutSection: some View {
+
+        Section {
 
             Button(role: .destructive) {
 
@@ -366,10 +533,9 @@ struct RawdeaSettingsView: View {
                 ) {
 
                     settingsRow(
-                        title: "Log Out",
+                        title: "Sign out",
                         symbol:
-                            "rectangle.portrait.and.arrow.right",
-                        isDestructive: true
+                            "rectangle.portrait.and.arrow.right"
                     )
 
                     if authViewModel.isLoading {
@@ -391,7 +557,7 @@ struct RawdeaSettingsView: View {
             } label: {
 
                 settingsRow(
-                    title: "Delete Account",
+                    title: "Delete account",
                     symbol:
                         "person.crop.circle.badge.minus",
                     isDestructive: true

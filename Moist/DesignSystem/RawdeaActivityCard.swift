@@ -8,129 +8,84 @@
 
 import SwiftUI
 
+/// One flat Activity row. Unread rows carry the accent dot.
 struct RawdeaActivityCard: View {
 
     let notification: RawdeaNotification
 
     var isOpening: Bool = false
 
-    private var isUnread: Bool {
-        !notification.isRead
-    }
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
 
-        RawdeaActivitySurface {
+        HStack(
+            alignment: .top,
+            spacing: RawdeaSpacing.sm
+        ) {
 
-            HStack(
-                alignment: .top,
-                spacing: RawdeaSpacing.sm
+            if !dynamicTypeSize.isAccessibilitySize {
+                avatar
+            }
+
+            VStack(
+                alignment: .leading,
+                spacing: RawdeaSpacing.xxs
             ) {
 
-                Image(
-                    systemName:
-                        notification.kind.systemImage
-                )
-                .font(.system(.title3))
-                .foregroundStyle(
-                    isUnread
-                    ? RawdeaPalette.primaryText
-                    : RawdeaPalette.secondaryText
-                )
-                .frame(
-                    minWidth: 36,
-                    minHeight: 36
-                )
-                .accessibilityHidden(true)
+                Text("\(Text(notification.subject).fontWeight(.semibold)) \(notification.action)")
+                    .font(RawdeaTypography.secondary)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                VStack(
-                    alignment: .leading,
-                    spacing: RawdeaSpacing.xs
-                ) {
-
-                    Text(notification.message)
-                        .font(
-                            RawdeaTypography.body
-                        )
-                        .fontWeight(
-                            isUnread
-                            ? .semibold
-                            : .regular
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.primaryText
-                        )
-                        .fixedSize(
-                            horizontal: false,
-                            vertical: true
-                        )
-
-                    Text(
-                        notification.createdAt,
-                        style: .relative
-                    )
-                    .font(
-                        RawdeaTypography.caption
-                    )
-                    .foregroundStyle(
-                        RawdeaPalette.secondaryText
-                    )
-
-                    if isUnread {
-
-                        Label(
-                            "Unread",
-                            systemImage: "circle.fill"
-                        )
-                        .font(
-                            RawdeaTypography.caption
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.primaryText
-                        )
-
-                    } else {
-
-                        Text("Read")
-                            .font(
-                                RawdeaTypography.caption
-                            )
-                            .foregroundStyle(
-                                RawdeaPalette.secondaryText
-                            )
-                    }
+                if let detail = notification.detail {
+                    Text(detail)
+                        .font(RawdeaTypography.metadata)
+                        .foregroundStyle(RawdeaPalette.secondaryText)
+                        .lineLimit(2)
                 }
-                .frame(
-                    maxWidth: .infinity,
-                    alignment: .leading
-                )
 
-                if isOpening {
-
-                    ProgressView()
-                        .accessibilityHidden(true)
-
-                } else {
-
-                    Image(systemName: "chevron.right")
-                        .font(
-                            RawdeaTypography.caption
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
-                        .accessibilityHidden(true)
-                }
+                Text(PostRowView.relativeAge(of: notification.createdAt, at: .now))
+                    .font(RawdeaTypography.caption)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
             }
-            .frame(
-                minHeight:
-                    RawdeaSpacing.minimumTouchTarget,
-                alignment: .leading
-            )
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isOpening {
+
+                ProgressView()
+                    .accessibilityHidden(true)
+
+            } else if !notification.isRead {
+
+                Circle()
+                    .fill(RawdeaPalette.accent)
+                    .frame(width: RawdeaSpacing.xs, height: RawdeaSpacing.xs)
+                    .padding(.top, RawdeaSpacing.xs)
+                    .accessibilityHidden(true)
+            }
         }
-        .accessibilityElement(
-            children: .combine
+        .frame(
+            minHeight: RawdeaSpacing.minimumTouchTarget,
+            alignment: .leading
         )
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(notification.isRead ? "Read" : "Unread")
+    }
+
+    @ViewBuilder
+    private var avatar: some View {
+
+        if notification.kind == .stageChange,
+           let projectId = notification.projectId {
+            RawdeaProjectAvatar(name: notification.subject, tintSeed: projectId)
+        } else {
+            RawdeaInitialAvatar(
+                name: notification.actorName,
+                size: RawdeaSpacing.avatarColumn,
+                tintSeed: notification.actorId
+            )
+        }
     }
 }

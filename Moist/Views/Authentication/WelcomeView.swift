@@ -12,8 +12,6 @@ struct WelcomeView: View {
     @ObservedObject var authViewModel:
         AuthViewModel
 
-    @State private var notReadyProvider: String?
-
     var body: some View {
 
         GeometryReader { geometry in
@@ -56,40 +54,15 @@ struct WelcomeView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .background {
-
-            ZStack {
-
-                RawdeaPalette.authCanvas
-
-                RawdeaAuthGrid()
-            }
-            .ignoresSafeArea()
-        }
+        .background(
+            RawdeaPalette.canvas
+                .ignoresSafeArea()
+        )
         .toolbar(.hidden, for: .navigationBar)
 
         .onAppear {
 
             authViewModel.clearMessages()
-        }
-
-        .alert(
-            "Not available yet",
-            isPresented: Binding(
-                get: { notReadyProvider != nil },
-                set: { if !$0 { notReadyProvider = nil } }
-            )
-        ) {
-
-            Button("OK", role: .cancel) {}
-
-        } message: {
-
-            Text(
-                RawdeaSocialSignIn.notReadyMessage(
-                    notReadyProvider ?? ""
-                )
-            )
         }
     }
 
@@ -99,61 +72,72 @@ struct WelcomeView: View {
 
         VStack(
             alignment: .leading,
-            spacing: 0
+            spacing: RawdeaSpacing.lg
         ) {
 
-            RawdeaAuthMonoLabel("Rawdea · v1")
-                .accessibilityLabel("Rawdea, version 1")
+            RawdeaProjectLabMark()
 
-            RawdeaAuthHeadline(
-                "Ideas worth following.",
-                size: 40,
-                largest: 64
-            )
-            .padding(.top, 46)
+            VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
 
-            Text("Keep up with people and the Projects they build.")
-                .font(RawdeaTypography.body)
-                .foregroundStyle(
-                    RawdeaPalette.authSecondaryText
-                )
-                .fixedSize(
-                    horizontal: false,
-                    vertical: true
-                )
-                .padding(.top, 14)
+                Text("Every idea has a history.")
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
 
-            HStack(spacing: RawdeaSpacing.sm) {
-
-                RawdeaCellMark()
-
-                RawdeaAuthMonoLabel("People\nProjects")
-                    .accessibilityLabel("People and Projects")
+                Text("Rawdea is where builders keep a dated record of what they are making. Notes, questions, progress and decisions, all in one Project.")
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.top, RawdeaSpacing.lg)
+
+            exampleTimeline
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, RawdeaSpacing.xl)
+    }
+
+    // An illustration, not anyone's real Project.
+    private var exampleTimeline: some View {
+
+        VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
+            exampleRow("Today", "Progress", "Third firing done.")
+            exampleRow("18 Nov", "Decision", "Dropping the matte white glaze.")
+            exampleRow("3 Nov", "Stage", "Moved to In progress")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(RawdeaSpacing.md)
+        .background(
+            RawdeaPalette.surface,
+            in: RoundedRectangle(cornerRadius: RawdeaSpacing.cardRadius)
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Example Project timeline: progress, a decision, and a stage change.")
+    }
+
+    private func exampleRow(
+        _ date: String,
+        _ kind: String,
+        _ text: String
+    ) -> some View {
+
+        VStack(alignment: .leading, spacing: 0) {
+            Text("\(date) · \(kind)")
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+            Text(text)
+                .font(RawdeaTypography.secondary)
+                .foregroundStyle(RawdeaPalette.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     // MARK: - Sign-in choices
 
+    // Apple and Google return here once they work.
     private var choices: some View {
 
-        VStack(spacing: 10) {
-
-            Button {
-
-                // Needs the Sign in with Apple capability.
-                notReadyProvider = "Apple"
-
-            } label: {
-
-                RawdeaAuthChoiceLabel(
-                    title: "Continue with Apple",
-                    symbol: "apple.logo",
-                    look: .apple
-                )
-            }
+        VStack(spacing: RawdeaSpacing.xs) {
 
             NavigationLink {
 
@@ -163,54 +147,56 @@ struct WelcomeView: View {
 
             } label: {
 
-                RawdeaAuthChoiceLabel(
-                    title: "Continue with email",
-                    symbol: "envelope",
-                    look: .email
-                )
+                Text("Continue with email")
+                    .font(RawdeaTypography.button)
+                    .foregroundStyle(RawdeaPalette.onPrimaryFill)
+                    .multilineTextAlignment(.center)
+                    .padding(RawdeaSpacing.xs)
+                    .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.authButtonHeight)
+                    .background(
+                        RawdeaPalette.primaryFill,
+                        in: RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+                    )
             }
 
-            Button {
+            NavigationLink {
 
-                guard RawdeaSocialSignIn.isGoogleReady else {
-                    notReadyProvider = "Google"
-                    return
-                }
-
-                Task {
-                    await authViewModel.signInWithGoogle()
-                }
+                LoginView(
+                    authViewModel: authViewModel
+                )
 
             } label: {
 
-                RawdeaAuthChoiceLabel(
-                    title: "Continue with Google",
-                    look: .outline,
-                    isLoading: authViewModel.isLoading
+                RawdeaAuthSwitchLabel(
+                    prompt: "Already have an account?",
+                    action: "Log in"
                 )
             }
 
-            VStack(spacing: RawdeaSpacing.xxs) {
-
-                NavigationLink {
-
-                    LoginView(
-                        authViewModel: authViewModel
-                    )
-
-                } label: {
-
-                    RawdeaAuthSwitchLabel(
-                        prompt: "Already have an account?",
-                        action: "Log in"
-                    )
-                }
-
-                RawdeaAuthLegalLink()
-            }
+            RawdeaAuthLegalLink()
         }
         .buttonStyle(.plain)
         .disabled(authViewModel.isLoading)
+    }
+}
+
+// MARK: - Mark
+
+private struct RawdeaProjectLabMark: View {
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(RawdeaPalette.accent, lineWidth: 3)
+                .frame(width: 40, height: 40)
+            Circle().stroke(RawdeaPalette.accent, lineWidth: 3)
+                .frame(width: 13, height: 13)
+                .offset(x: -5, y: -3)
+            Circle().stroke(RawdeaPalette.accent, lineWidth: 3)
+                .frame(width: 6, height: 6)
+                .offset(x: 8, y: 7)
+        }
+        .frame(width: RawdeaSpacing.minimumTouchTarget, height: RawdeaSpacing.minimumTouchTarget)
+        .accessibilityHidden(true)
     }
 }
 

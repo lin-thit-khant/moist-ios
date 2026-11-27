@@ -17,8 +17,6 @@ struct RawdeaUserFollowSection: View {
 
     let isInteractionBlocked: Bool
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     var body: some View {
 
         VStack(
@@ -75,24 +73,13 @@ struct RawdeaUserFollowSection: View {
     }
 
     private var counts: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.sm))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: RawdeaSpacing.xl))
         let followers = viewModel.followerCount
         let following = viewModel.followingCount
 
-        return layout {
-            statistic(
-                value: followers,
-                title: followers == 1 ? "Follower" : "Followers",
-                accessibilityLabel: followers == 1 ? "1 follower" : "\(followers.formatted()) followers"
-            )
-            statistic(
-                value: following,
-                title: "Following",
-                accessibilityLabel: following == 1 ? "Following 1 person" : "Following \(following.formatted()) people"
-            )
-        }
+        return Text("\(Text(followers.formatted()).fontWeight(.semibold).foregroundStyle(RawdeaPalette.primaryText)) \(followers == 1 ? "follower" : "followers") · \(Text(following.formatted()).fontWeight(.semibold).foregroundStyle(RawdeaPalette.primaryText)) following")
+            .font(RawdeaTypography.secondary)
+            .foregroundStyle(RawdeaPalette.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var followButton: some View {
@@ -106,38 +93,5 @@ struct RawdeaUserFollowSection: View {
             Task { await viewModel.toggleFollow(userId: userId) }
         }
         .accessibilityIdentifier("profile-follow-action")
-    }
-
-    private func statistic(
-        value: Int,
-        title: String,
-        accessibilityLabel: String
-    ) -> some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: RawdeaSpacing.xxs
-        ) {
-
-            Text(value.formatted())
-                .font(
-                    RawdeaTypography.sectionTitle
-                )
-                .foregroundStyle(
-                    RawdeaPalette.primaryText
-                )
-
-            Text(title)
-                .font(RawdeaTypography.metadata)
-                .foregroundStyle(
-                    RawdeaPalette.secondaryText
-                )
-        }
-        .accessibilityElement(
-            children: .ignore
-        )
-        .accessibilityLabel(
-            accessibilityLabel
-        )
     }
 }

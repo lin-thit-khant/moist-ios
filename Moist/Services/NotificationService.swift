@@ -47,6 +47,14 @@ struct NotificationService {
                 project_id,
                 is_read,
                 created_at,
+                stage,
+                post:posts!notifications_post_id_fkey(
+                    kind,
+                    content
+                ),
+                project:projects!notifications_project_id_fkey(
+                    name
+                ),
                 actor:profiles!notifications_actor_id_fkey(
                     id,
                     display_name,
@@ -111,5 +119,75 @@ struct NotificationService {
             .eq("recipient_id", value: userId)
             .eq("is_read", value: false)
             .execute()
+    }
+}
+
+// MARK: - Preferences
+
+/// Which notifications the server creates for this account.
+struct NotificationPreferences: Codable, Equatable {
+
+    var answers = true
+    var stageChanges = true
+    var likes = true
+
+    enum CodingKeys: String, CodingKey {
+        case answers
+        case stageChanges = "stage_changes"
+        case likes
+    }
+}
+
+extension NotificationService {
+
+    func fetchPreferences() async throws -> NotificationPreferences {
+
+        let userId = try await client.auth.session.user.id
+
+        // No row yet means everything is on.
+        let rows: [NotificationPreferences] = try await client
+            .from("notification_preferences")
+            .select("answers, stage_changes, likes")
+            .eq("user_id", value: userId)
+            .execute()
+            .value
+
+        return rows.first ?? NotificationPreferences()
+    }
+
+    func savePreferences(
+        _ preferences: NotificationPreferences
+    ) async throws {
+
+        let userId = try await client.auth.session.user.id
+
+        try await client
+            .from("notification_preferences")
+            .upsert(
+                NotificationPreferencesRow(
+                    userId: userId,
+                    answers: preferences.answers,
+                    stageChanges: preferences.stageChanges,
+                    likes: preferences.likes
+                ),
+                onConflict: "user_id",
+                returning: .minimal
+            )
+            .execute()
+    }
+}
+
+private struct NotificationPreferencesRow: Encodable {
+
+    let userId: UUID
+    let answers: Bool
+    let stageChanges: Bool
+    let likes: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case answers
+        case stageChanges = "stage_changes"
+        case likes
     }
 }

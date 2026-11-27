@@ -14,24 +14,31 @@ enum RawdeaNotificationKind: String, Decodable {
     case projectFollow = "project_follow"
     case postLike = "post_like"
     case postComment = "post_comment"
+    case bestAnswer = "best_answer"
+    case stageChange = "stage_change"
+}
 
-    var systemImage: String {
+/// The Activity filters.
+enum RawdeaActivityFilter: String, CaseIterable {
 
-        switch self {
+    case all
+    case answers
+    case projects
+    case likes
 
-        case .userFollow:
-            return "person.crop.circle.badge.plus"
-
-        case .projectFollow:
-            return "folder"
-
-        case .postLike:
-            return "heart"
-
-        case .postComment:
-            return "bubble.left"
-        }
+    var title: String {
+        rawValue.capitalized
     }
+}
+
+/// What a notification needs to know about its post.
+struct NotificationPost: Decodable {
+    let kind: PostKind
+    let content: String
+}
+
+struct NotificationProject: Decodable {
+    let name: String
 }
 
 struct RawdeaNotification: Identifiable, Decodable {
@@ -51,6 +58,10 @@ struct RawdeaNotification: Identifiable, Decodable {
 
     let actor: PostAuthor?
 
+    var stage: ProjectStage? = nil
+    var post: NotificationPost? = nil
+    var project: NotificationProject? = nil
+
     enum CodingKeys: String, CodingKey {
 
         case id
@@ -67,6 +78,9 @@ struct RawdeaNotification: Identifiable, Decodable {
         case createdAt = "created_at"
 
         case actor
+        case stage
+        case post
+        case project
     }
 
     // MARK: - Display
@@ -85,21 +99,62 @@ struct RawdeaNotification: Identifiable, Decodable {
         return actor?.username ?? "Someone"
     }
 
-    var message: String {
+    private var isAnswer: Bool {
+        kind == .postComment && post?.kind == .question
+    }
+
+    /// Who the row is about: the Project for a stage change.
+    var subject: String {
+        kind == .stageChange ? (project?.name ?? "A Project") : actorName
+    }
+
+    /// What happened, following the subject.
+    var action: String {
 
         switch kind {
 
         case .userFollow:
-            return "\(actorName) started following you"
+            return "started following you"
 
         case .projectFollow:
-            return "\(actorName) followed your Project"
+            return "followed \(project?.name ?? "your Project")"
 
         case .postLike:
-            return "\(actorName) liked your post"
+            guard let post else { return "liked your post" }
+            return "liked your \(post.kind.title.lowercased()) post"
 
         case .postComment:
-            return "\(actorName) commented on your post"
+            return isAnswer
+                ? "answered your question"
+                : "commented on your post"
+
+        case .bestAnswer:
+            return "picked your answer as best"
+
+        case .stageChange:
+            return "moved to \(stage?.title ?? "a new stage")"
+        }
+    }
+
+    var message: String {
+        "\(subject) \(action)"
+    }
+
+    var detail: String? {
+        kind == .stageChange ? "A Project you follow" : post?.content
+    }
+
+    func matches(_ filter: RawdeaActivityFilter) -> Bool {
+
+        switch filter {
+        case .all:
+            return true
+        case .answers:
+            return kind == .bestAnswer || isAnswer
+        case .projects:
+            return kind == .stageChange || kind == .projectFollow
+        case .likes:
+            return kind == .postLike
         }
     }
 }

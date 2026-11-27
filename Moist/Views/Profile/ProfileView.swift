@@ -27,12 +27,13 @@ struct ProfileView: View {
     @StateObject private var postsViewModel = FeedViewModel()
     
     @StateObject private var projectsViewModel = ProjectsViewModel()
+    @StateObject private var followViewModel = UserFollowViewModel()
+    @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
     
     @State private var isShowingCreateProject = false
     @State private var newProjectName = ""
     @State private var selectedPostForEditing: Post?
     @State private var selectedPostForMoving: Post?
-    @State private var projectToRename: Project?
     
     private var sortedActiveProjects: [Project] {
         projectsViewModel.projects
@@ -138,13 +139,16 @@ struct ProfileView: View {
                         }
                         
                         
+                        if followViewModel.hasLoaded {
+                            followCounts
+                        }
+
                         profileActions(profile)
 
                         RawdeaProfileWorkSections(
-                            pinnedProjects: sortedActiveProjects.filter(\.isPinned),
-                            projectRow: projectRow,
-                            posts: { postsSection(profile: profile) },
-                            projects: { projectsSection }
+                            userId: profile.id,
+                            chips: { projectChips },
+                            posts: { postsSection(profile: profile) }
                         )
                         .sheet(isPresented: $isShowingCreateProject) {
                             NavigationStack {
@@ -293,12 +297,23 @@ struct ProfileView: View {
                 placement: .topBarTrailing
             ) {
 
-                NavigationLink(
-                    value: RawdeaPostRoute.settings
-                ) {
+                Menu {
 
-                    Image(systemName: "gearshape")
-                        .font(.system(.body))
+                    Button("Saved posts", systemImage: "bookmark") {
+                        openPostRoute?(.savedPosts)
+                    }
+
+                    Button("Following", systemImage: "person.2") {
+                        openPostRoute?(.following)
+                    }
+
+                    Button("Settings", systemImage: "gearshape") {
+                        openPostRoute?(.settings)
+                    }
+
+                } label: {
+
+                    Image(systemName: "line.3.horizontal")
                         .frame(
                             width:
                                 RawdeaSpacing.minimumTouchTarget,
@@ -307,10 +322,7 @@ struct ProfileView: View {
                         )
                         .contentShape(Rectangle())
                 }
-                .accessibilityLabel("Settings")
-                .accessibilityHint(
-                    "Opens account settings"
-                )
+                .accessibilityLabel("Menu")
             }
         }
 
@@ -355,12 +367,6 @@ struct ProfileView: View {
                 }
             )
         })
-        .sheet(item: $projectToRename) { project in
-            ProjectRenameSheet(
-                viewModel: projectsViewModel,
-                project: project
-            )
-        }
         .alert(
             "Couldn't delete post",
             isPresented: Binding(
@@ -411,6 +417,8 @@ struct ProfileView: View {
         guard viewModel.profile?.id == userId else {
             return
         }
+
+        await followViewModel.load(userId: userId)
 
         // If another refresh is already running,
         // request one more pass instead of
@@ -521,9 +529,29 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // MARK: - Follow counts
+
+    private var followCounts: some View {
+
+        let followers = followViewModel.followerCount
+
+        return Button {
+            openPostRoute?(.following)
+        } label: {
+            Text("\(Text(followers.formatted()).fontWeight(.semibold).foregroundStyle(RawdeaPalette.primaryText)) \(followers == 1 ? "follower" : "followers") · \(Text(followViewModel.followingCount.formatted()).fontWeight(.semibold).foregroundStyle(RawdeaPalette.primaryText)) following")
+                .font(RawdeaTypography.secondary)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens people and Projects you follow")
+    }
+
     // MARK: - Profile actions
 
-    // Three equal pills, stacked at accessibility sizes.
+    // Two equal pills, stacked at accessibility sizes.
     private func profileActions(_ profile: Profile) -> some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(spacing: 0))
@@ -536,245 +564,32 @@ struct ProfileView: View {
                     profile: profile
                 )
             } label: {
-                RawdeaOutlinePillLabel(title: "Edit Profile")
+                RawdeaOutlinePillLabel(title: "Edit profile")
             }
             .buttonStyle(.plain)
 
-            NavigationLink(value: RawdeaPostRoute.following) {
-                RawdeaOutlinePillLabel(title: "Following")
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("Opens people and Projects you follow")
-
-            NavigationLink(value: RawdeaPostRoute.savedPosts) {
-                RawdeaOutlinePillLabel(title: "Saved")
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Saved Posts")
+            RawdeaShareProfileLink(profile: profile)
         }
     }
 
-    private var projectsSection: some View {
-        let archivedProjects = projectsViewModel.projects.filter(\.isArchived)
+    // MARK: - Projects
 
-        return VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
-            Button {
-                projectsViewModel.clearError()
-                newProjectName = ""
-                isShowingCreateProject = true
-            } label: {
-                Label("New Project", systemImage: "plus")
-                    .font(RawdeaTypography.metadata)
-                    .foregroundStyle(RawdeaPalette.primaryText)
-                    .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+    // Rename, pin, hide and archive live on the Project screen.
+    @ViewBuilder
+    private var projectChips: some View {
 
-            if let errorMessage = projectsViewModel.errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-
-            if projectsViewModel.isLoading && projectsViewModel.projects.isEmpty {
-                RawdeaLoadingIndicator("Loading projects...")
-            } else if projectsViewModel.projects.isEmpty {
-                if projectsViewModel.errorMessage == nil {
-                    projectsNote("Projects keep related posts together. Start one for something you're working on.")
-                }
-            } else {
-                let unpinnedProjects = sortedActiveProjects.filter { !$0.isPinned }
-
-                if unpinnedProjects.isEmpty {
-                    projectsNote(
-                        sortedActiveProjects.isEmpty
-                        ? "You have no active Projects."
-                        : "All your active Projects are pinned above."
-                    )
-                }
-
-                ForEach(unpinnedProjects, content: projectRow)
-
-                if !archivedProjects.isEmpty {
-                    DisclosureGroup {
-                        VStack(spacing: RawdeaSpacing.sm) {
-                            ForEach(archivedProjects, content: projectRow)
-                        }
-                    } label: {
-                        Text("Archived Projects")
-                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                    }
-                }
-            }
+        ForEach(sortedActiveProjects) { project in
+            RawdeaProjectChip(project: project)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
 
-    private func projectsNote(_ text: String) -> some View {
-        Text(text)
-            .font(RawdeaTypography.secondary)
-            .foregroundStyle(RawdeaPalette.secondaryText)
-            .fixedSize(horizontal: false, vertical: true)
-    }
+        ForEach(projectsViewModel.projects.filter(\.isArchived)) { project in
+            RawdeaProjectChip(project: project)
+        }
 
-    private func latestNote(for projectId: UUID) -> String? {
-        postsViewModel.posts.first {
-            $0.projectId == projectId && !$0.isHidden
-        }?.content
-    }
-    
-    private func projectRow(
-        _ project: Project
-    ) -> some View {
-
-        RawdeaProjectSurface {
-
-            HStack(
-                alignment: .center,
-                spacing: RawdeaSpacing.sm
-            ) {
-
-                // The whole Project preview opens
-                // the routed Project destination.
-                NavigationLink(
-                    value: RawdeaPostRoute.project(
-                        project.id
-                    )
-                ) {
-
-                    RawdeaProjectCard(
-                        project: project,
-                        preview: latestNote(
-                            for: project.id
-                        ),
-                        showsOwnerStatus: true
-                    )
-                    .frame(
-                        maxWidth: .infinity,
-                        minHeight: RawdeaSpacing.minimumTouchTarget,
-                        alignment: .leading
-                    )
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint(
-                    "Opens Project"
-                )
-
-                // Owner actions remain independent
-                // of the navigation target.
-                Menu {
-
-                    Button {
-
-
-                        projectsViewModel.clearError()
-
-                        projectToRename = project
-
-                    } label: {
-
-                        Label(
-                            "Rename",
-                            systemImage: "pencil"
-                        )
-                    }
-
-                    Button {
-
-                        Task {
-
-                            _ = await projectsViewModel
-                                .setArchived(
-                                    projectId: project.id,
-                                    archived:
-                                        !project.isArchived
-                                )
-                        }
-
-                    } label: {
-
-                        Label(
-                            project.isArchived
-                            ? "Unarchive"
-                            : "Archive",
-                            systemImage: "archivebox"
-                        )
-                    }
-
-                    Button {
-
-                        Task {
-
-                            _ = await projectsViewModel
-                                .setHidden(
-                                    projectId: project.id,
-                                    hidden: !project.isHidden
-                                )
-                        }
-
-                    } label: {
-
-                        Label(
-                            project.isHidden
-                            ? "Make Public"
-                            : "Hide",
-                            systemImage:
-                                project.isHidden
-                                ? "eye"
-                                : "eye.slash"
-                        )
-                    }
-
-                    Button {
-
-                        Task {
-
-                            _ = await projectsViewModel
-                                .setPinned(
-                                    projectId: project.id,
-                                    pinned: !project.isPinned
-                                )
-                        }
-
-                    } label: {
-
-                        Label(
-                            project.isPinned
-                            ? "Unpin"
-                            : "Pin",
-                            systemImage:
-                                project.isPinned
-                                ? "pin.slash"
-                                : "pin"
-                        )
-                    }
-
-                } label: {
-
-                    Image(systemName: "ellipsis")
-                        .font(.system(.body))
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
-                        .frame(
-                            width:
-                                RawdeaSpacing.minimumTouchTarget,
-                            height:
-                                RawdeaSpacing.minimumTouchTarget
-                        )
-                        .contentShape(Rectangle())
-                }
-                .disabled(
-                    projectsViewModel.isUpdating
-                )
-                .accessibilityLabel(
-                    "Options for \(project.name)"
-                )
-            }
+        RawdeaChip(title: "New Project", symbol: "plus", isSelected: false) {
+            projectsViewModel.clearError()
+            newProjectName = ""
+            isShowingCreateProject = true
         }
     }
-
-
 }

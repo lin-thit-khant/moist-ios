@@ -39,16 +39,6 @@ struct PublicProfileSectionsView: View {
             }
     }
 
-    private func latestPreview(
-        for projectId: UUID
-    ) -> String? {
-
-        postsViewModel.posts.first {
-            $0.projectId == projectId &&
-            !$0.isHidden
-        }?.content
-    }
-
     @State private var hasLoaded = false
 
     /// Both lists loaded without errors and nothing is public.
@@ -72,10 +62,9 @@ struct PublicProfileSectionsView: View {
                 )
             } else {
                 RawdeaProfileWorkSections(
-                    pinnedProjects: publicProjects.filter(\.isPinned),
-                    projectRow: projectRow,
-                    posts: { postsSection },
-                    projects: { projectsSection }
+                    userId: userId,
+                    chips: { projectChips },
+                    posts: { postsSection }
                 )
             }
         }
@@ -170,77 +159,17 @@ struct PublicProfileSectionsView: View {
 
     // MARK: - Public Projects
 
-    private var projectsSection: some View {
+    @ViewBuilder
+    private var projectChips: some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: RawdeaSpacing.md
-        ) {
-
-            if projectsViewModel.isLoading &&
-               projectsViewModel.projects.isEmpty {
-
-                RawdeaLoadingIndicator("Loading Projects...")
-
-            } else if let error =
-                projectsViewModel.errorMessage,
-                projectsViewModel.projects.isEmpty {
-
-                RawdeaInlineError(
-                    message: error
-                )
-
-                Button("Try Again") {
-
-                    Task {
-
-                        await projectsViewModel.loadProjects(
-                            userId: userId
-                        )
-                    }
-                }
-                .frame(
-                    minHeight:
-                        RawdeaSpacing.minimumTouchTarget
-                )
-
-            } else if publicProjects.isEmpty {
-
-                Text("No public Projects yet.")
-                    .font(
-                        RawdeaTypography.secondary
-                    )
-                    .foregroundStyle(
-                        RawdeaPalette.secondaryText
-                    )
-
-            } else {
-
-                ForEach(publicProjects.filter { !$0.isPinned }, content: projectRow)
-            }
-
-            if !projectsViewModel.projects.isEmpty,
-               let error = projectsViewModel.errorMessage {
-
-                RawdeaInlineError(
-                    message:
-                        "Couldn't refresh Projects. \(error)"
-                )
-            }
+        if let error = projectsViewModel.errorMessage {
+            RawdeaInlineError(message: error)
+        } else if publicProjects.isEmpty && hasLoaded {
+            Text("No public Projects yet.")
+                .font(RawdeaTypography.secondary)
+                .foregroundStyle(RawdeaPalette.secondaryText)
         }
-    }
 
-    private func projectRow(_ project: Project) -> some View {
-        NavigationLink(value: RawdeaPostRoute.project(project.id)) {
-            RawdeaProjectSurface {
-                RawdeaProjectCard(
-                    project: project,
-                    preview: latestPreview(for: project.id)
-                )
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint("Opens Project")
+        ForEach(publicProjects, content: RawdeaProjectChip.init)
     }
 }

@@ -18,6 +18,14 @@ struct DiscoveryPage<Item> {
     let hasMore: Bool
 }
 
+/// A Project on Explore with its newest post.
+struct ActiveProject: Identifiable {
+    let project: Project
+    let latest: Post
+
+    var id: UUID { project.id }
+}
+
 // MARK: - Service
 
 struct DiscoveryService {
@@ -30,6 +38,84 @@ struct DiscoveryService {
     ) {
         self.client = client
         self.postService = PostService(client: client)
+    }
+
+    // MARK: - Explore
+
+    /// Posts from visible Projects, newest first. Posts policies
+    /// already leave out blocked and removed content.
+    private static let visiblePostSelection = """
+        *,
+        author: profiles!posts_profile_fkey(id, display_name, username),
+        project: projects!posts_project_owner_fk!inner(id, name)
+        """
+
+    // shortcut: looks at the newest 100 posts. Replace with a
+    // database function when one busy Project can fill them.
+    func fetchActiveProjects(
+        stage: ProjectStage?,
+        limit: Int = 10
+    ) async throws -> [ActiveProject] {
+
+        var query = client
+            .from("posts")
+            .select("""
+                *,
+                project: projects!posts_project_owner_fk!inner(id, name)
+                """)
+            .eq("is_hidden", value: false)
+            .eq("project.is_hidden", value: false)
+            .eq("project.is_archived", value: false)
+            .eq("project.is_default", value: false)
+
+        if let stage {
+            query = query.eq("project.stage", value: stage.rawValue)
+        }
+
+        let posts: [Post] = try await query
+            .order("created_at", ascending: false)
+            .limit(100)
+            .execute()
+            .value
+
+        var seen = Set<UUID>()
+        let latest = posts.filter { post in
+            post.projectId.map { seen.insert($0).inserted } ?? false
+        }
+        .prefix(limit)
+
+        guard !latest.isEmpty else { return [] }
+
+        let projects: [Project] = try await client
+            .from("projects")
+            .select()
+            .in("id", values: latest.compactMap { $0.projectId?.uuidString })
+            .execute()
+            .value
+
+        let byID = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
+
+        return latest.compactMap { post in
+            post.projectId
+                .flatMap { byID[$0] }
+                .map { ActiveProject(project: $0, latest: post) }
+        }
+    }
+
+    func fetchOpenQuestions(limit: Int = 10) async throws -> [Post] {
+
+        try await client
+            .from("posts")
+            .select(Self.visiblePostSelection)
+            .eq("kind", value: PostKind.question.rawValue)
+            .is("best_reply_id", value: nil)
+            .eq("is_hidden", value: false)
+            .eq("project.is_hidden", value: false)
+            .eq("project.is_archived", value: false)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
     }
 
     // MARK: - Search People

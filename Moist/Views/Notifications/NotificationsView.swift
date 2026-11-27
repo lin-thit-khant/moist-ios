@@ -16,6 +16,8 @@ struct NotificationsView: View {
 
     @State private var navigationError: String?
 
+    @State private var filter = RawdeaActivityFilter.all
+
     @Environment(\.rawdeaOpenPostRoute)
     private var openPostRoute
 
@@ -38,11 +40,17 @@ struct NotificationsView: View {
         }
     }
 
+    private var visibleNotifications: [RawdeaNotification] {
+        viewModel.notifications.filter { $0.matches(filter) }
+    }
+
     // MARK: - Body
 
     var body: some View {
 
         List {
+
+            filterChips
 
             if let error = viewModel.errorMessage,
                !viewModel.hasLoaded {
@@ -83,7 +91,7 @@ struct NotificationsView: View {
                     symbol: "bell",
                     title: "Nothing new yet",
                     message:
-                        "Likes, comments, and new followers will appear here."
+                        "Answers, Project changes, likes and new followers appear here."
                 )
                 .listRowSeparator(.hidden)
                 .listRowBackground(
@@ -92,10 +100,19 @@ struct NotificationsView: View {
 
             } else {
 
-                activitySummary
+                if visibleNotifications.isEmpty {
+
+                    Text("Nothing here yet.")
+                        .font(RawdeaTypography.secondary)
+                        .foregroundStyle(RawdeaPalette.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, RawdeaSpacing.lg)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(RawdeaPalette.canvas)
+                }
 
                 ForEach(
-                    viewModel.notifications
+                    visibleNotifications
                 ) { notification in
 
                     activityRow(notification)
@@ -271,46 +288,25 @@ struct NotificationsView: View {
         }
     }
 
-    // MARK: - Activity summary
+    // MARK: - Filters
 
-    private var activitySummary: some View {
+    private var filterChips: some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: RawdeaSpacing.xxs
-        ) {
-
-            Text("Recent activity")
-                .font(
-                    RawdeaTypography.sectionTitle
-                )
-                .foregroundStyle(
-                    RawdeaPalette.primaryText
-                )
-                .accessibilityAddTraits(.isHeader)
-
-            Text(
-                "\(viewModel.unreadCount) unread"
-            )
-            .font(
-                RawdeaTypography.metadata
-            )
-            .foregroundStyle(
-                RawdeaPalette.secondaryText
-            )
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: RawdeaSpacing.xs) {
+                ForEach(RawdeaActivityFilter.allCases, id: \.self) { item in
+                    RawdeaChip(title: item.title, isSelected: filter == item) {
+                        filter = item
+                    }
+                }
+            }
+            .padding(.horizontal, RawdeaSpacing.screenInset)
         }
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
-        )
-        .padding(
-            .vertical,
-            RawdeaSpacing.xs
-        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Activity filter")
+        .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
-        .listRowBackground(
-            RawdeaPalette.canvas
-        )
+        .listRowBackground(RawdeaPalette.canvas)
     }
 
     // MARK: - Activity card
@@ -345,13 +341,13 @@ struct NotificationsView: View {
         )
         .listRowInsets(
             EdgeInsets(
-                top: RawdeaSpacing.xxs,
+                top: RawdeaSpacing.xs,
                 leading: RawdeaSpacing.screenInset,
-                bottom: RawdeaSpacing.xxs,
+                bottom: RawdeaSpacing.xs,
                 trailing: RawdeaSpacing.screenInset
             )
         )
-        .listRowSeparator(.hidden)
+        .listRowSeparatorTint(RawdeaPalette.divider)
         .listRowBackground(
             RawdeaPalette.canvas
         )
@@ -425,7 +421,7 @@ struct NotificationsView: View {
                 notification.actorId
             )
 
-        case .projectFollow:
+        case .projectFollow, .stageChange:
 
             guard let projectId =
                 notification.projectId else {
@@ -435,7 +431,7 @@ struct NotificationsView: View {
 
             return .project(projectId)
 
-        case .postLike, .postComment:
+        case .postLike, .postComment, .bestAnswer:
 
             guard let postId =
                 notification.postId else {

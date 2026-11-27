@@ -14,7 +14,11 @@ struct ProfileContentView: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private var displayName: String {
+    var displayName: String {
+        Self.displayName(for: profile)
+    }
+
+    static func displayName(for profile: Profile) -> String {
 
         let name = profile.displayname
             .trimmingCharacters(
@@ -30,7 +34,7 @@ struct ProfileContentView: View {
 
         VStack(
             alignment: .leading,
-            spacing: RawdeaSpacing.md
+            spacing: RawdeaSpacing.sm
         ) {
 
             // At accessibility sizes the avatar moves above the names so the
@@ -41,12 +45,9 @@ struct ProfileContentView: View {
 
             headerLayout {
 
-                RawdeaInitialAvatar(
-                    name: displayName,
-                    size: 64,
-                    font: .title.weight(.semibold),
-                    tintSeed: profile.id
-                )
+                if dynamicTypeSize.isAccessibilitySize {
+                    avatar
+                }
 
                 VStack(
                     alignment: .leading,
@@ -86,21 +87,15 @@ struct ProfileContentView: View {
                     maxWidth: .infinity,
                     alignment: .leading
                 )
+
+                if !dynamicTypeSize.isAccessibilitySize {
+                    avatar
+                }
             }
 
-            if profile.bio.trimmingCharacters(
+            if !profile.bio.trimmingCharacters(
                 in: .whitespacesAndNewlines
             ).isEmpty {
-
-                Text("No bio yet")
-                    .font(
-                        RawdeaTypography.secondary
-                    )
-                    .foregroundStyle(
-                        RawdeaPalette.secondaryText
-                    )
-
-            } else {
 
                 Text(profile.bio)
                     .font(
@@ -124,5 +119,30 @@ struct ProfileContentView: View {
             alignment: .leading
         )
     }
+
+    private var avatar: some View {
+        RawdeaInitialAvatar(
+            name: displayName,
+            size: 64,
+            font: .title.weight(.semibold),
+            tintSeed: profile.id
+        )
+    }
 }
 
+// MARK: - Share
+
+/// Rawdea has no public web addresses yet, so this shares the handle.
+struct RawdeaShareProfileLink: View {
+
+    let profile: Profile
+
+    var body: some View {
+        ShareLink(
+            item: "\(ProfileContentView.displayName(for: profile)) (@\(profile.username)) on Rawdea"
+        ) {
+            RawdeaOutlinePillLabel(title: "Share profile")
+        }
+        .buttonStyle(.plain)
+    }
+}

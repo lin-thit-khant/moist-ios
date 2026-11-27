@@ -130,8 +130,8 @@ struct AuthorProfileView: View {
                             isInteractionBlocked:
                                 blockViewModel.isUpdating
                         )
-                        
-                        Divider()
+
+                        RawdeaShareProfileLink(profile: profile)
 
                         // Preserve existing public
                         // posts and Projects.

@@ -327,6 +327,147 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         XCTAssertFalse(stillFollowing)
     }
 
+    // MARK: - Activity
+
+    func testActivityForAnswersStagesAndPreferences() async throws {
+
+        let owner = try await makeUser()
+        let reader = try await makeUser()
+
+        let project = try await owner.projects.createProject(name: "Bell")
+        let question = try await owner.posts.createPost(
+            content: "Which one?", projectId: project.id, kind: .question
+        )
+        try await reader.following.followProject(projectId: project.id)
+
+        // Follows a different Project, so hears nothing about this one.
+        let bystander = try await makeUser()
+        let other = try await owner.projects.createProject(name: "Other")
+        try await bystander.following.followProject(projectId: other.id)
+
+        let reply = try await reader.engagement.addComment(
+            postId: question.id, content: "That one"
+        )
+        try await owner.posts.setBestReply(
+            postId: question.id, commentId: reply.id
+        )
+        try await owner.posts.setBestReply(
+            postId: question.id, commentId: nil
+        )
+        try await owner.posts.setBestReply(
+            postId: question.id, commentId: reply.id
+        )
+        _ = try await owner.projects.setStage(
+            projectId: project.id, stage: .inProgress
+        )
+        _ = try await owner.projects.setStage(
+            projectId: project.id, stage: .shipped
+        )
+
+        let received = try await reader.activity.fetchNotifications()
+
+        XCTAssertEqual(
+            received.filter { $0.kind == .bestAnswer }.count, 1,
+            "Choosing again does not notify twice"
+        )
+        let moves = received.filter { $0.kind == .stageChange }
+        XCTAssertEqual(moves.map(\.stage), [.shipped])
+        XCTAssertEqual(moves.first?.message, "Bell moved to Shipped")
+
+        let unrelated = try await bystander.activity.fetchNotifications()
+        XCTAssertTrue(unrelated.isEmpty)
+
+        let ownerReceived = try await owner.activity.fetchNotifications()
+        let answer = try XCTUnwrap(
+            ownerReceived.first { $0.kind == .postComment }
+        )
+        XCTAssertTrue(answer.matches(.answers))
+
+        // A hidden Project takes its notification with it.
+        _ = try await owner.projects.setHidden(
+            projectId: project.id, hidden: true
+        )
+        let whileHidden = try await reader.activity.fetchNotifications()
+        XCTAssertFalse(whileHidden.contains { $0.kind == .stageChange })
+        _ = try await owner.projects.setHidden(
+            projectId: project.id, hidden: false
+        )
+
+        // Preferences: private to their owner, applied by the server.
+        var preferences = try await owner.activity.fetchPreferences()
+        XCTAssertEqual(preferences, NotificationPreferences())
+
+        preferences.likes = false
+        preferences.answers = false
+        try await owner.activity.savePreferences(preferences)
+        let saved = try await owner.activity.fetchPreferences()
+        XCTAssertEqual(saved, preferences)
+
+        let othersView: [NotificationPreferences] = try await reader.client
+            .from("notification_preferences")
+            .select()
+            .eq("user_id", value: owner.id)
+            .execute()
+            .value
+        XCTAssertTrue(othersView.isEmpty)
+
+        await assertThrows("Another user cannot write preferences") {
+            try await reader.client.from("notification_preferences")
+                .insert(["user_id": owner.id.uuidString])
+                .execute()
+        }
+
+        try await reader.engagement.like(postId: question.id)
+        _ = try await reader.engagement.addComment(
+            postId: question.id, content: "Also this"
+        )
+
+        let after = try await owner.activity.fetchNotifications()
+        XCTAssertEqual(after.count, ownerReceived.count)
+
+        await assertThrows("Clients cannot create notifications") {
+            try await reader.client.from("notifications")
+                .insert([
+                    "recipient_id": owner.id.uuidString,
+                    "actor_id": reader.id.uuidString,
+                    "kind": "user_follow"
+                ])
+                .execute()
+        }
+
+        // Replies and Explore read only what is visible.
+        let replies = try await owner.engagement
+            .fetchReplies(userId: reader.id)
+        XCTAssertEqual(replies.count, 2)
+
+        let discovery = DiscoveryService(client: reader.client)
+        let active = try await discovery.fetchActiveProjects(stage: .shipped)
+        XCTAssertTrue(active.contains { $0.id == project.id })
+
+        try await reader.blocks.blockUser(userId: owner.id)
+
+        let blockedActive = try await discovery
+            .fetchActiveProjects(stage: .shipped)
+        XCTAssertFalse(blockedActive.contains { $0.id == project.id })
+
+        let blockedReplies = try await owner.engagement
+            .fetchReplies(userId: reader.id)
+        XCTAssertTrue(blockedReplies.isEmpty)
+    }
+
+    func testOpenQuestionsLeaveOutAnsweredOnes() async throws {
+
+        let owner = try await makeUser()
+        let question = try await owner.posts.createPost(
+            content: "Still open?", kind: .question
+        )
+
+        let open = try await DiscoveryService(client: owner.client)
+            .fetchOpenQuestions()
+
+        XCTAssertTrue(open.contains { $0.id == question.id })
+    }
+
     // MARK: - Fixtures
 
     @MainActor
@@ -338,6 +479,9 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         var projects: ProjectService { ProjectService(client: client) }
         var following: FollowingService { FollowingService(client: client) }
         var blocks: BlockService { BlockService(client: client) }
+        var activity: NotificationService {
+            NotificationService(client: client)
+        }
         var engagement: PostEngagementService {
             PostEngagementService(client: client)
         }

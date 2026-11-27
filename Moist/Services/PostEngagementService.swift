@@ -68,6 +68,30 @@ struct PostEngagementService {
         """
     }
 
+    // MARK: - A Person's Replies
+
+    // The inner join drops replies to posts the viewer cannot see.
+    func fetchReplies(
+        userId: UUID,
+        limit: Int = 50
+    ) async throws -> [ProfileReply] {
+
+        try await client
+            .from("post_comments")
+            .select("""
+                id,
+                post_id,
+                content,
+                created_at,
+                post:posts!post_comments_post_id_fkey!inner(content)
+                """)
+            .eq("user_id", value: userId)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+    }
+
     // MARK: - Load Discussion
 
     func fetchDiscussion(
