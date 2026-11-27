@@ -11,22 +11,16 @@ Keep this file under 60 lines.
 
 ## Done (milestones 1-14, then UI/UX)
 - UI/UX batches 1-10: 48884a4 to 72f9b3f. Direction C 0-7: 4674049 to 61c0559, complete.
-- Accessibility sweep 421046a: Increase Contrast checked on Home, Discussion, Profile
-  and Compose; Welcome, Log in and Sign up checked for Dark Mode and large text.
-- App icon 68ea27b: seen on the iOS 27.0 simulator Home Screen.
-- Cell loader 5580fdd (F Gather, 1.6 s, 28 pt): Home, Activity and Profile loading
-  checked light, dark and largest text; Reduce Motion fade on Home.
-- Pull to refresh 4ba8677 (R1, all 12 screens): Home light, dark and Reduce Motion,
-  Activity default and largest text, Profile light.
-- Home reader layout c5a645f (both feeds, plus critique P2 fixes): default size light
-  and dark, largest text light and scrolled dark, tab switching, Project and name taps.
-- Welcome, Log in, Create account 607dbd3 (auth "Index" style): default and largest
-  text, light and dark; mode switch, legal link, Forgot password, local email login.
-- XCTest suite (29) passed on the 607dbd3 changes.
-
-- Project Lab batch 1, data layer 0b95f6c (local, not pushed; hosted database not migrated):
-  33 XCTest pass including local Supabase tests (need TEST_RUNNER_RAWDEA_LOCAL_SERVICE_KEY,
-  otherwise skipped). Builds from before this migration cannot unfollow or count followers.
+- Accessibility sweep 421046a: Increase Contrast on Home, Discussion, Profile, Compose;
+  auth screens Dark and large text. App icon 68ea27b: seen on the simulator Home Screen.
+- Cell loader 5580fdd and pull to refresh 4ba8677: checked on Home, Activity and Profile
+  (not every appearance on each); Home Reduce Motion.
+- Home reader c5a645f: default and largest text, light and dark, tabs, Project/name taps.
+- Welcome, Log in, Create account 607dbd3: default and largest text, light and dark,
+  mode switch, legal link, Forgot password, local email login.
+- Project Lab data layer 0b95f6c (local, not pushed; hosted database not migrated):
+  33 XCTest pass; local Supabase tests need TEST_RUNNER_RAWDEA_LOCAL_SERVICE_KEY, else
+  skip. Builds from before this migration cannot unfollow or count Project followers.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -56,8 +50,7 @@ Keep this file under 60 lines.
 - App icon dark and tinted variants not supplied. Not checked on a device.
 - Auth screens: VoiceOver, Contrast, iOS 17, small phone, device, sign-up submit,
   error/loading states. Some default-dark and scrolled shots predate final tweaks.
-- Public "Nothing shared yet" and all-pinned Project states. Checked 2026-11-26: owner Project view and post actions, red Project chip,
-  rejected post keeps its draft, "Posting…" pill, Project follow toggle.
+- Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
 - iOS 27 shows confirmation dialogs as centred popovers (native). Project publish returns Home.
