@@ -19,6 +19,11 @@ delete from public.user_follows    where follower_id::text like '0000eeee-%'
 delete from public.notifications   where actor_id::text like '0000eeee-%'
                                       or post_id::text like '0000eeee-%'
                                       or project_id::text like '0000eeee-%';
+-- Review posts and Projects owned by the design-review account. A Project
+-- that has since gained your own posts is kept.
+delete from public.posts           where id::text like '0000eeee-%';
+delete from public.projects pr     where pr.id::text like '0000eeee-%'
+    and not exists (select 1 from public.posts p where p.project_id = pr.id);
 delete from auth.users             where id::text like '0000eeee-%';
 
 commit;

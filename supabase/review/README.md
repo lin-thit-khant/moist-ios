@@ -17,6 +17,14 @@ docker exec -i supabase_db_Moist psql -U postgres -v ON_ERROR_STOP=1 < supabase/
 docker exec -i supabase_db_Moist psql -U postgres -v ON_ERROR_STOP=1 < supabase/review/remove_review_content.sql
 ```
 
+For Project Lab screens, run `seed_project_lab.sql` after the seed. It needs the `designreview` account and adds 6 Projects at all three stages (two owned by that account), every post type, open and answered questions, stage history, follows and Activity.
+
+```bash
+docker exec -i supabase_db_Moist psql -U postgres -v ON_ERROR_STOP=1 < supabase/review/seed_project_lab.sql
+```
+
+The removal script removes both.
+
 The seed is not part of `seed.sql`, so `supabase db reset` does not load it.
 
 The review accounts have no password and cannot sign in. Posts and comments go through the same prepublication filter as the app.
