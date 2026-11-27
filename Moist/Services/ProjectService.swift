@@ -99,6 +99,37 @@ struct ProjectService {
             .value
     }
     
+    // Records a stage history event. postId optionally links
+    // the post, from this Project, that announced the change.
+    func setStage(
+        projectId: UUID,
+        stage: ProjectStage,
+        postId: UUID? = nil
+    ) async throws -> Project {
+        var parameters = [
+            "p_project_id": projectId.uuidString,
+            "p_stage": stage.rawValue
+        ]
+        parameters["p_post_id"] = postId?.uuidString
+        
+        return try await client
+            .rpc("rawdea_set_project_stage", params: parameters)
+            .execute()
+            .value
+    }
+    
+    func fetchStageEvents(
+        projectId: UUID
+    ) async throws -> [ProjectStageEvent] {
+        try await client
+            .from("project_stage_events")
+            .select()
+            .eq("project_id", value: projectId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+    
     func setPinned(
         projectId: UUID,
         pinned: Bool

@@ -129,7 +129,9 @@ struct FollowingService {
         
         try await client
             .from("project_follows")
-            .delete()
+            // Returning rows would need every column, and
+            // last_seen_at is not readable.
+            .delete(returning: .minimal)
             .eq("follower_id", value: viewerId)
             .eq("project_id", value: projectId)
             .execute()
@@ -139,11 +141,39 @@ struct FollowingService {
         
         let response = try await client
             .from("project_follows")
-            .select("*", head: true, count: .exact)
+            .select("follower_id", head: true, count: .exact)
             .eq("project_id", value: projectId)
             .execute()
         
         return response.count ?? 0
+    }
+    
+    // MARK: - Last Seen
+    
+    // The server records its own time.
+    func markProjectSeen(projectId: UUID) async throws {
+        
+        let viewerId = try await currentUserId()
+        
+        try await client
+            .from("project_follows")
+            .update(["last_seen_at": "now"], returning: .minimal)
+            .eq("follower_id", value: viewerId)
+            .eq("project_id", value: projectId)
+            .execute()
+    }
+    
+    // Followed Projects that have been opened, by Project ID.
+    func fetchProjectLastSeen() async throws -> [UUID: Date] {
+        
+        let records: [ProjectLastSeenRecord] = try await client
+            .rpc("rawdea_followed_project_last_seen")
+            .execute()
+            .value
+        
+        return records.reduce(into: [:]) { result, record in
+            result[record.projectId] = record.lastSeenAt
+        }
     }
     
     // MARK: - Following Lists
@@ -186,7 +216,10 @@ struct FollowingService {
                     created_at,
                     is_archived,
                     is_hidden,
-                    is_pinned
+                    is_pinned,
+                    stage,
+                    stage_changed_at,
+                    is_default
                 )
                 """)
             .eq("follower_id", value: viewerId)
@@ -233,6 +266,17 @@ private struct FollowPresence: Decodable {
     
     enum CodingKeys: String, CodingKey {
         case followerId = "follower_id"
+    }
+}
+
+private struct ProjectLastSeenRecord: Decodable {
+    
+    let projectId: UUID
+    let lastSeenAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case projectId = "project_id"
+        case lastSeenAt = "last_seen_at"
     }
 }
 

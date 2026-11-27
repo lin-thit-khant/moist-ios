@@ -18,7 +18,8 @@ struct PostService {
     
     func createPost(
         content: String,
-        projectId: UUID? = nil
+        projectId: UUID? = nil,
+        kind: PostKind = .note
     ) async throws -> Post {
         
         let user = try await client.auth.session.user
@@ -28,7 +29,8 @@ struct PostService {
             content: content.trimmingCharacters(
                 in: .whitespacesAndNewlines
             ),
-            projectId: projectId
+            projectId: projectId,
+            kind: kind
         )
         
         return try await client
@@ -160,6 +162,26 @@ struct PostService {
             .value
     }
     
+    // Only a question's author can choose its best reply.
+    // Pass nil to clear it.
+    func setBestReply(
+        postId: UUID,
+        commentId: UUID?
+    ) async throws {
+        
+        let user = try await client.auth.session.user
+        
+        try await client
+            .from("posts")
+            .update(["best_reply_id": commentId])
+            .eq("id", value: postId)
+            .eq("user_id", value: user.id)
+            .select("id")
+            .single()
+            .execute()
+    }
+    
+    // A nil Project moves the post to the author's default Project.
     func movePost(
         postId: UUID,
         to projectId: UUID?
@@ -347,11 +369,13 @@ private struct NewPost: Encodable {
     let userId: UUID
     let content: String
     let projectId: UUID?
+    let kind: PostKind
     
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case content
         case projectId = "project_id"
+        case kind
     }
 }
 

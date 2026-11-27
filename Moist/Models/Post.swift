@@ -7,6 +7,17 @@
 
 import Foundation
 
+enum PostKind: String, Codable, CaseIterable {
+    case note
+    case question
+    case progress
+    case decision
+    
+    var title: String {
+        rawValue.capitalized
+    }
+}
+
 struct Post: Identifiable, Codable {
     
     let id: UUID
@@ -17,6 +28,8 @@ struct Post: Identifiable, Codable {
     var projectId: UUID? = nil
     var project: PostProject? = nil
     var isHidden: Bool = false
+    var kind: PostKind = .note
+    var bestReplyId: UUID? = nil
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -27,6 +40,8 @@ struct Post: Identifiable, Codable {
         case projectId = "project_id"
         case project
         case isHidden = "is_hidden"
+        case kind
+        case bestReplyId = "best_reply_id"
     }
 }
 
