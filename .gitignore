@@ -75,3 +75,6 @@ supabase/snippets/
 
 # Local schema snapshots
 rawdea_public_schema_snapshot.sql
+
+# Graphify output
+graphify-out/
