@@ -30,6 +30,20 @@ struct ProjectDetailView: View {
     @StateObject private var projectsViewModel = ProjectsViewModel()
     @State private var projectToRename: Project?
 
+    // Timeline
+    @State private var stageEvents: [ProjectStageEvent] = []
+    @State private var kindFilter: PostKind?
+    @State private var changedProject: Project?
+    @State private var stageErrorMessage: String?
+
+    private let projectService = ProjectService()
+
+    /// The newest copy, including a stage moved on this screen.
+    private var current: Project {
+        changedProject ?? project
+    }
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.rawdeaCreatePostInProject) private var createPostInProject
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
 
@@ -49,6 +63,30 @@ struct ProjectDetailView: View {
                 .ignoresSafeArea()
         )
         .navigationTitle(project.name)
+        .task(id: project.id) {
+            await loadStageEvents()
+        }
+        .onChange(of: project.stageChangedAt) { _, _ in
+            changedProject = nil
+        }
+        // Opening a followed Project clears its unread count.
+        .task(id: followViewModel.isFollowing) {
+            if followViewModel.isFollowing {
+                try? await FollowingService()
+                    .markProjectSeen(projectId: project.id)
+            }
+        }
+        .alert(
+            "Couldn't change the stage",
+            isPresented: Binding(
+                get: { stageErrorMessage != nil },
+                set: { if !$0 { stageErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(stageErrorMessage ?? "")
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isOwner {
@@ -210,6 +248,22 @@ struct ProjectDetailView: View {
 
     private var ownerMenu: some View {
         Menu {
+            Menu {
+                ForEach(ProjectStage.allCases, id: \.self) { stage in
+                    Button {
+                        Task { await moveStage(to: stage) }
+                    } label: {
+                        if stage == current.stage {
+                            Label(stage.title, systemImage: "checkmark")
+                        } else {
+                            Text(stage.title)
+                        }
+                    }
+                }
+            } label: {
+                Label("Stage", systemImage: "arrow.right.circle")
+            }
+
             Button {
                 projectToRename = project
             } label: {
@@ -278,6 +332,32 @@ struct ProjectDetailView: View {
         }
     }
 
+    // MARK: - Stage
+
+    private func loadStageEvents() async {
+        // The timeline still reads without its stage history.
+        if let events = try? await projectService
+            .fetchStageEvents(projectId: project.id) {
+            stageEvents = events
+        }
+    }
+
+    private func moveStage(to stage: ProjectStage) async {
+
+        guard stage != current.stage else { return }
+
+        do {
+            changedProject = try await projectService.setStage(
+                projectId: project.id,
+                stage: stage
+            )
+            await loadStageEvents()
+            await onProjectChanged()
+        } catch {
+            stageErrorMessage = PublicationErrorMessage.from(error)
+        }
+    }
+
     // MARK: - Header
 
     private var ownerName: String? {
@@ -289,6 +369,11 @@ struct ProjectDetailView: View {
     private var followerCountText: String {
         let count = followViewModel.followerCount
         return count == 1 ? "1 follower" : "\(count.formatted()) followers"
+    }
+
+    private var stageSummary: String {
+        let since = current.stageChangedAt.formatted(.dateTime.day().month().year())
+        return "\(current.stage.title) since \(since)"
     }
 
     private var projectHeader: some View {
@@ -305,9 +390,16 @@ struct ProjectDetailView: View {
             ) {
 
                 RawdeaProjectCard(
-                    project: project,
+                    project: current,
                     showsOwnerStatus: isOwner
                 )
+
+                RawdeaStageTrack(stage: current.stage)
+
+                Text(stageSummary)
+                    .font(RawdeaTypography.metadata)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 // Who the Project belongs to, linking to their profile.
                 if !isOwner, let ownerName, let ownerProfile {
@@ -483,59 +575,41 @@ struct ProjectDetailView: View {
                     RawdeaPalette.canvas
                 )
 
-            // MARK: - Posts
+            // MARK: - Timeline
 
             } else {
 
-                ForEach(viewModel.posts) { post in
+                if let question = openQuestion {
+                    openQuestionCard(question)
+                        .timelineListRow()
+                }
 
-                    VStack(spacing: 0) {
+                filterChips
+                    .timelineListRow()
 
-                        PostRowView(
-                            post: post,
-                            currentUserId: currentUserId,
-                            onEdit: {
+                if timelineGroups.isEmpty {
 
-                                selectedPostForEditing = post
-                            },
-                            onDelete: {
+                    Text("Nothing here yet.")
+                        .font(RawdeaTypography.secondary)
+                        .foregroundStyle(RawdeaPalette.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, RawdeaSpacing.lg)
+                        .timelineListRow()
+                }
 
-                                Task {
+                ForEach(timelineGroups) { group in
 
-                                    await viewModel.deletePost(
-                                        postId: post.id
-                                    )
-                                }
-                            },
-                            onMove: {
-
-                                selectedPostForMoving = post
-                            },
-                            onHide: {
-
-                                Task {
-
-                                    await viewModel.setPostHidden(
-                                        postId: post.id,
-                                        hidden: !post.isHidden
-                                    )
-                                }
-                            },
-                            showsProjectLink: false
-                        )
-
-                        Divider()
-                            .overlay(RawdeaPalette.divider)
-                            .padding(
-                                .horizontal,
-                                RawdeaSpacing.screenInset
-                            )
+                    // A filtered list is not a history, so it
+                    // drops the stage headings.
+                    if kindFilter == nil {
+                        groupHeader(group.stage)
+                            .timelineListRow()
                     }
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(
-                        RawdeaPalette.canvas
-                    )
+
+                    ForEach(group.items) { item in
+                        timelineRow(item)
+                            .timelineListRow()
+                    }
                 }
 
                 if let error = viewModel.errorMessage {
@@ -580,7 +654,219 @@ struct ProjectDetailView: View {
             await viewModel.loadPosts(
                 projectId: project.id
             )
+            await loadStageEvents()
         }
     }
 
+    // MARK: - Timeline
+
+    private var timelineGroups: [ProjectTimeline.Group] {
+        ProjectTimeline.groups(
+            posts: viewModel.posts.filter {
+                kindFilter == nil || $0.kind == kindFilter
+            },
+            events: kindFilter == nil ? stageEvents : [],
+            currentStage: current.stage
+        )
+    }
+
+    private var openQuestion: Post? {
+        viewModel.posts.first {
+            $0.kind == .question && $0.bestReplyId == nil && !$0.isHidden
+        }
+    }
+
+    private func openQuestionCard(_ post: Post) -> some View {
+
+        Button {
+            openPostRoute?(.discussion(post.id))
+        } label: {
+            VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
+                Text("\(Image(systemName: PostKind.question.symbol)) Open question")
+                    .font(RawdeaTypography.metadata.weight(.semibold))
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                Text(post.content)
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(3)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(RawdeaSpacing.sm)
+            .background(
+                RawdeaPalette.surface,
+                in: RoundedRectangle(cornerRadius: RawdeaSpacing.cardRadius)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.top, RawdeaSpacing.sm)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens the question")
+    }
+
+    private var filterChips: some View {
+
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: RawdeaSpacing.xs) {
+                RawdeaChip(title: "All", isSelected: kindFilter == nil) {
+                    kindFilter = nil
+                }
+                ForEach([PostKind.question, .progress, .decision, .note], id: \.self) { kind in
+                    RawdeaChip(title: kind.filterTitle, isSelected: kindFilter == kind) {
+                        kindFilter = kind
+                    }
+                }
+            }
+            .padding(.horizontal, RawdeaSpacing.screenInset)
+        }
+        .padding(.top, RawdeaSpacing.xs)
+    }
+
+    private func groupHeader(_ stage: ProjectStage) -> some View {
+
+        HStack(spacing: RawdeaSpacing.xs) {
+            Text(stage.title)
+                .font(RawdeaTypography.metadata.weight(.semibold))
+                .foregroundStyle(RawdeaPalette.primaryText)
+                .accessibilityAddTraits(.isHeader)
+            Rectangle()
+                .fill(RawdeaPalette.divider)
+                .frame(height: 1)
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.top, RawdeaSpacing.sm)
+        .padding(.bottom, RawdeaSpacing.xxs)
+    }
+
+    @ViewBuilder
+    private func timelineRow(_ item: ProjectTimeline.Item) -> some View {
+
+        switch item {
+
+        case .post(let post):
+            RawdeaTimelineRow(date: post.createdAt, isStageChange: false) {
+                PostRowView(
+                    post: post,
+                    currentUserId: currentUserId,
+                    onEdit: {
+                        selectedPostForEditing = post
+                    },
+                    onDelete: {
+                        Task {
+                            await viewModel.deletePost(postId: post.id)
+                        }
+                    },
+                    onMove: {
+                        selectedPostForMoving = post
+                    },
+                    onHide: {
+                        Task {
+                            await viewModel.setPostHidden(
+                                postId: post.id,
+                                hidden: !post.isHidden
+                            )
+                        }
+                    },
+                    showsProjectLink: false,
+                    isTimeline: true
+                )
+            }
+
+        case .stageChange(let event):
+            RawdeaTimelineRow(date: event.createdAt, isStageChange: true) {
+                Text("\(Image(systemName: "arrow.right.circle")) Moved to \(event.toStage.title)")
+                    .font(RawdeaTypography.authorName)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, RawdeaSpacing.sm)
+                    .accessibilityLabel("Moved to \(event.toStage.title)")
+            }
+        }
+    }
+
+}
+
+// MARK: - Timeline row
+
+/// The date and rail beside a timeline entry. Large text moves
+/// the date above and drops the rail.
+private struct RawdeaTimelineRow<Content: View>: View {
+
+    let date: Date
+    let isStageChange: Bool
+    @ViewBuilder let content: Content
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    @ScaledMetric(relativeTo: .footnote)
+    private var dateWidth = RawdeaSpacing.minimumTouchTarget
+
+    private var dateText: some View {
+        Text(date.formatted(.dateTime.day().month(.abbreviated)))
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(RawdeaPalette.secondaryText)
+    }
+
+    var body: some View {
+
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+
+                VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
+                    dateText
+                    content
+                }
+
+            } else {
+
+                HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
+
+                    dateText
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: dateWidth, alignment: .trailing)
+
+                    content
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, RawdeaSpacing.lg)
+                        .overlay(alignment: .topLeading) { rail }
+                }
+            }
+        }
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.top, RawdeaSpacing.xs)
+    }
+
+    private var rail: some View {
+
+        ZStack(alignment: .top) {
+            Rectangle()
+                .fill(RawdeaPalette.divider)
+                .frame(width: 1)
+            Circle()
+                .fill(isStageChange ? RawdeaPalette.primaryText : RawdeaPalette.canvas)
+                .overlay {
+                    Circle().strokeBorder(
+                        isStageChange ? RawdeaPalette.primaryText : RawdeaPalette.secondaryText,
+                        lineWidth: 1.5
+                    )
+                }
+                .frame(width: RawdeaSpacing.xs + 1, height: RawdeaSpacing.xs + 1)
+                .padding(.top, RawdeaSpacing.xxs)
+        }
+        .frame(width: RawdeaSpacing.xs + 1)
+        .padding(.bottom, -RawdeaSpacing.xs)
+        .accessibilityHidden(true)
+    }
+}
+
+private extension View {
+
+    func timelineListRow() -> some View {
+        listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(RawdeaPalette.canvas)
+    }
 }

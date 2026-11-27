@@ -458,7 +458,7 @@ struct ProfileView: View {
     }
 
     private func postsSection(profile: Profile) -> some View {
-        let posts = postsViewModel.posts.filter { $0.projectId == nil }
+        let posts = postsViewModel.posts
 
         return VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
             if postsViewModel.isLoading && postsViewModel.posts.isEmpty {
@@ -475,7 +475,7 @@ struct ProfileView: View {
                         .contentShape(Rectangle())
                 }
             } else if posts.isEmpty {
-                Text("Posts you share outside a Project appear here.")
+                Text("Posts you share appear here.")
                     .font(RawdeaTypography.secondary)
                     .foregroundStyle(RawdeaPalette.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

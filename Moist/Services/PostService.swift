@@ -303,6 +303,24 @@ struct PostService {
         return collectedPosts
     }
     
+    // MARK: - Latest in a Project
+
+    func fetchLatestPosts(
+        projectId: UUID,
+        limit: Int
+    ) async throws -> [Post] {
+
+        try await client
+            .from("posts")
+            .select()
+            .eq("project_id", value: projectId)
+            .eq("is_hidden", value: false)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+    }
+
     // MARK: - Post Detail
 
     func fetchPost(postId: UUID) async throws -> Post? {

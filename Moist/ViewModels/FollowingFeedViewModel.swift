@@ -26,6 +26,10 @@ final class FollowingFeedViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var paginationErrorMessage: String?
 
+    /// Followed Projects, those with something new first. Empty
+    /// when only people are followed; Home then shows their posts.
+    @Published private(set) var projectRows: [FollowedProjectRow] = []
+
     // MARK: - Dependencies
 
     private let followingFeedService: FollowingFeedService
@@ -49,6 +53,7 @@ final class FollowingFeedViewModel: ObservableObject {
         }
 
         posts = []
+        projectRows = []
 
         hasLoaded = false
         hasFollowedSources = false
@@ -92,6 +97,7 @@ final class FollowingFeedViewModel: ObservableObject {
             guard hasSources else {
 
                 posts = []
+                projectRows = []
                 hasFollowedSources = false
                 hasMore = false
                 nextPageCursor = nil
@@ -101,6 +107,13 @@ final class FollowingFeedViewModel: ObservableObject {
 
                 return
             }
+
+            let rows = try await followingFeedService
+                .fetchProjectRows()
+
+            try Task.checkCancellation()
+
+            projectRows = rows
 
             // Load the first page.
 

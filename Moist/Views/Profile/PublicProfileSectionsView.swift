@@ -17,12 +17,9 @@ struct PublicProfileSectionsView: View {
     @StateObject private var projectsViewModel =
         ProjectsViewModel()
 
-    private var standalonePosts: [Post] {
+    private var publicPosts: [Post] {
 
-        postsViewModel.posts.filter {
-            $0.projectId == nil &&
-            !$0.isHidden
-        }
+        postsViewModel.posts.filter { !$0.isHidden }
     }
 
     private var publicProjects: [Project] {
@@ -59,7 +56,7 @@ struct PublicProfileSectionsView: View {
         hasLoaded &&
         postsViewModel.errorMessage == nil &&
         projectsViewModel.errorMessage == nil &&
-        standalonePosts.isEmpty &&
+        publicPosts.isEmpty &&
         publicProjects.isEmpty
     }
 
@@ -134,7 +131,7 @@ struct PublicProfileSectionsView: View {
                         RawdeaSpacing.minimumTouchTarget
                 )
 
-            } else if standalonePosts.isEmpty {
+            } else if publicPosts.isEmpty {
 
                 Text("No public posts yet.")
                     .font(
@@ -148,7 +145,7 @@ struct PublicProfileSectionsView: View {
 
                 LazyVStack(spacing: 0) {
 
-                    ForEach(standalonePosts) { post in
+                    ForEach(publicPosts) { post in
 
                         PostRowView(post: post, horizontalInset: 0)
 

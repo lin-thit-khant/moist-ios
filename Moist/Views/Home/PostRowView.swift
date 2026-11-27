@@ -39,6 +39,7 @@ struct PostRowView: View {
     private let horizontalInset: CGFloat
     private let showsProjectLink: Bool
     private let isReader: Bool
+    private let isTimeline: Bool
 
 
     init(
@@ -54,7 +55,8 @@ struct PostRowView: View {
         isUnsaving: Bool = false,
         horizontalInset: CGFloat = RawdeaSpacing.screenInset,
         showsProjectLink: Bool = true,
-        isReader: Bool = false
+        isReader: Bool = false,
+        isTimeline: Bool = false
     ) {
 
         self.post = post
@@ -71,6 +73,7 @@ struct PostRowView: View {
         self.horizontalInset = horizontalInset
         self.showsProjectLink = showsProjectLink
         self.isReader = isReader
+        self.isTimeline = isTimeline
     }
 
 
@@ -181,7 +184,9 @@ struct PostRowView: View {
     var body: some View {
 
         Group {
-            if isReader {
+            if isTimeline {
+                timelineLayout
+            } else if isReader {
                 readerLayout
             } else {
                 standardLayout
@@ -310,11 +315,34 @@ struct PostRowView: View {
 
             if !usesAvatarColumn {
                 postDetails
+                    .padding(.top, showsDiscussionLink ? 0 : RawdeaSpacing.xs)
             }
         }
         .padding(.horizontal, horizontalInset)
         .padding(.top, RawdeaSpacing.sm)
         .padding(.bottom, RawdeaSpacing.xxs)
+    }
+
+    // Inside a Project timeline the date and rail are drawn by
+    // the Project screen, so the row is only the post.
+    private var timelineLayout: some View {
+
+        VStack(alignment: .leading, spacing: 0) {
+
+            HStack(alignment: .top, spacing: RawdeaSpacing.xs) {
+
+                RawdeaKindLabel(post: post)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if showsOptions {
+                    optionsButton
+                        .padding(.vertical, -RawdeaSpacing.sm)
+                        .padding(.trailing, -RawdeaSpacing.sm)
+                }
+            }
+
+            postDetails
+        }
     }
 
     // Home shows each post on its own: who and where, the
@@ -327,8 +355,11 @@ struct PostRowView: View {
                 // The lower name's target reaches over the text's top edge.
                 .zIndex(1)
 
-            postContent
+            RawdeaKindLabel(post: post)
                 .padding(.top, dynamicTypeSize.isAccessibilitySize ? RawdeaSpacing.md : 0)
+                .padding(.bottom, RawdeaSpacing.xxs)
+
+            postContent
 
             hiddenLabel
 
@@ -655,6 +686,11 @@ struct PostRowView: View {
 
         VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
 
+            // Home and timeline layouts place their own label.
+            if !isTimeline {
+                RawdeaKindLabel(post: post)
+            }
+
             postContent
 
             hiddenLabel
@@ -666,7 +702,7 @@ struct PostRowView: View {
                 actionError
             }
         }
-        .padding(.top, post.project == nil || !showsProjectLink ? RawdeaSpacing.xxs : 0)
+        .padding(.top, !isTimeline && (post.project == nil || !showsProjectLink) ? RawdeaSpacing.xxs : 0)
     }
 
     @ViewBuilder

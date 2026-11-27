@@ -21,7 +21,7 @@ enum RawdeaHomeFeed: String, CaseIterable {
         switch self {
 
         case .all:
-            return "All Posts"
+            return "All Ideas"
 
         case .following:
             return "Following"

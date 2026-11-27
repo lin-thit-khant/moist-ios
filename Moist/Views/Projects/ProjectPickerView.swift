@@ -35,7 +35,7 @@ struct ProjectPickerView: View {
 
                     noProjectOption
 
-                    ForEach(viewModel.projects) { project in
+                    ForEach(viewModel.projects.filter { !$0.isDefault }) { project in
 
                         projectOption(project)
                     }
@@ -67,7 +67,7 @@ struct ProjectPickerView: View {
                 } footer: {
 
                     Text(
-                        "Choose where this post belongs. You can also publish without a Project."
+                        "Every post belongs to a Project. General holds everything else."
                     )
                 }
 
@@ -228,7 +228,7 @@ struct ProjectPickerView: View {
                 )
                 .accessibilityHidden(true)
 
-                Text("No Project")
+                Text("General")
                     .font(RawdeaTypography.body)
                     .foregroundStyle(
                         RawdeaPalette.primaryText
@@ -255,7 +255,7 @@ struct ProjectPickerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(
-            "No Project"
+            "General"
         )
         .accessibilityAddTraits(
             selectedProject == nil

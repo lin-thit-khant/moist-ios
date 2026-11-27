@@ -19,12 +19,15 @@ struct CreatePostView: View {
     @State private var content = ""
 
     @State private var selectedProject: Project?
+    @State private var kind = PostKind.note
+    @State private var movesStage = false
 
     /// Project chosen before Compose opened, such as from a Project screen.
     private let initialProject: Project?
 
     @State private var isShowingProjectPicker = false
     @State private var isShowingDiscardConfirmation = false
+    @State private var isShowingStageFailure = false
 
     let onPostCreated: (Post) -> Void
 
@@ -49,10 +52,32 @@ struct CreatePostView: View {
         selectedProject?.id != initialProject?.id
     }
 
+    /// Only a progress post in a chosen, unshipped Project can move it on.
+    private var nextStage: ProjectStage? {
+        guard kind == .progress, let stage = selectedProject?.stage else {
+            return nil
+        }
+        switch stage {
+        case .early: return .inProgress
+        case .inProgress: return .shipped
+        case .shipped: return nil
+        }
+    }
+
+    private var placeholder: String {
+        switch kind {
+        case .note: "What are you thinking about? Rough is fine."
+        case .question: "What do you want to ask?"
+        case .progress: "What changed since last time?"
+        case .decision: "What did you decide, and why?"
+        }
+    }
+
     private var canPublish: Bool {
 
         draft.isValid &&
-        !viewModel.isPublishing
+        !viewModel.isPublishing &&
+        viewModel.publishedPost == nil
     }
 
     // MARK: - Body
@@ -76,15 +101,18 @@ struct CreatePostView: View {
 
                         projectChip
 
+                        kindPicker
+
                         RawdeaPostEditor(
                             content: $content,
-                            placeholder:
-                                "Share something worth remembering.",
+                            placeholder: placeholder,
                             isEnabled:
                                 !viewModel.isPublishing,
                             isPlain: true
                         )
                     }
+
+                    kindDetails
 
                     moderationNotice
 
@@ -207,6 +235,19 @@ struct CreatePostView: View {
 
         // Remove stale errors when the user
         // starts revising the post.
+        .onChange(of: kind) { _, _ in
+
+            movesStage = false
+            viewModel.clearError()
+        }
+        .alert(
+            "Posted, but the stage didn't change",
+            isPresented: $isShowingStageFailure
+        ) {
+            Button("OK") { finishPublishing() }
+        } message: {
+            Text("Your post is published. You can move the stage from the Project's options.")
+        }
         .onChange(of: content) { _, _ in
 
             viewModel.clearError()
@@ -216,6 +257,7 @@ struct CreatePostView: View {
             of: selectedProject?.id
         ) { _, _ in
 
+            movesStage = false
             viewModel.clearError()
         }
     }
@@ -235,7 +277,7 @@ struct CreatePostView: View {
                 Image(systemName: "folder")
                     .accessibilityHidden(true)
 
-                Text(selectedProject?.name ?? "Add to Project")
+                Text(selectedProject.map { "\($0.name) · \($0.stage.title)" } ?? "General")
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -266,11 +308,64 @@ struct CreatePostView: View {
         .buttonStyle(.plain)
         .disabled(viewModel.isPublishing)
         .accessibilityLabel(
-            "Post destination, \(selectedProject?.name ?? "No Project")"
+            "Post destination, \(selectedProject?.name ?? "General")"
         )
         .accessibilityHint(
-            "Choose a Project, or publish to your profile"
+            "Choose a Project. Every post belongs to one."
         )
+    }
+
+    // MARK: - Kind
+
+    private var kindPicker: some View {
+
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: RawdeaSpacing.xs) {
+                ForEach(PostKind.allCases, id: \.self) { item in
+                    RawdeaChip(
+                        title: item.title,
+                        symbol: item.symbol,
+                        isSelected: kind == item
+                    ) {
+                        kind = item
+                    }
+                }
+            }
+        }
+        .disabled(viewModel.isPublishing)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Post type")
+    }
+
+    @ViewBuilder
+    private var kindDetails: some View {
+
+        if let nextStage, let current = selectedProject?.stage {
+
+            VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
+
+                Toggle("Move to \(nextStage.title)", isOn: $movesStage)
+                    .tint(RawdeaPalette.accent)
+                    .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                    .disabled(viewModel.isPublishing)
+
+                detailText(movesStage
+                    ? "Followers will see the Project move to \(nextStage.title)."
+                    : "The Project stays in \(current.title).")
+            }
+
+        } else if kind == .question {
+
+            detailText("People can answer. You pick the best answer and the question closes as Answered.")
+        }
+    }
+
+    private func detailText(_ text: String) -> some View {
+
+        Text(text)
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(RawdeaPalette.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - Publishing status
@@ -361,14 +456,27 @@ struct CreatePostView: View {
 
         let success = await viewModel.publish(
             content: draft.trimmedContent,
-            projectId: selectedProject?.id
+            projectId: selectedProject?.id,
+            kind: kind,
+            newStage: movesStage ? nextStage : nil
         )
 
-        guard success,
-              let publishedPost =
-                  viewModel.publishedPost else {
+        guard success else {
             // Keep the draft and Project
             // selection on publication failure.
+            return
+        }
+
+        if viewModel.stageChangeFailed {
+            isShowingStageFailure = true
+        } else {
+            finishPublishing()
+        }
+    }
+
+    private func finishPublishing() {
+
+        guard let publishedPost = viewModel.publishedPost else {
             return
         }
 

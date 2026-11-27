@@ -15,13 +15,26 @@ final class CreatePostViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var publishedPost: Post?
     
-    private let postService: PostService
+    /// The post was published, but its Project's stage was not moved.
+    @Published private(set) var stageChangeFailed = false
     
-    init(postService: PostService = PostService()) {
+    private let postService: PostService
+    private let projectService: ProjectService
+    
+    init(
+        postService: PostService = PostService(),
+        projectService: ProjectService = ProjectService()
+    ) {
         self.postService = postService
+        self.projectService = projectService
     }
     
-    func publish(content: String, projectId: UUID? = nil) async -> Bool {
+    func publish(
+        content: String,
+        projectId: UUID? = nil,
+        kind: PostKind = .note,
+        newStage: ProjectStage? = nil
+    ) async -> Bool {
         guard !isPublishing else { return false }
         
         let trimmedContent = content.trimmingCharacters(
@@ -52,9 +65,25 @@ final class CreatePostViewModel: ObservableObject {
         do {
             let post = try await postService.createPost(
                 content: trimmedContent,
-                projectId: projectId
+                projectId: projectId,
+                kind: kind
             )
             publishedPost = post
+            
+            // The post is already public here, so a failed
+            // stage move must not be reported as a failed post.
+            if let newStage, let projectId {
+                do {
+                    _ = try await projectService.setStage(
+                        projectId: projectId,
+                        stage: newStage,
+                        postId: post.id
+                    )
+                } catch {
+                    stageChangeFailed = true
+                }
+            }
+            
             return true
         } catch {
             errorMessage = PublicationErrorMessage.from(error)

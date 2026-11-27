@@ -11,15 +11,49 @@ struct FollowingFeedService {
 
     private let followingService: FollowingService
     private let pagingService: FeedPagingService
+    private let postService: PostService
 
     init(
         followingService: FollowingService =
             FollowingService(),
         pagingService: FeedPagingService =
-            FeedPagingService()
+            FeedPagingService(),
+        postService: PostService = PostService()
     ) {
         self.followingService = followingService
         self.pagingService = pagingService
+        self.postService = postService
+    }
+
+    // MARK: - Followed Projects
+
+    // shortcut: one request per followed Project. Replace with one
+    // database function when people follow dozens of Projects.
+    func fetchProjectRows() async throws -> [FollowedProjectRow] {
+
+        let projects = try await followingService
+            .fetchFollowingProjects()
+        let lastSeen = try await followingService
+            .fetchProjectLastSeen()
+
+        var rows: [FollowedProjectRow] = []
+
+        for project in projects {
+            try Task.checkCancellation()
+
+            let posts = try await postService.fetchLatestPosts(
+                projectId: project.id,
+                limit: FollowedProjectRow.postsPerProject
+            )
+
+            rows.append(FollowedProjectRow(
+                project: project,
+                posts: posts,
+                lastSeen: lastSeen[project.id]
+            ))
+        }
+
+        return rows.sorted { $0.latestAt > $1.latestAt }
     }
 
     // MARK: - Follow Source Check

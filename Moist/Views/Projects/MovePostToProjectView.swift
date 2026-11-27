@@ -31,16 +31,16 @@ struct MovePostToProjectView: View {
                         }
                     } label: {
                         HStack {
-                            Text("No Project")
+                            Text("General")
                             Spacer()
                             
-                            if post.projectId == nil {
+                            if isInDefaultProject {
                                 Image(systemName: "checkmark")
                             }
                         }
                     }
                     
-                    ForEach(projects) { project in
+                    ForEach(projects.filter { !$0.isDefault }) { project in
                         Button {
                             Task {
                                 await move(to: project.id)
@@ -80,11 +80,17 @@ struct MovePostToProjectView: View {
         }
     }
     
+    private var isInDefaultProject: Bool {
+        post.projectId == nil ||
+        projects.contains { $0.isDefault && $0.id == post.projectId }
+    }
+
     @MainActor
     private func move(to projectId: UUID?) async {
         guard !isSaving else { return }
         
-        if projectId == post.projectId {
+        if projectId == post.projectId ||
+            (projectId == nil && isInDefaultProject) {
             dismiss()
             return
         }

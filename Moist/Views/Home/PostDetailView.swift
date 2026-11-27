@@ -135,7 +135,7 @@ struct PostDetailView: View {
         .background(
             RawdeaPalette.canvas.ignoresSafeArea()
         )
-        .navigationTitle("Discussion")
+        .navigationTitle(viewModel.post?.kind == .question ? "Question" : "Discussion")
         .navigationBarTitleDisplayMode(.inline)
 
         // MARK: - Initial loading
@@ -303,7 +303,13 @@ struct PostDetailView: View {
             .listRowBackground(RawdeaPalette.canvas)
             .id("original-post")
 
-            Text("Comments")
+            if post.kind == .question {
+                questionStatus(post)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(RawdeaPalette.canvas)
+            }
+
+            Text(post.kind == .question ? "Answers" : "Comments")
                 .font(RawdeaTypography.sectionTitle)
                 .foregroundStyle(
                     RawdeaPalette.primaryText
@@ -315,7 +321,9 @@ struct PostDetailView: View {
 
             if viewModel.comments.isEmpty {
 
-                Text("No comments yet. Start the discussion.")
+                Text(post.kind == .question
+                     ? "No answers yet."
+                     : "No comments yet. Start the discussion.")
                     .font(RawdeaTypography.secondary)
                     .foregroundStyle(
                         RawdeaPalette.secondaryText
@@ -326,7 +334,7 @@ struct PostDetailView: View {
 
             } else {
 
-                ForEach(viewModel.comments) { comment in
+                ForEach(viewModel.orderedComments) { comment in
 
                     commentRow(comment)
                         .id(comment.id)
@@ -565,7 +573,7 @@ struct PostDetailView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Write a comment")
+            .accessibilityLabel(viewModel.post?.kind == .question ? "Add an answer" : "Write a comment")
 
             Spacer(minLength: 0)
 
@@ -657,7 +665,9 @@ struct PostDetailView: View {
             ) {
 
                 TextField(
-                    "Write a comment...",
+                    viewModel.post?.kind == .question
+                        ? "Add an answer..."
+                        : "Write a comment...",
                     text: $commentDraft,
                     axis: .vertical
                 )
@@ -852,7 +862,7 @@ struct PostDetailView: View {
 
         let usesColumn = !dynamicTypeSize.isAccessibilitySize
         let continuesThread = usesColumn &&
-            comment.id != viewModel.comments.last?.id
+            comment.id != viewModel.orderedComments.last?.id
 
         return VStack(
             alignment: .leading,
@@ -899,6 +909,11 @@ struct PostDetailView: View {
             if !usesColumn {
                 commentBody(comment)
             }
+
+            bestAnswerControl(comment)
+                .padding(.leading, usesColumn
+                    ? RawdeaSpacing.avatarColumn + RawdeaSpacing.sm
+                    : 0)
         }
         .frame(
             maxWidth: .infinity,
@@ -920,6 +935,68 @@ struct PostDetailView: View {
                     .padding(.leading, RawdeaSpacing.avatarColumn / 2 - 1)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
+            }
+        }
+    }
+
+    // MARK: - Question
+
+    private func questionStatus(_ post: Post) -> some View {
+
+        let isAnswered = post.bestReplyId != nil
+
+        return Label {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(isAnswered ? "Answered" : "Open")
+                    .font(RawdeaTypography.authorName)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                Text(isAnswered
+                     ? "A best answer has been chosen."
+                     : viewModel.viewerId == post.userId
+                        ? "Pick the answer that helped most."
+                        : "Waiting for the author to pick an answer.")
+                    .font(RawdeaTypography.metadata)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: isAnswered ? "checkmark.circle.fill" : "questionmark.circle")
+                .foregroundStyle(RawdeaPalette.primaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(RawdeaSpacing.sm)
+        .background(
+            RawdeaPalette.surface,
+            in: RoundedRectangle(cornerRadius: RawdeaSpacing.cardRadius)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func bestAnswerControl(_ comment: PostComment) -> some View {
+
+        if let post = viewModel.post, post.kind == .question {
+
+            let isBest = post.bestReplyId == comment.id
+            let isAuthor = viewModel.viewerId == post.userId
+
+            if isBest {
+                Text("\(Image(systemName: "checkmark")) Best answer")
+                    .font(RawdeaTypography.metadata.weight(.semibold))
+                    .foregroundStyle(RawdeaPalette.primaryText)
+            }
+
+            if isAuthor {
+                Button {
+                    Task {
+                        await viewModel.chooseBestReply(isBest ? nil : comment.id)
+                    }
+                } label: {
+                    RawdeaOutlinePillLabel(title: isBest ? "Remove choice" : "Mark as best")
+                        .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isChoosingBestReply)
             }
         }
     }

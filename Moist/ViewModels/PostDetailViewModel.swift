@@ -44,13 +44,61 @@ final class PostDetailViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var actionErrorMessage: String?
 
+    @Published private(set) var isChoosingBestReply = false
+
     private let service: PostEngagementService
+    private let postService: PostService
 
     init(
         service: PostEngagementService =
-            PostEngagementService()
+            PostEngagementService(),
+        postService: PostService = PostService()
     ) {
         self.service = service
+        self.postService = postService
+    }
+
+    /// The best answer first, when it has been loaded.
+    var orderedComments: [PostComment] {
+        guard let bestId = post?.bestReplyId,
+              let best = comments.first(where: { $0.id == bestId }) else {
+            return comments
+        }
+        return [best] + comments.filter { $0.id != bestId }
+    }
+
+    // MARK: - Best Answer
+
+    /// Pass nil to reopen the question. Nothing changes on screen
+    /// until the server accepts the choice.
+    func chooseBestReply(_ commentId: UUID?) async {
+
+        guard let post,
+              !isLoading,
+              !isChoosingBestReply else {
+            return
+        }
+
+        isChoosingBestReply = true
+        actionErrorMessage = nil
+
+        defer {
+            isChoosingBestReply = false
+        }
+
+        do {
+            try await postService.setBestReply(
+                postId: post.id,
+                commentId: commentId
+            )
+            self.post?.bestReplyId = commentId
+
+        } catch is CancellationError {
+            return
+
+        } catch {
+            actionErrorMessage = "Couldn't update the best answer. Try again."
+        }
     }
 
     // MARK: - Load
@@ -339,6 +387,11 @@ final class PostDetailViewModel: ObservableObject {
 
             comments.removeAll {
                 $0.id == commentId
+            }
+
+            // The database cleared it; the question is open again.
+            if post?.bestReplyId == commentId {
+                post?.bestReplyId = nil
             }
 
         } catch {
