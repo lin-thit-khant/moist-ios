@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: debee19.
+- Latest code commit: 8f2e19b. Review data: seed_project_lab.sql (474b2d6).
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
 ## Done (milestones 1-14, then UI/UX)
@@ -25,25 +25,27 @@ Keep this file under 60 lines.
 - Following switch 2a04467; part 2 debee19 (Explore, profile, settings, welcome, Activity):
   39 XCTest pass; light default and Dark largest text partly checked on the simulator.
 
+- Prototype 1:1 part 1 8f2e19b (style, tab bar, Home, Project, description migration):
+  40 XCTest pass; partly checked on the simulator, light and Dark.
+
 ## Standing decisions
-- Direction C ("like Threads", with Rawdea's Project signatures).
+- 1:1 with prototype Gkq2TXsyMs7N37rMVunFHx (2026-11-27): show counts; system font; darker
+  grey; keep the Following switch; no Apple sign-in, Share links or Terms until real.
 - Content loading uses RawdeaLoadingIndicator (the logo cell); buttons and actions
   keep the native spinner. No skeletons or shimmer.
-- No counts in the feed, repost or share. No AI attribution. No new major backend features.
+- No repost. No AI attribution.
 - Google sign-in parked (2026-11-27). Welcome follows Thread style (Project Lab).
 
-## Direction C rules
-- Signed in: red only on the Project name, a liked heart and the loader. SF only, no serif.
-- Outside Home: 36 pt avatar column, name and time on one line, Project line under.
-- Home (replaces the above there): no grouping; avatar header with Project name above
-  author and time, options top right, 16 pt text, actions bottom left.
-
 ## Next (implementation needs Lin's approval)
+- 1:1 part 2: Compose, Question, Explore, Activity, Profile (remove Share), Settings
+  (Password), Welcome (remove Terms wording), stage rows in the Home feed.
 - Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
 - Welcome hides the Apple and Google stubs.
 - Before release: add Terms and a privacy URL.
 
 ## Unverified
+- 1:1 part 1: People and About tabs, description editing, long-press post actions
+  (timeline rows have no visible buttons).
 - Project Lab: VoiceOver, device, empty/error states, stage menu and failure alert,
   question in Dark or large text and as reader, new counts clearing, Share sheet.
 - Home reader: VoiceOver, Contrast, Motion, device, empty/error, own/hidden posts.
