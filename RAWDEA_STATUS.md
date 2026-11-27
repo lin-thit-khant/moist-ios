@@ -9,6 +9,7 @@ Keep this file under 60 lines.
 - Latest confirmed pushed code commit: c5a645f.
 - Review seed data (supabase/review/) is loaded in the local database.
 - .cursor/ is local tool config. Never commit it.
+- Graphify ignored 57e4c03. Tool rules: AGENTS.md, Tools.
 
 ## Done (milestones 1-14, then UI/UX)
 - Earlier UI/UX batches 1-10: 48884a4 to 72f9b3f. Direction C 0-1 4674049, 2 28fded8, 3 3e30d5b, 4 7a5afa1, 5 869e7ba,
@@ -51,8 +52,7 @@ Keep this file under 60 lines.
   rejected post keeps its draft, "Posting…" pill, Project follow toggle.
 
 ## Open observations
-- Confirmation dialogs show as centred popovers on iOS 27 (native behaviour).
-- Publishing from a Project returns to Home.
+- iOS 27 shows confirmation dialogs as centred popovers (native). Project publish returns Home.
 - Home header: Project name target under 44 pt (avatar is 44); author target overlaps
   post text; tints can repeat. Critique P1 (header colour, repetition) not approved.
 - Switching the simulator to Dark while the app ran did not update it once; cause unchecked.

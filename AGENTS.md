@@ -28,6 +28,17 @@ The Moist folder name is historical. Do not rename it.
 - Leave existing concurrency warnings.
 - Commit and push only with Lin's approval. No AI attribution. Stage by path.
 
+## Tools
+- Graphify: query the code graph before broad file reads, and verify results against code
+  (about 16% of edges are inferred; results cap near 20 nodes). It does not cover
+  supabase/*.sql. After each batch run `~/.local/bin/graphify update .`
+  (graphify-out/ is gitignored).
+- Ponytail (~/.claude/skills): /ponytail-review after big batches, /ponytail-debt before
+  App Store prep. Keep /ponytail mode off for design and prototype work.
+- Appllama MCP: design research only, 1 credit per call. Study patterns; never copy an
+  app's look or features.
+- Design skills: critique for UX reviews, prototype for prototype-first design.
+
 ## Efficient work
 - Search first, then read only the needed line ranges. Do not re-read unchanged files.
 - Send xcodebuild output to a log file and print only errors and the summary.
