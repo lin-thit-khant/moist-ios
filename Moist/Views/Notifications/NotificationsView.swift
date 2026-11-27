@@ -32,14 +32,6 @@ struct NotificationsView: View {
         !viewModel.updatingIds.isEmpty
     }
 
-    private var hasUnreadNotifications: Bool {
-
-        viewModel.unreadCount > 0 ||
-        viewModel.notifications.contains {
-            !$0.isRead
-        }
-    }
-
     private var visibleGroups: [RawdeaActivityGroup] {
         RawdeaActivityGroup.grouping(
             viewModel.notifications.filter { $0.matches(filter) }
@@ -174,51 +166,7 @@ struct NotificationsView: View {
                 .ignoresSafeArea()
         )
         .navigationTitle("Activity")
-        .navigationBarTitleDisplayMode(.large)
-
-        // MARK: - Mark all read
-
-        .toolbar {
-
-            // Only offered when there is something
-            // to mark, so an empty Activity screen
-            // stays quiet.
-            if hasUnreadNotifications || viewModel.isMarkingAll {
-
-            ToolbarItem(
-                placement: .topBarTrailing
-            ) {
-
-                Button {
-
-                    Task {
-
-                        await viewModel.markAllAsRead()
-                    }
-
-                } label: {
-
-                    if viewModel.isMarkingAll {
-
-                        ProgressView()
-
-                    } else {
-
-                        Text("Mark All Read")
-                    }
-                }
-                .disabled(
-                    isBusy ||
-                    !hasUnreadNotifications
-                )
-                .accessibilityLabel(
-                    viewModel.isMarkingAll
-                    ? "Marking notifications as read"
-                    : "Mark all notifications as read"
-                )
-            }
-            }
-        }
+        .toolbarTitleDisplayMode(.inlineLarge)
 
         // Preserve visibility revalidation.
 

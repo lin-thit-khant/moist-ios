@@ -113,6 +113,9 @@ struct RawdeaPostEditor: View {
 
             // MARK: - Character status
 
+            // Compose stays quiet until the limit is near.
+            if !isPlain || draft.remainingCharacters <= 20 {
+
             HStack(
                 alignment: .firstTextBaseline,
                 spacing: RawdeaSpacing.xs
@@ -162,6 +165,7 @@ struct RawdeaPostEditor: View {
                 horizontal: false,
                 vertical: true
             )
+            }
         }
 
         // Focus after SwiftUI has presented

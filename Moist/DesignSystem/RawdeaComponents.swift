@@ -74,6 +74,8 @@ struct RawdeaFollowButton: View {
     var isBlocked: Bool = false
     /// Fills the row, as the main action of a profile.
     var isWide: Bool = false
+    /// Smaller text for a button inside a list row.
+    var isCompact: Bool = false
     let followLabel: String
     let unfollowLabel: String
     let action: () -> Void
@@ -95,9 +97,11 @@ struct RawdeaFollowButton: View {
                 Text(isFollowing ? "Following" : "Follow")
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .font(RawdeaTypography.authorName)
+            .font(isCompact
+                ? RawdeaTypography.metadata.weight(.semibold)
+                : RawdeaTypography.authorName)
             .foregroundStyle(foreground)
-            .padding(.horizontal, RawdeaSpacing.sm)
+            .padding(.horizontal, isCompact ? RawdeaSpacing.xs : RawdeaSpacing.sm)
             .padding(.vertical, RawdeaSpacing.xs)
             .frame(maxWidth: isWide ? .infinity : nil)
             .background(background, in: shape)

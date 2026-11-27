@@ -13,22 +13,12 @@ struct RawdeaSettingsView: View {
     @EnvironmentObject private var authViewModel:
         AuthViewModel
 
-    @AppStorage(RawdeaAppearance.storageKey)
-    private var selectedAppearance =
-        RawdeaAppearance.system.rawValue
-
-    @Environment(\.scenePhase)
-    private var scenePhase
-
-    @State private var canModerate = false
-
-    @State private var isCheckingModerator = false
-    @State private var moderatorCheckFailed = false
-
     @State private var showLogoutConfirmation = false
     @State private var logoutError: String?
 
     @State private var email: String?
+    // Nil until loaded, so "None" is never a guess.
+    @State private var blockedCount: Int?
 
     // Nil until loaded, so a toggle never shows a guess.
     @State private var preferences: NotificationPreferences?
@@ -36,13 +26,6 @@ struct RawdeaSettingsView: View {
     @State private var preferencesError: String?
 
     private let notificationService = NotificationService()
-
-    private var appearance: RawdeaAppearance {
-
-        RawdeaAppearance(
-            rawValue: selectedAppearance
-        ) ?? .system
-    }
 
     private var appVersion: String {
 
@@ -72,36 +55,12 @@ struct RawdeaSettingsView: View {
 
             notificationsSection
 
-            preferencesSection
-
             safetySection
-
-            moderationSection
 
             aboutSection
 
             signOutSection
 
-            #if DEBUG
-
-            Section("Developer Tools") {
-
-                NavigationLink {
-
-                    RawdeaDesignPreviewView()
-
-                } label: {
-
-                    settingsRow(
-                        title: "Design System Preview"
-                    )
-                }
-                .listRowBackground(
-                    RawdeaPalette.canvas
-                )
-            }
-
-            #endif
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
@@ -121,23 +80,11 @@ struct RawdeaSettingsView: View {
 
             await loadPreferences()
         }
-
-        // MARK: - Moderator authorization
-
-        .task {
-
-            await checkModeratorAccess()
-        }
-
-        .onChange(of: scenePhase) { _, phase in
-
-            guard phase == .active else {
-                return
-            }
-
+        .onAppear {
             Task {
-
-                await checkModeratorAccess()
+                blockedCount = try? await BlockService()
+                    .fetchBlockedUsers()
+                    .count
             }
         }
 
@@ -203,44 +150,6 @@ struct RawdeaSettingsView: View {
         }
     }
 
-    // MARK: - Preferences
-
-    private var preferencesSection: some View {
-
-        Section("Display") {
-
-            NavigationLink {
-
-                AppearanceSettingsView()
-
-            } label: {
-
-                HStack(
-                    spacing: RawdeaSpacing.sm
-                ) {
-
-                    settingsRow(
-                        title: "Appearance"
-                    )
-
-                    Text(appearance.title)
-                        .font(
-                            RawdeaTypography.metadata
-                        )
-                        .foregroundStyle(
-                            RawdeaPalette.secondaryText
-                        )
-                        .multilineTextAlignment(
-                            .trailing
-                        )
-                }
-            }
-            .listRowBackground(
-                RawdeaPalette.canvas
-            )
-        }
-    }
-
     // MARK: - Safety and privacy
 
     private var safetySection: some View {
@@ -253,9 +162,14 @@ struct RawdeaSettingsView: View {
 
             } label: {
 
-                settingsRow(
-                    title: "Blocked people"
-                )
+                VStack(alignment: .leading, spacing: 0) {
+                    settingsRow(title: "Blocked people")
+                    if let blockedCount {
+                        Text(blockedCount == 0 ? "None" : "\(blockedCount)")
+                            .font(RawdeaTypography.metadata)
+                            .foregroundStyle(RawdeaPalette.secondaryText)
+                    }
+                }
             }
             .listRowBackground(
                 RawdeaPalette.canvas
@@ -274,91 +188,6 @@ struct RawdeaSettingsView: View {
             .listRowBackground(
                 RawdeaPalette.canvas
             )
-
-            NavigationLink {
-
-                SafetyInformationView()
-
-            } label: {
-
-                settingsRow(
-                    title: "Community guidelines"
-                )
-            }
-            .listRowBackground(
-                RawdeaPalette.canvas
-            )
-        }
-    }
-
-    // MARK: - Moderator-only tools
-
-    @ViewBuilder
-    private var moderationSection: some View {
-
-        if canModerate {
-
-            Section("Moderation") {
-
-                NavigationLink {
-
-                    ModerationQueueView()
-
-                } label: {
-
-                    settingsRow(
-                        title: "Moderation Queue"
-                    )
-                }
-                .listRowBackground(
-                    RawdeaPalette.canvas
-                )
-
-                NavigationLink {
-
-                    ModerationSafetyInboxView()
-
-                } label: {
-
-                    settingsRow(
-                        title: "Safety Support Inbox"
-                    )
-                }
-                .listRowBackground(
-                    RawdeaPalette.canvas
-                )
-            }
-
-        } else if moderatorCheckFailed {
-
-            Section {
-
-                VStack(
-                    alignment: .leading,
-                    spacing: RawdeaSpacing.xs
-                ) {
-
-                    RawdeaInlineError(
-                        message:
-                            "Couldn't verify additional account permissions."
-                    )
-
-                    Button("Retry") {
-
-                        Task {
-
-                            await checkModeratorAccess()
-                        }
-                    }
-                    .frame(
-                        minHeight:
-                            RawdeaSpacing.minimumTouchTarget
-                    )
-                }
-                .listRowBackground(
-                    RawdeaPalette.canvas
-                )
-            }
         }
     }
 
@@ -673,52 +502,6 @@ struct RawdeaSettingsView: View {
         }
 
         return url
-    }
-
-    // MARK: - Authorization
-
-    @MainActor
-    private func checkModeratorAccess() async {
-
-        guard !isCheckingModerator else {
-            return
-        }
-
-        isCheckingModerator = true
-
-        // Fail closed while authorization
-        // is being checked.
-
-        canModerate = false
-        moderatorCheckFailed = false
-
-        defer {
-
-            isCheckingModerator = false
-        }
-
-        do {
-
-            let allowed = try await ModerationService()
-                .isModerator()
-
-            try Task.checkCancellation()
-
-            canModerate = allowed
-
-        } catch is CancellationError {
-
-            return
-
-        } catch {
-
-            guard !Task.isCancelled else {
-                return
-            }
-
-            canModerate = false
-            moderatorCheckFailed = true
-        }
     }
 
     // MARK: - Log out

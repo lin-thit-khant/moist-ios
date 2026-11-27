@@ -181,6 +181,14 @@ from (values
 where p.id = format('0000eeee-0001-4000-8000-%s', lpad(d.n::text, 12, '0'))::uuid
   and p.description = '';
 
+-- Likes on answers -------------------------------------------------------------
+
+insert into public.comment_likes (comment_id, user_id)
+select format('0000eeee-0003-4000-8000-%s', lpad(l.comment::text, 12, '0'))::uuid, p.id
+from (values (101, 2), (101, 4), (101, 6), (102, 1), (102, 7), (112, 3)) as l(comment, person)
+join lab_people p on p.n = l.person
+on conflict do nothing;
+
 -- Home shows these as already read: one Project caught up, one partly new ----
 
 update public.project_follows f

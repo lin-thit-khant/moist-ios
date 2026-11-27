@@ -77,7 +77,7 @@ struct DiscoveryView: View {
                 .ignoresSafeArea()
         )
         .navigationTitle("Explore")
-        .navigationBarTitleDisplayMode(.large)
+        .toolbarTitleDisplayMode(.inlineLarge)
 
         .searchable(
             text: $searchText,

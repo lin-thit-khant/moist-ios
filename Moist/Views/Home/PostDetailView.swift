@@ -6,6 +6,7 @@
 //
 
 
+import Supabase
 import SwiftUI
 
 struct PostDetailView: View {
@@ -19,6 +20,7 @@ struct PostDetailView: View {
         PostBookmarkViewModel()
 
     @State private var commentDraft = ""
+    @State private var viewerName: String?
 
     @State private var editingCommentId: UUID?
     @State private var editDraft = ""
@@ -140,6 +142,17 @@ struct PostDetailView: View {
         )
         .navigationTitle(viewModel.post?.kind == .question ? "Question" : "Discussion")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: viewModel.comments.map(\.id)) {
+            await viewModel.loadCommentLikes()
+        }
+        .task {
+            guard let user = try? await SupabaseManager.client.auth.session.user else {
+                return
+            }
+            viewerName = try? await ProfileService()
+                .fetchProfile(userId: user.id)
+                .username
+        }
         .toolbar {
             if let post = viewModel.post,
                post.kind == .question,
@@ -585,6 +598,7 @@ struct PostDetailView: View {
                 viewModel.isLiked ? .isSelected : []
             )
             .sensoryFeedback(.impact(weight: .light), trigger: likePop)
+            .frame(maxWidth: isQuestion ? .infinity : nil)
 
             Button {
 
@@ -608,8 +622,11 @@ struct PostDetailView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(viewModel.post?.kind == .question ? "Add an answer" : "Write a comment")
+            .frame(maxWidth: isQuestion ? .infinity : nil)
 
-            Spacer(minLength: 0)
+            if !isQuestion {
+                Spacer(minLength: 0)
+            }
 
             Button {
 
@@ -671,6 +688,7 @@ struct PostDetailView: View {
                 bookmarkViewModel.isBookmarked
                 ? .isSelected : []
             )
+            .frame(maxWidth: isQuestion ? .infinity : nil)
         }
         // Line the outer symbols up with the post text.
         .padding(.horizontal, RawdeaSpacing.screenInset - RawdeaSpacing.sm)
@@ -678,6 +696,10 @@ struct PostDetailView: View {
     }
 
     // MARK: - Bottom-anchored comment composer
+
+    private var isQuestion: Bool {
+        viewModel.post?.kind == .question
+    }
 
     private func commentComposer(
         scrollProxy: ScrollViewProxy
@@ -697,6 +719,14 @@ struct PostDetailView: View {
                 alignment: .bottom,
                 spacing: RawdeaSpacing.xs
             ) {
+
+                if isQuestion {
+                    RawdeaInitialAvatar(
+                        name: viewerName ?? "?",
+                        size: RawdeaSpacing.xl
+                    )
+                    .frame(height: RawdeaSpacing.minimumTouchTarget)
+                }
 
                 TextField(
                     viewModel.post?.kind == .question
@@ -718,7 +748,7 @@ struct PostDetailView: View {
                 .padding(.vertical, RawdeaSpacing.xs)
                 .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                 .background(
-                    RawdeaPalette.surface,
+                    isQuestion ? Color.clear : RawdeaPalette.surface,
                     in: RoundedRectangle(
                         cornerRadius:
                             RawdeaSpacing.lg
@@ -733,6 +763,9 @@ struct PostDetailView: View {
                 .accessibilityHint(
                     "Write up to 500 characters"
                 )
+
+                // A question's row is quiet until something is typed.
+                if !isQuestion || !commentDraft.isEmpty {
 
                 Button {
 
@@ -793,6 +826,7 @@ struct PostDetailView: View {
                     ? "Sending comment"
                     : "Send comment"
                 )
+                }
             }
 
             RawdeaCharacterLimitText(
@@ -1070,40 +1104,79 @@ struct PostDetailView: View {
 
         if let post = viewModel.post, post.kind == .question {
 
-            let isBest = post.bestReplyId == comment.id
-            let isAuthor = viewModel.viewerId == post.userId
+            HStack(spacing: RawdeaSpacing.sm) {
 
-            if isBest {
-                Text("\(Image(systemName: "checkmark")) Best answer")
-                    .font(RawdeaTypography.metadata.weight(.semibold))
-                    .foregroundStyle(RawdeaPalette.primaryText)
-            }
+                answerLikeButton(comment)
 
-            if isAuthor && (isBest || post.bestReplyId == nil) {
-                Button {
-                    Task {
-                        await viewModel.chooseBestReply(isBest ? nil : comment.id)
+                Spacer(minLength: 0)
+
+                if viewModel.viewerId == post.userId && post.bestReplyId == nil {
+                    Button {
+                        Task {
+                            await viewModel.chooseBestReply(comment.id)
+                        }
+                    } label: {
+                        Text("Mark as best")
+                            .font(RawdeaTypography.secondary.weight(.semibold))
+                            .foregroundStyle(RawdeaPalette.onAccent)
+                            .padding(.horizontal, RawdeaSpacing.sm)
+                            .padding(.vertical, RawdeaSpacing.xs)
+                            .background(
+                                RawdeaPalette.accent,
+                                in: RoundedRectangle(cornerRadius: RawdeaSpacing.xs)
+                            )
+                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                            .contentShape(Rectangle())
                     }
-                } label: {
-                    Text(isBest ? "Remove choice" : "Mark as best")
-                        .font(isBest
-                            ? RawdeaTypography.metadata
-                            : RawdeaTypography.secondary.weight(.semibold))
-                        .foregroundStyle(isBest
-                            ? RawdeaPalette.secondaryText
-                            : RawdeaPalette.onAccent)
-                        .padding(.horizontal, isBest ? 0 : RawdeaSpacing.sm)
-                        .padding(.vertical, RawdeaSpacing.xs)
-                        .background(
-                            isBest ? Color.clear : RawdeaPalette.accent,
-                            in: RoundedRectangle(cornerRadius: RawdeaSpacing.xs)
-                        )
-                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                        .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.isChoosingBestReply)
                 }
-                .buttonStyle(.plain)
-                .disabled(viewModel.isChoosingBestReply)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+
+    private func answerLikeButton(_ comment: PostComment) -> some View {
+
+        let isLiked = viewModel.likedCommentIds.contains(comment.id)
+
+        return Button {
+            Task { await viewModel.toggleCommentLike(comment.id) }
+        } label: {
+            HStack(spacing: RawdeaSpacing.xxs) {
+                if viewModel.likingCommentId == comment.id {
+                    ProgressView()
+                } else {
+                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                }
+                Text(comment.likeCount.formatted())
+                    .font(RawdeaTypography.metadata)
+            }
+            .foregroundStyle(isLiked
+                ? RawdeaPalette.accent
+                : RawdeaPalette.secondaryText)
+            .frame(
+                minWidth: RawdeaSpacing.minimumTouchTarget,
+                minHeight: RawdeaSpacing.minimumTouchTarget,
+                alignment: .leading
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.likingCommentId != nil)
+        .accessibilityLabel(isLiked ? "Unlike answer" : "Like answer")
+        .accessibilityValue(comment.likeCount == 1 ? "1 like" : "\(comment.likeCount) likes")
+    }
+
+    // The author can undo their choice from the answer's menu.
+    @ViewBuilder
+    private func removeChoiceButton(_ comment: PostComment) -> some View {
+
+        if let post = viewModel.post,
+           post.bestReplyId == comment.id,
+           post.userId == viewModel.viewerId {
+
+            Button("Remove best answer", systemImage: "xmark.circle") {
+                Task { await viewModel.chooseBestReply(nil) }
             }
         }
     }
@@ -1128,7 +1201,7 @@ struct PostDetailView: View {
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
 
                     TimelineView(.periodic(from: .now, by: 60)) { context in
-                        Text(PostRowView.relativeAge(of: comment.createdAt, at: context.date))
+                        Text(PostRowView.shortAge(of: comment.createdAt, at: context.date))
                             .font(RawdeaTypography.metadata)
                             .foregroundStyle(RawdeaPalette.secondaryText)
                             .lineLimit(1)
@@ -1144,6 +1217,12 @@ struct PostDetailView: View {
             )
             .accessibilityValue(Text(comment.createdAt, style: .relative))
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isQuestion && viewModel.post?.bestReplyId == comment.id {
+                Text("\(Image(systemName: "checkmark")) Best answer")
+                    .font(RawdeaTypography.metadata.weight(.semibold))
+                    .foregroundStyle(RawdeaPalette.primaryText)
+            }
 
             if let viewerId = viewModel.viewerId {
 
@@ -1284,14 +1363,7 @@ struct PostDetailView: View {
         _ comment: PostComment
     ) -> String {
 
-        let name = comment.author?.displayName
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            ) ?? ""
-
-        return name.isEmpty
-            ? (comment.author?.username ?? "User")
-            : name
+        comment.author?.username ?? "unknown"
     }
 
     // MARK: - Own comment options
@@ -1301,6 +1373,8 @@ struct PostDetailView: View {
     ) -> some View {
 
         Menu {
+
+            removeChoiceButton(comment)
 
             Button {
 
@@ -1345,6 +1419,8 @@ struct PostDetailView: View {
     ) -> some View {
 
         Menu {
+
+            removeChoiceButton(comment)
 
             Button {
 

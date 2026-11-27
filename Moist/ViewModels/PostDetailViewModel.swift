@@ -45,6 +45,8 @@ final class PostDetailViewModel: ObservableObject {
     @Published private(set) var actionErrorMessage: String?
 
     @Published private(set) var isChoosingBestReply = false
+    @Published private(set) var likedCommentIds: Set<UUID> = []
+    @Published private(set) var likingCommentId: UUID?
 
     private let service: PostEngagementService
     private let postService: PostService
@@ -65,6 +67,45 @@ final class PostDetailViewModel: ObservableObject {
             return comments
         }
         return [best] + comments.filter { $0.id != bestId }
+    }
+
+    // MARK: - Answer Likes
+
+    func loadCommentLikes() async {
+        // Hearts stay empty if this fails; counts still show.
+        if let liked = try? await service
+            .fetchLikedCommentIds(comments.map(\.id)) {
+            likedCommentIds = liked
+        }
+    }
+
+    // The count moves only after the server accepts the change.
+    func toggleCommentLike(_ commentId: UUID) async {
+
+        guard likingCommentId == nil else { return }
+
+        likingCommentId = commentId
+        actionErrorMessage = nil
+        defer { likingCommentId = nil }
+
+        let liked = !likedCommentIds.contains(commentId)
+
+        do {
+            try await service.setCommentLiked(liked, commentId: commentId)
+
+            if liked {
+                likedCommentIds.insert(commentId)
+            } else {
+                likedCommentIds.remove(commentId)
+            }
+
+            if let index = comments.firstIndex(where: { $0.id == commentId }) {
+                let count = comments[index].likeCount + (liked ? 1 : -1)
+                comments[index].likes = [PostCount(count: max(0, count))]
+            }
+        } catch {
+            actionErrorMessage = "Couldn't update that like. Try again."
+        }
     }
 
     // MARK: - Best Answer

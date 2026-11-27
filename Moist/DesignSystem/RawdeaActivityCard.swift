@@ -40,6 +40,11 @@ struct RawdeaActivityCard: View {
                     .foregroundStyle(RawdeaPalette.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
 
+                // Large text keeps the row's whole width for the name.
+                if dynamicTypeSize.isAccessibilitySize {
+                    age
+                }
+
                 if let detail = notification.detail {
                     Text(detail)
                         .font(RawdeaTypography.metadata)
@@ -49,10 +54,9 @@ struct RawdeaActivityCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(PostRowView.shortAge(of: notification.createdAt, at: .now))
-                .font(RawdeaTypography.metadata)
-                .foregroundStyle(RawdeaPalette.secondaryText)
-                .accessibilityLabel(PostRowView.relativeAge(of: notification.createdAt, at: .now))
+            if !dynamicTypeSize.isAccessibilitySize {
+                age
+            }
 
             if isOpening {
 
@@ -75,6 +79,13 @@ struct RawdeaActivityCard: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityValue(group.isRead ? "Read" : "Unread")
+    }
+
+    private var age: some View {
+        Text(PostRowView.shortAge(of: notification.createdAt, at: .now))
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(RawdeaPalette.secondaryText)
+            .accessibilityLabel(PostRowView.relativeAge(of: notification.createdAt, at: .now))
     }
 
     @ViewBuilder

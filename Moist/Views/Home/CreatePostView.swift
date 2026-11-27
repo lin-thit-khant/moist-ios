@@ -250,8 +250,6 @@ struct CreatePostView: View {
 
                 kindDetails
 
-                moderationNotice
-
                 if let error = viewModel.errorMessage {
                     RawdeaInlineError(message: error)
                 }
@@ -406,7 +404,7 @@ struct CreatePostView: View {
                 stageChoice(current: current, next: nextStage)
 
                 detailText(movesStage
-                    ? "Followers will see the Project move to \(nextStage.title)."
+                    ? "Followers will see \"\(selectedProject?.name ?? "Project") moved to \(nextStage.title)\" on Home."
                     : "The stage stays the same.")
             }
 
@@ -466,37 +464,6 @@ struct CreatePostView: View {
             .font(RawdeaTypography.metadata)
             .foregroundStyle(RawdeaPalette.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
-    }
-
-    // MARK: - Moderation disclosure
-
-    private var moderationNotice: some View {
-
-        HStack(
-            alignment: .top,
-            spacing: RawdeaSpacing.xs
-        ) {
-
-            Image(
-                systemName: "checkmark.shield"
-            )
-            .foregroundStyle(
-                RawdeaPalette.secondaryText
-            )
-            .accessibilityHidden(true)
-
-            Text(
-                "Posts are checked against Rawdea's content rules before publication."
-            )
-            .font(RawdeaTypography.metadata)
-            .foregroundStyle(
-                RawdeaPalette.secondaryText
-            )
-            .fixedSize(
-                horizontal: false,
-                vertical: true
-            )
-        }
     }
 
     // MARK: - Dismissal

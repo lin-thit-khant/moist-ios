@@ -583,6 +583,64 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         _ = try await client.auth.session
     }
 
+    // MARK: - Answer Likes
+
+    func testAnswerLikesFollowCommentRules() async throws {
+
+        let author = try await makeUser()
+        let replier = try await makeUser()
+        let reader = try await makeUser()
+
+        let question = try await author.posts.createPost(
+            content: "Like which?", kind: .question
+        )
+        let answer = try await replier.engagement.addComment(
+            postId: question.id, content: "This"
+        )
+
+        try await reader.engagement.setCommentLiked(true, commentId: answer.id)
+
+        await assertThrows("One like each") {
+            try await reader.engagement
+                .setCommentLiked(true, commentId: answer.id)
+        }
+        await assertThrows("Nobody likes for someone else") {
+            try await author.client.from("comment_likes")
+                .insert([
+                    "comment_id": answer.id.uuidString,
+                    "user_id": replier.id.uuidString
+                ])
+                .execute()
+        }
+
+        let page = try await author.engagement
+            .fetchCommentsPage(postId: question.id, before: nil)
+        XCTAssertEqual(page.items.first?.likeCount, 1)
+
+        let mine = try await reader.engagement.fetchLikedCommentIds([answer.id])
+        XCTAssertEqual(mine, [answer.id])
+        let theirs = try await author.engagement.fetchLikedCommentIds([answer.id])
+        XCTAssertTrue(theirs.isEmpty)
+
+        // The Activity row quotes the answer.
+        try await author.posts.setBestReply(
+            postId: question.id, commentId: answer.id
+        )
+        let received = try await author.activity.fetchNotifications()
+        XCTAssertEqual(
+            received.first { $0.kind == .postComment }?.detail, "“This”"
+        )
+
+        // Blocking hides the answer and stops new likes on it.
+        try await reader.engagement.setCommentLiked(false, commentId: answer.id)
+        try await reader.blocks.blockUser(userId: replier.id)
+
+        await assertThrows("A hidden answer cannot be liked") {
+            try await reader.engagement
+                .setCommentLiked(true, commentId: answer.id)
+        }
+    }
+
     // MARK: - Fixtures
 
     @MainActor

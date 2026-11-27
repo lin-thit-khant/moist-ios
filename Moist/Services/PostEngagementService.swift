@@ -64,7 +64,8 @@ struct PostEngagementService {
             id,
             display_name,
             username
-        )
+        ),
+        likes:comment_likes(count)
         """
     }
 
@@ -255,6 +256,50 @@ struct PostEngagementService {
             .execute()
     }
 
+    // MARK: - Answer Likes
+
+    /// Which of these comments the viewer has liked.
+    func fetchLikedCommentIds(
+        _ commentIds: [UUID]
+    ) async throws -> Set<UUID> {
+
+        guard !commentIds.isEmpty else { return [] }
+
+        let user = try await client.auth.session.user
+
+        let rows: [CommentLikeRow] = try await client
+            .from("comment_likes")
+            .select("comment_id, user_id")
+            .eq("user_id", value: user.id)
+            .in("comment_id", values: commentIds.map(\.uuidString))
+            .execute()
+            .value
+
+        return Set(rows.map(\.commentId))
+    }
+
+    func setCommentLiked(
+        _ liked: Bool,
+        commentId: UUID
+    ) async throws {
+
+        let user = try await client.auth.session.user
+
+        if liked {
+            try await client
+                .from("comment_likes")
+                .insert(CommentLikeRow(commentId: commentId, userId: user.id))
+                .execute()
+        } else {
+            try await client
+                .from("comment_likes")
+                .delete()
+                .eq("comment_id", value: commentId)
+                .eq("user_id", value: user.id)
+                .execute()
+        }
+    }
+
     // MARK: - Comments
 
     func addComment(
@@ -394,5 +439,16 @@ private struct PostLikePresence: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case postId = "post_id"
+    }
+}
+
+private struct CommentLikeRow: Codable {
+
+    let commentId: UUID
+    let userId: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case commentId = "comment_id"
+        case userId = "user_id"
     }
 }

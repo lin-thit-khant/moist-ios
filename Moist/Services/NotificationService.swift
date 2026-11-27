@@ -50,6 +50,10 @@ struct NotificationService {
                 stage,
                 post:posts!notifications_post_id_fkey(
                     kind,
+                    content,
+                    project:projects!posts_project_owner_fk(name)
+                ),
+                comment:post_comments!notifications_comment_id_fkey(
                     content
                 ),
                 project:projects!notifications_project_id_fkey(

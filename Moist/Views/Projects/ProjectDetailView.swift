@@ -424,7 +424,7 @@ struct ProjectDetailView: View {
                     Button {
                         openPostRoute?(.author(current.userId))
                     } label: {
-                        Text(ownerName.map { "\($0) · \(startedText)" } ?? startedText)
+                        Text(ownerProfile.map { "\($0.username) · \(startedText)" } ?? startedText)
                             .font(RawdeaTypography.secondary)
                             .foregroundStyle(RawdeaPalette.secondaryText)
                             .multilineTextAlignment(.leading)

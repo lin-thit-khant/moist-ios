@@ -30,8 +30,6 @@ struct ProfileView: View {
     @StateObject private var followViewModel = UserFollowViewModel()
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
     
-    @State private var isShowingCreateProject = false
-    @State private var newProjectName = ""
     @State private var selectedPostForEditing: Post?
     @State private var selectedPostForMoving: Post?
     
@@ -150,55 +148,6 @@ struct ProfileView: View {
                             chips: { projectChips },
                             posts: { postsSection(profile: profile) }
                         )
-                        .sheet(isPresented: $isShowingCreateProject) {
-                            NavigationStack {
-                                Form {
-                                    TextField("Project name", text: $newProjectName)
-                                        .textInputAutocapitalization(.words)
-                                        .autocorrectionDisabled()
-                                    if let errorMessage = projectsViewModel.errorMessage {
-                                        Text(errorMessage)
-                                            .foregroundStyle(.red)
-                                    }
-                                }
-                                .scrollContentBackground(.hidden)
-                                .background(
-                                    RawdeaPalette.canvas
-                                )
-                                .navigationTitle("New Project")
-                                .navigationBarTitleDisplayMode(.inline)
-                                .toolbar {
-                                    ToolbarItem(placement: .cancellationAction) {
-                                        Button("Cancel") {
-                                            isShowingCreateProject = false
-                                        }
-                                    }
-                                    
-                                    ToolbarItem(placement: .confirmationAction) {
-                                        Button("Create") {
-                                            Task {
-                                                let created = await projectsViewModel.creatProject(
-                                                    name: newProjectName
-                                                )
-                                                
-                                                if created {
-                                                    isShowingCreateProject = false
-                                                    newProjectName = ""
-                                                }
-                                            }
-                                        }
-                                        .disabled(
-                                            newProjectName.trimmingCharacters(
-                                                in: .whitespacesAndNewlines
-                                            ).isEmpty ||
-                                            RawdeaTextLength.count(newProjectName) > 80 ||
-                                            projectsViewModel.isCreating
-                                        )
-                                    }
-                                }
-                                .interactiveDismissDisabled(projectsViewModel.isCreating)
-                            }
-                        }
                     }
                     .padding(
                         .horizontal,
@@ -575,12 +524,6 @@ struct ProfileView: View {
 
         ForEach(projectsViewModel.projects.filter(\.isArchived)) { project in
             RawdeaProjectChip(project: project)
-        }
-
-        RawdeaChip(title: "New Project", symbol: "plus", isSelected: false) {
-            projectsViewModel.clearError()
-            newProjectName = ""
-            isShowingCreateProject = true
         }
     }
 }

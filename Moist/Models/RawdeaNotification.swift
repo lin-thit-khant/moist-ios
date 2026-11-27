@@ -35,6 +35,11 @@ enum RawdeaActivityFilter: String, CaseIterable {
 struct NotificationPost: Decodable {
     let kind: PostKind
     let content: String
+    var project: NotificationProject? = nil
+}
+
+struct NotificationComment: Decodable {
+    let content: String
 }
 
 struct NotificationProject: Decodable {
@@ -60,6 +65,7 @@ struct RawdeaNotification: Identifiable, Decodable {
 
     var stage: ProjectStage? = nil
     var post: NotificationPost? = nil
+    var comment: NotificationComment? = nil
     var project: NotificationProject? = nil
 
     enum CodingKeys: String, CodingKey {
@@ -81,25 +87,16 @@ struct RawdeaNotification: Identifiable, Decodable {
         case stage
         case post
         case project
+        case comment
     }
 
     // MARK: - Display
 
     var actorName: String {
-
-        let displayName = actor?.displayName
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            ) ?? ""
-
-        if !displayName.isEmpty {
-            return displayName
-        }
-
-        return actor?.username ?? "Someone"
+        actor?.username ?? "Someone"
     }
 
-    private var isAnswer: Bool {
+        private var isAnswer: Bool {
         kind == .postComment && post?.kind == .question
     }
 
@@ -117,7 +114,7 @@ struct RawdeaNotification: Identifiable, Decodable {
             return "started following you"
 
         case .projectFollow:
-            return "followed \(project?.name ?? "your Project")"
+            return "started following \(project?.name ?? "your Project")"
 
         case .postLike:
             guard let post else { return "liked your post" }
@@ -141,7 +138,23 @@ struct RawdeaNotification: Identifiable, Decodable {
     }
 
     var detail: String? {
-        kind == .stageChange ? "A Project you follow" : post?.content
+
+        switch kind {
+
+        case .stageChange:
+            return "A Project you follow"
+
+        case .postComment:
+            return comment.map { "“\($0.content)”" } ?? post?.content
+
+        case .bestAnswer:
+            guard let post else { return nil }
+            guard let name = post.project?.name else { return post.content }
+            return "\(name) · \(post.content)"
+
+        default:
+            return post?.content
+        }
     }
 
     func matches(_ filter: RawdeaActivityFilter) -> Bool {

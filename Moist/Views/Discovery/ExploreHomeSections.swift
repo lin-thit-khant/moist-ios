@@ -237,6 +237,7 @@ struct ExploreHomeSections: View {
                 RawdeaFollowButton(
                     isFollowing: viewModel.followedIds.contains(item.id),
                     isUpdating: viewModel.updatingId == item.id,
+                    isCompact: true,
                     followLabel: "Follow \(item.project.name)",
                     unfollowLabel: "Unfollow \(item.project.name)"
                 ) {

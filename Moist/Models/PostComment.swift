@@ -18,6 +18,9 @@ struct PostComment: Identifiable, Decodable {
     let createdAt: Date
 
     var author: PostAuthor?
+    var likes: [PostCount]? = nil
+
+    var likeCount: Int { likes?.first?.count ?? 0 }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -26,6 +29,7 @@ struct PostComment: Identifiable, Decodable {
         case content
         case createdAt = "created_at"
         case author
+        case likes
     }
 }
 
