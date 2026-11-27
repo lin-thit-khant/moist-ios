@@ -5,6 +5,7 @@
 //  Created by Lin Thit Khant on 30/10/2569 BE.
 //
 
+import AuthenticationServices
 import Foundation
 import Combine
 import Supabase
@@ -141,6 +142,53 @@ final class AuthViewModel: ObservableObject {
 
             errorMessage =
                 "Login failed. Check your email and password, then try again."
+        }
+    }
+
+    // MARK: - Google
+
+    func signInWithGoogle() async {
+
+        guard !isLoading else {
+            return
+        }
+
+        errorMessage = nil
+        statusMessage = nil
+        isLoading = true
+
+        defer {
+            isLoading = false
+        }
+
+        do {
+
+            // Opens the system web sign-in sheet. The
+            // client secret stays on the Supabase server.
+
+            let session =
+                try await SupabaseManager.client.auth
+                    .signInWithOAuth(
+                        provider: .google,
+                        redirectTo: URL(
+                            string:
+                                "rawdea://login-callback"
+                        )
+                    )
+
+            clearRecoveryState()
+
+            applySession(session)
+
+        } catch let error as ASWebAuthenticationSessionError
+            where error.code == .canceledLogin {
+
+            // Closing the sheet is not an error.
+
+        } catch {
+
+            errorMessage =
+                "Google sign-in failed. Please try again."
         }
     }
 

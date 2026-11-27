@@ -12,6 +12,8 @@ struct WelcomeView: View {
     @ObservedObject var authViewModel:
         AuthViewModel
 
+    @State private var notReadyProvider: String?
+
     var body: some View {
 
         GeometryReader { geometry in
@@ -19,57 +21,139 @@ struct WelcomeView: View {
             ScrollView {
 
                 VStack(
-                    spacing: RawdeaSpacing.lg
+                    alignment: .leading,
+                    spacing: 0
                 ) {
 
-                    Spacer(
-                        minLength: RawdeaSpacing.xl
-                    )
-
-                    RawdeaAuthBrand()
+                    introduction
 
                     Spacer(
                         minLength: RawdeaSpacing.xl
                     )
 
-                    accountActions
+                    if let error =
+                        authViewModel.errorMessage {
 
-                    safetyLink
+                        RawdeaInlineError(
+                            message: error
+                        )
+                        .padding(.bottom, RawdeaSpacing.sm)
+                    }
+
+                    choices
                 }
-                .frame(maxWidth: 480)
+                .frame(maxWidth: 480, alignment: .leading)
                 .padding(
                     .horizontal,
-                    RawdeaSpacing.screenInset
+                    RawdeaSpacing.authInset
                 )
-                .padding(
-                    .vertical,
-                    RawdeaSpacing.lg
-                )
+                .padding(.top, RawdeaSpacing.md)
+                .padding(.bottom, RawdeaSpacing.xxs)
                 .frame(
                     minHeight: geometry.size.height
                 )
                 .frame(maxWidth: .infinity)
             }
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .background(
-            RawdeaPalette.canvas
-                .ignoresSafeArea()
-        )
-        .navigationBarTitleDisplayMode(.inline)
+        .background {
+
+            ZStack {
+
+                RawdeaPalette.authCanvas
+
+                RawdeaAuthGrid()
+            }
+            .ignoresSafeArea()
+        }
+        .toolbar(.hidden, for: .navigationBar)
 
         .onAppear {
 
             authViewModel.clearMessages()
         }
+
+        .alert(
+            "Not available yet",
+            isPresented: Binding(
+                get: { notReadyProvider != nil },
+                set: { if !$0 { notReadyProvider = nil } }
+            )
+        ) {
+
+            Button("OK", role: .cancel) {}
+
+        } message: {
+
+            Text(
+                RawdeaSocialSignIn.notReadyMessage(
+                    notReadyProvider ?? ""
+                )
+            )
+        }
     }
 
-    // MARK: - Account actions
+    // MARK: - Introduction
 
-    private var accountActions: some View {
+    private var introduction: some View {
 
         VStack(
-            spacing: RawdeaSpacing.sm
+            alignment: .leading,
+            spacing: 0
         ) {
+
+            RawdeaAuthMonoLabel("Rawdea · v1")
+                .accessibilityLabel("Rawdea, version 1")
+
+            RawdeaAuthHeadline(
+                "Ideas worth following.",
+                size: 40,
+                largest: 64
+            )
+            .padding(.top, 46)
+
+            Text("Keep up with people and the Projects they build.")
+                .font(RawdeaTypography.body)
+                .foregroundStyle(
+                    RawdeaPalette.authSecondaryText
+                )
+                .fixedSize(
+                    horizontal: false,
+                    vertical: true
+                )
+                .padding(.top, 14)
+
+            HStack(spacing: RawdeaSpacing.sm) {
+
+                RawdeaCellMark()
+
+                RawdeaAuthMonoLabel("People\nProjects")
+                    .accessibilityLabel("People and Projects")
+            }
+            .padding(.top, RawdeaSpacing.lg)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Sign-in choices
+
+    private var choices: some View {
+
+        VStack(spacing: 10) {
+
+            Button {
+
+                // Needs the Sign in with Apple capability.
+                notReadyProvider = "Apple"
+
+            } label: {
+
+                RawdeaAuthChoiceLabel(
+                    title: "Continue with Apple",
+                    symbol: "apple.logo",
+                    look: .apple
+                )
+            }
 
             NavigationLink {
 
@@ -79,103 +163,59 @@ struct WelcomeView: View {
 
             } label: {
 
-                Text("Create account")
-                    .font(
-                        RawdeaTypography.button
-                    )
-                    .foregroundStyle(
-                        RawdeaPalette.onPrimaryFill
-                    )
-                    .multilineTextAlignment(.center)
-                    .frame(
-                        maxWidth: .infinity,
-                        minHeight:
-                            RawdeaSpacing.minimumTouchTarget
-                    )
-                    .padding(
-                        .vertical,
-                        RawdeaSpacing.xs
-                    )
-                    .background(
-                        RawdeaPalette.primaryFill,
-                        in: RoundedRectangle(
-                            cornerRadius:
-                                RawdeaSpacing.buttonRadius
-                        )
-                    )
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-
-                LoginView(
-                    authViewModel: authViewModel
+                RawdeaAuthChoiceLabel(
+                    title: "Continue with email",
+                    symbol: "envelope",
+                    look: .email
                 )
+            }
+
+            Button {
+
+                guard RawdeaSocialSignIn.isGoogleReady else {
+                    notReadyProvider = "Google"
+                    return
+                }
+
+                Task {
+                    await authViewModel.signInWithGoogle()
+                }
 
             } label: {
 
-                Text("Log in")
-                    .font(
-                        RawdeaTypography.button
-                    )
-                    .foregroundStyle(
-                        RawdeaPalette.primaryText
-                    )
-                    .multilineTextAlignment(.center)
-                    .frame(
-                        maxWidth: .infinity,
-                        minHeight:
-                            RawdeaSpacing.minimumTouchTarget
-                    )
-                    .padding(
-                        .vertical,
-                        RawdeaSpacing.xs
-                    )
-                    .overlay {
-
-                        RoundedRectangle(
-                            cornerRadius:
-                                RawdeaSpacing.buttonRadius
-                        )
-                        .strokeBorder(
-                            RawdeaPalette.activityOutline,
-                            lineWidth: 1
-                        )
-                    }
-                    .contentShape(Rectangle())
+                RawdeaAuthChoiceLabel(
+                    title: "Continue with Google",
+                    look: .outline,
+                    isLoading: authViewModel.isLoading
+                )
             }
-            .buttonStyle(.plain)
-        }
-        .disabled(authViewModel.isLoading)
-    }
 
-    // MARK: - Public safety information
+            VStack(spacing: RawdeaSpacing.xxs) {
 
-    private var safetyLink: some View {
+                NavigationLink {
 
-        NavigationLink {
+                    LoginView(
+                        authViewModel: authViewModel
+                    )
 
-            SafetyInformationView()
+                } label: {
 
-        } label: {
+                    RawdeaAuthSwitchLabel(
+                        prompt: "Already have an account?",
+                        action: "Log in"
+                    )
+                }
 
-            Label(
-                "Community Guidelines & Support",
-                systemImage: "shield"
-            )
-            .font(RawdeaTypography.metadata)
-            .foregroundStyle(
-                RawdeaPalette.secondaryText
-            )
-            .multilineTextAlignment(.center)
-            .frame(
-                maxWidth: .infinity,
-                minHeight:
-                    RawdeaSpacing.minimumTouchTarget
-            )
+                RawdeaAuthLegalLink()
+            }
         }
         .buttonStyle(.plain)
         .disabled(authViewModel.isLoading)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        WelcomeView(authViewModel: AuthViewModel())
     }
 }

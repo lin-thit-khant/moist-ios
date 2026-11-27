@@ -76,6 +76,61 @@ enum RawdeaPalette {
         dark: 0x17191C
     )
 
+    // MARK: - Welcome and sign-in ("Index")
+
+    // Green is used only before the user is signed in.
+
+    static let authCanvas = adaptive(
+        light: 0xFFFFFF,
+        dark: 0x0B110E
+    )
+
+    static let authText = adaptive(
+        light: 0x0E1A14,
+        dark: 0xEAF3EE
+    )
+
+    static let authSecondaryText = adaptive(
+        light: 0x56625C,
+        dark: 0xA7B3AD,
+        increasedLight: 0x34403A,
+        increasedDark: 0xCDD7D2
+    )
+
+    static let authLine = adaptive(
+        light: 0xCFD8D2,
+        dark: 0x2B3A32,
+        increasedLight: 0x7A877F,
+        increasedDark: 0x74867C
+    )
+
+    static let authAccent = adaptive(
+        light: 0x0E7A4F,
+        dark: 0x3DDC97,
+        increasedLight: 0x095C3B,
+        increasedDark: 0x6BEBB2
+    )
+
+    // Use on top of authAccent.
+
+    static let onAuthAccent = adaptive(
+        light: 0xFFFFFF,
+        dark: 0x08130D
+    )
+
+    // Apple's button is black in Light Mode
+    // and white in Dark Mode.
+
+    static let appleButtonFill = adaptive(
+        light: 0x000000,
+        dark: 0xFFFFFF
+    )
+
+    static let onAppleButtonFill = adaptive(
+        light: 0xFFFFFF,
+        dark: 0x000000
+    )
+
     // MARK: - Avatar tints
 
     // Soft backgrounds for initial avatars. Primary text

@@ -49,6 +49,20 @@ struct RawdeaLoadingIndicator: View {
     }
 }
 
+// MARK: - Still mark
+
+/// The app logo's cell, at rest. Decorative.
+struct RawdeaCellMark: View {
+
+    var size: CGFloat = 44
+
+    var body: some View {
+        CellCanvas(progress: nil)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Pull to refresh
 
 extension View {

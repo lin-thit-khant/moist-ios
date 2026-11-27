@@ -42,7 +42,7 @@ enum RawdeaAuthFormMode {
             return "Welcome back"
 
         case .signUp:
-            return "Make space for your ideas"
+            return "Create your account"
 
         case .forgotPassword:
             return "Reset your password"
@@ -58,11 +58,11 @@ enum RawdeaAuthFormMode {
 
         case .login:
 
-            return "Log in to continue writing and exploring."
+            return "Log in with your email."
 
         case .signUp:
 
-            return "Create your Rawdea account and start sharing your thoughts."
+            return "Use your email. You can change your username later."
 
         case .forgotPassword:
 
@@ -100,7 +100,24 @@ struct RawdeaAuthFormView: View {
     @ObservedObject var authViewModel:
         AuthViewModel
 
-    let mode: RawdeaAuthFormMode
+    // Log in and Create account switch in place,
+    // so Back always returns to the welcome screen.
+
+    @State private var mode: RawdeaAuthFormMode
+
+    init(
+        authViewModel: AuthViewModel,
+        mode: RawdeaAuthFormMode
+    ) {
+        self.authViewModel = authViewModel
+        _mode = State(initialValue: mode)
+    }
+
+    /// Log in and Create account use the welcome screen's style.
+    private var isEntry: Bool {
+
+        mode == .login || mode == .signUp
+    }
 
     @State private var email = ""
     @State private var password = ""
@@ -167,74 +184,96 @@ struct RawdeaAuthFormView: View {
 
     var body: some View {
 
-        ScrollView {
+        GeometryReader { geometry in
 
-            VStack(
-                alignment: .leading,
-                spacing: RawdeaSpacing.lg
-            ) {
+            ScrollView {
 
-                RawdeaAuthHeading(
-                    title: mode.heading,
-                    message: mode.message
-                )
-
-                fields
-                    .disabled(
-                        authViewModel.isLoading
-                    )
-
-                validationMessages
-
-                if let error =
-                    authViewModel.errorMessage {
-
-                    RawdeaInlineError(
-                        message: error
-                    )
-                }
-
-                if let status =
-                    authViewModel.statusMessage {
-
-                    RawdeaAuthStatus(
-                        message: status
-                    )
-                }
-
-                RawdeaPrimaryButton(
-                    mode.buttonTitle,
-                    isLoading:
-                        authViewModel.isLoading,
-                    isEnabled:
-                        canSubmit
+                VStack(
+                    alignment: .leading,
+                    spacing: RawdeaSpacing.lg
                 ) {
 
-                    Task {
-                        await submit()
+                    heading
+
+                    fields
+                        .disabled(
+                            authViewModel.isLoading
+                        )
+
+                    validationMessages
+
+                    if let error =
+                        authViewModel.errorMessage {
+
+                        RawdeaInlineError(
+                            message: error
+                        )
+                    }
+
+                    if let status =
+                        authViewModel.statusMessage {
+
+                        RawdeaAuthStatus(
+                            message: status
+                        )
+                    }
+
+                    RawdeaPrimaryButton(
+                        mode.buttonTitle,
+                        isLoading:
+                            authViewModel.isLoading,
+                        isEnabled:
+                            canSubmit,
+                        look:
+                            isEntry ? .auth : .standard
+                    ) {
+
+                        Task {
+                            await submit()
+                        }
+                    }
+
+                    additionalActions
+
+                    if isEntry {
+
+                        Spacer(minLength: 0)
+
+                        entryFooter
                     }
                 }
-
-                additionalActions
+                .frame(maxWidth: 480)
+                .padding(
+                    .horizontal,
+                    isEntry
+                    ? RawdeaSpacing.authInset
+                    : RawdeaSpacing.screenInset
+                )
+                .padding(
+                    .vertical,
+                    isEntry
+                    ? RawdeaSpacing.xs
+                    : RawdeaSpacing.xl
+                )
+                .frame(
+                    minHeight:
+                        isEntry ? geometry.size.height : nil,
+                    alignment: .top
+                )
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: 480)
-            .padding(
-                .horizontal,
-                RawdeaSpacing.screenInset
-            )
-            .padding(
-                .vertical,
-                RawdeaSpacing.xl
-            )
-            .frame(maxWidth: .infinity)
+            .scrollDismissesKeyboard(.interactively)
         }
-        .scrollDismissesKeyboard(.interactively)
         .background(
-            RawdeaPalette.canvas
-                .ignoresSafeArea()
+            (
+                isEntry
+                ? RawdeaPalette.authCanvas
+                : RawdeaPalette.canvas
+            )
+            .ignoresSafeArea()
         )
         .navigationTitle(
-            mode.navigationTitle
+            isEntry ? "" : mode.navigationTitle
         )
         .navigationBarTitleDisplayMode(.inline)
 
@@ -266,6 +305,85 @@ struct RawdeaAuthFormView: View {
         }
     }
 
+    // MARK: - Heading
+
+    @ViewBuilder
+    private var heading: some View {
+
+        if isEntry {
+
+            VStack(
+                alignment: .leading,
+                spacing: RawdeaSpacing.xs
+            ) {
+
+                RawdeaAuthHeadline(
+                    mode.heading,
+                    size: 28,
+                    largest: 56
+                )
+
+                Text(mode.message)
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(
+                        RawdeaPalette.authSecondaryText
+                    )
+                    .fixedSize(
+                        horizontal: false,
+                        vertical: true
+                    )
+            }
+            .frame(
+                maxWidth: .infinity,
+                alignment: .leading
+            )
+
+        } else {
+
+            RawdeaAuthHeading(
+                title: mode.heading,
+                message: mode.message
+            )
+        }
+    }
+
+    // MARK: - Switch and legal
+
+    private var entryFooter: some View {
+
+        VStack(spacing: RawdeaSpacing.xxs) {
+
+            Button {
+
+                // A password typed for one mode
+                // should not carry into the other.
+                password = ""
+                mode = mode == .login ? .signUp : .login
+                authViewModel.clearMessages()
+
+            } label: {
+
+                RawdeaAuthSwitchLabel(
+                    prompt:
+                        mode == .login
+                        ? "New here?"
+                        : "Have an account?",
+                    action:
+                        mode == .login
+                        ? "Create account"
+                        : "Log in"
+                )
+            }
+            .buttonStyle(.plain)
+
+            if mode == .signUp {
+
+                RawdeaAuthLegalLink()
+            }
+        }
+        .disabled(authViewModel.isLoading)
+    }
+
     // MARK: - Fields
 
     @ViewBuilder
@@ -279,7 +397,8 @@ struct RawdeaAuthFormView: View {
             if mode != .resetPassword {
 
                 RawdeaEmailField(
-                    email: $email
+                    email: $email,
+                    isBoxed: isEntry
                 )
             }
 
@@ -293,7 +412,8 @@ struct RawdeaAuthFormView: View {
                     password: $password,
                     isNewPassword:
                         mode == .signUp ||
-                        mode == .resetPassword
+                        mode == .resetPassword,
+                    isBoxed: isEntry
                 )
             }
 
@@ -372,7 +492,7 @@ struct RawdeaAuthFormView: View {
                         RawdeaTypography.secondary
                     )
                     .foregroundStyle(
-                        RawdeaPalette.primaryText
+                        RawdeaPalette.authText
                     )
                     .frame(
                         maxWidth: .infinity,
@@ -386,35 +506,6 @@ struct RawdeaAuthFormView: View {
             )
         }
 
-        if mode == .signUp {
-
-            NavigationLink {
-
-                SafetyInformationView()
-
-            } label: {
-
-                Text("Read our Community Guidelines")
-                    .underline()
-                    .font(
-                        RawdeaTypography.metadata
-                    )
-                    .foregroundStyle(
-                        RawdeaPalette.primaryText
-                    )
-                    .multilineTextAlignment(.center)
-                    .frame(
-                        maxWidth: .infinity,
-                        minHeight:
-                            RawdeaSpacing.minimumTouchTarget
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(
-                authViewModel.isLoading
-            )
-        }
-        
         if mode == .resetPassword {
 
             Button("Cancel and Log Out") {

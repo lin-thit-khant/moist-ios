@@ -84,6 +84,11 @@ enum RawdeaSpacing {
 
     static let buttonRadius: CGFloat = 12
 
+    // Welcome and sign-in screens.
+    static let authInset: CGFloat = 24
+    static let authButtonRadius: CGFloat = 10
+    static let authButtonHeight: CGFloat = 52
+
     static let minimumTouchTarget: CGFloat = 44
 
     // Avatar column beside a post in a feed.
