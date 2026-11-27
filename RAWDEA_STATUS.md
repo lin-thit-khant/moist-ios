@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest confirmed pushed code commit: 607dbd3.
+- Latest code commit: fbc14b9.
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
 ## Done (milestones 1-14, then UI/UX)
@@ -18,9 +18,10 @@ Keep this file under 60 lines.
 - Home reader c5a645f: default and largest text, light and dark, tabs, Project/name taps.
 - Welcome, Log in, Create account 607dbd3: default and largest text, light and dark,
   mode switch, legal link, Forgot password, local email login.
-- Project Lab data layer 0b95f6c (local, not pushed; hosted database not migrated):
-  33 XCTest pass; local Supabase tests need TEST_RUNNER_RAWDEA_LOCAL_SERVICE_KEY, else
-  skip. Builds from before this migration cannot unfollow or count Project followers.
+- Project Lab data layer 0b95f6c (hosted database not migrated). Local Supabase tests need
+  TEST_RUNNER_RAWDEA_LOCAL_SERVICE_KEY, else skip. Older builds cannot unfollow Projects.
+- Project Lab UI part 1 fbc14b9 (Home list, timeline, compose, question): 37 XCTest pass;
+  light default and Dark largest text partly checked on the simulator.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
@@ -36,14 +37,14 @@ Keep this file under 60 lines.
   author and time, options top right, 16 pt text, actions bottom left.
 
 ## Next (implementation needs Lin's approval)
-- Project Lab batch 2, UI in Thread style (prototype Gkq2TXsyMs7N37rMVunFHx): Home
-  (Following default: Project list), Project timeline, Compose, Question, Explore,
-  Activity, Profile, Settings, Welcome. "Remove from Project" now means the default
-  "General" Project.
+- Project Lab UI part 2 (prototype Gkq2TXsyMs7N37rMVunFHx): Explore, Activity, Profile,
+  Settings, Welcome. New notification types and toggles need a database change first.
 - Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
 - Before release: hide or finish the Apple and Google stubs; add Terms and a privacy URL.
 
 ## Unverified
+- Project Lab: VoiceOver, device, empty/error states, stage menu and failure alert,
+  question in Dark or large text and as reader, public profile, new counts clearing.
 - Home reader: VoiceOver, Contrast, Motion, device, empty/error, own/hidden posts.
 - Pull to refresh: other 9 screens, iOS 17. Cell loader: other screens, Load More, Contrast, device.
 - VoiceOver playback. Like bounce, haptic, Reduce Motion fade. Reset password screen.
@@ -53,6 +54,7 @@ Keep this file under 60 lines.
 - Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
+- Following with any followed Project hides followed people's posts (All Ideas only).
 - iOS 27 shows confirmation dialogs as centred popovers (native). Project publish returns Home.
 - Home header: Project name target under 44 pt (avatar is 44); author target overlaps
   post text; tints can repeat. Critique P1 (header colour, repetition) not approved.
