@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: fbc14b9.
+- Latest code commit: debee19 (local, not pushed).
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
 ## Done (milestones 1-14, then UI/UX)
@@ -22,13 +22,15 @@ Keep this file under 60 lines.
   TEST_RUNNER_RAWDEA_LOCAL_SERVICE_KEY, else skip. Older builds cannot unfollow Projects.
 - Project Lab UI part 1 fbc14b9 (Home list, timeline, compose, question): 37 XCTest pass;
   light default and Dark largest text partly checked on the simulator.
+- Following switch 2a04467; part 2 debee19 (Explore, profile, settings, welcome, Activity):
+  39 XCTest pass; light default and Dark largest text partly checked on the simulator.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
 - Content loading uses RawdeaLoadingIndicator (the logo cell); buttons and actions
   keep the native spinner. No skeletons or shimmer.
 - No counts in the feed, repost or share. No AI attribution. No new major backend features.
-- Google sign-in parked (2026-11-27). Green is for signed-out screens only.
+- Google sign-in parked (2026-11-27). Welcome follows Thread style (Project Lab).
 
 ## Direction C rules
 - Signed in: red only on the Project name, a liked heart and the loader. SF only, no serif.
@@ -37,14 +39,13 @@ Keep this file under 60 lines.
   author and time, options top right, 16 pt text, actions bottom left.
 
 ## Next (implementation needs Lin's approval)
-- Project Lab UI part 2 (prototype Gkq2TXsyMs7N37rMVunFHx): Explore, Activity, Profile,
-  Settings, Welcome. New notification types and toggles need a database change first.
 - Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
-- Before release: hide or finish the Apple and Google stubs; add Terms and a privacy URL.
+- Welcome hides the Apple and Google stubs. Sign-in screens still use the old green style.
+- Before release: add Terms and a privacy URL.
 
 ## Unverified
 - Project Lab: VoiceOver, device, empty/error states, stage menu and failure alert,
-  question in Dark or large text and as reader, public profile, new counts clearing.
+  question in Dark or large text and as reader, new counts clearing, Share sheet.
 - Home reader: VoiceOver, Contrast, Motion, device, empty/error, own/hidden posts.
 - Pull to refresh: other 9 screens, iOS 17. Cell loader: other screens, Load More, Contrast, device.
 - VoiceOver playback. Like bounce, haptic, Reduce Motion fade. Reset password screen.
@@ -54,7 +55,7 @@ Keep this file under 60 lines.
 - Public "Nothing shared yet" and all-pinned Project states.
 
 ## Open observations
-- Following with any followed Project hides followed people's posts (All Ideas only).
+- Explore looks at the newest 100 posts; Home makes one request per followed Project.
 - iOS 27 shows confirmation dialogs as centred popovers (native). Project publish returns Home.
 - Home header: Project name target under 44 pt (avatar is 44); author target overlaps
   post text; tints can repeat. Critique P1 (header colour, repetition) not approved.
