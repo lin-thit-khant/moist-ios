@@ -525,30 +525,21 @@ struct PostDetailView: View {
 
             } label: {
 
-                HStack(spacing: RawdeaSpacing.xs) {
+                HStack(spacing: viewModel.likeCount > 0 ? RawdeaSpacing.xs : 0) {
 
                     ZStack {
 
                         // Stays in place while loading so the
-                        // like bounce has a view to animate.
-                        Image(
-                            systemName:
-                                viewModel.isLiked
-                                ? "heart.fill"
-                                : "heart"
+                        // like spring has a view to animate.
+                        RawdeaLikeSymbol(
+                            isLiked: viewModel.isLiked,
+                            pop: likePop
                         )
-                        .foregroundStyle(
-                            viewModel.isLiked
-                            ? RawdeaPalette.accent
-                            : RawdeaPalette.secondaryText
-                        )
-                        .font(.body)
-                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                        .symbolEffect(.bounce, value: likePop)
-                        .symbolEffectsRemoved(reduceMotion)
                         .opacity(viewModel.isUpdatingLike ? 0 : 1)
                         .animation(
-                            reduceMotion ? .easeInOut(duration: 0.2) : nil,
+                            reduceMotion && viewModel.isLiked
+                            && !viewModel.isUpdatingLike
+                            ? .easeInOut(duration: 0.2) : nil,
                             value: viewModel.isUpdatingLike
                         )
 
@@ -559,17 +550,20 @@ struct PostDetailView: View {
                         }
                     }
 
-                    // A zero count adds noise, so it only
-                    // appears once someone has liked the post.
-                    if viewModel.likeCount > 0 {
-                        Text("\(viewModel.likeCount)")
-                            .font(
-                                RawdeaTypography.metadata
-                            )
-                            .foregroundStyle(
-                                RawdeaPalette.secondaryText
-                            )
-                    }
+                    // A zero count adds noise, so it stays empty
+                    // until someone likes the post. Keeping the
+                    // view lets the first like roll up too.
+                    Text(viewModel.likeCount > 0 ? "\(viewModel.likeCount)" : "")
+                        .font(
+                            RawdeaTypography.metadata
+                        )
+                        .foregroundStyle(
+                            RawdeaPalette.secondaryText
+                        )
+                        .rawdeaLikeCount(
+                            viewModel.likeCount,
+                            isLiked: viewModel.isLiked
+                        )
                 }
                 .frame(
                     minWidth:
@@ -579,7 +573,7 @@ struct PostDetailView: View {
                 )
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(RawdeaLikeButtonStyle())
             .disabled(
                 viewModel.isUpdatingLike ||
                 viewModel.isLoading

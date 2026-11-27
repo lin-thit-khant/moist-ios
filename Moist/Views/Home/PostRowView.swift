@@ -650,6 +650,7 @@ struct PostRowView: View {
             .foregroundStyle(actions.isLiked
                 ? RawdeaPalette.accent
                 : RawdeaPalette.secondaryText)
+            .rawdeaLikeCount(count, isLiked: actions.isLiked)
             .padding(.trailing, RawdeaSpacing.xs)
             .accessibilityLabel(count == 1 ? "1 like" : "\(count) likes")
     }
@@ -682,17 +683,15 @@ struct PostRowView: View {
         } label: {
 
             actionSymbol(
-                actions.isLiked
-                ? "heart.fill"
-                : "heart",
-                selected: actions.isLiked,
-                selectedColor: RawdeaPalette.accent,
                 loading: actions.isUpdatingLike,
                 disabled: likeActionIsDisabled,
-                popTrigger: likePop
-            )
+                // Only a finished like fades; unliking changes at once.
+                fades: actions.isLiked && !actions.isUpdatingLike
+            ) {
+                RawdeaLikeSymbol(isLiked: actions.isLiked, pop: likePop)
+            }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(RawdeaLikeButtonStyle())
         .disabled(likeActionIsDisabled)
         .accessibilityLabel(
             actions.isLiked
@@ -768,14 +767,21 @@ struct PostRowView: View {
         } label: {
 
             actionSymbol(
-                displayedBookmarkState
-                ? "bookmark.fill"
-                : "bookmark",
-                selected: displayedBookmarkState,
-                selectedColor: RawdeaPalette.primaryText,
                 loading: bookmarkActionIsLoading,
                 disabled: bookmarkActionIsDisabled
-            )
+            ) {
+                Image(systemName: displayedBookmarkState
+                    ? "bookmark.fill"
+                    : "bookmark")
+                    .font(.system(.body, weight: .regular))
+                    .dynamicTypeSize(...Self.largestSymbolSize)
+                    .foregroundStyle(
+                        displayedBookmarkState
+                        ? RawdeaPalette.primaryText
+                        : RawdeaPalette.secondaryText
+                    )
+                    .accessibilityHidden(true)
+            }
         }
         .buttonStyle(.plain)
         .disabled(
@@ -795,34 +801,22 @@ struct PostRowView: View {
     }
 
     private func actionSymbol(
-        _ name: String,
-        selected: Bool,
-        selectedColor: Color,
         loading: Bool,
         disabled: Bool,
-        popTrigger: Int = 0
+        fades: Bool = true,
+        @ViewBuilder symbol: () -> some View
     ) -> some View {
 
         ZStack {
 
             // The symbol stays in place while loading so the
-            // like bounce has a view to animate.
-            Image(systemName: name)
-                .font(.system(.body, weight: .regular))
-                .dynamicTypeSize(...Self.largestSymbolSize)
-                .foregroundStyle(
-                    selected
-                    ? selectedColor
-                    : RawdeaPalette.secondaryText
-                )
-                .symbolEffect(.bounce, value: popTrigger)
-                .symbolEffectsRemoved(reduceMotion)
+            // like spring has a view to animate.
+            symbol()
                 .opacity(loading ? 0 : (disabled ? 0.5 : 1))
                 .animation(
-                    reduceMotion ? .easeInOut(duration: 0.2) : nil,
+                    reduceMotion && fades ? .easeInOut(duration: 0.2) : nil,
                     value: loading
                 )
-                .accessibilityHidden(true)
 
             if loading {
 
