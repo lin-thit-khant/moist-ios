@@ -47,7 +47,7 @@ struct DiscoveryService {
     private static let visiblePostSelection = """
         *,
         author: profiles!posts_profile_fkey(id, display_name, username),
-        project: projects!posts_project_owner_fk!inner(id, name)
+        project: projects!posts_project_owner_fk!inner(id, name, stage)
         """
 
     // shortcut: looks at the newest 100 posts. Replace with a

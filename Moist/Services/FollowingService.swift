@@ -176,6 +176,30 @@ struct FollowingService {
         }
     }
     
+    // MARK: - Project Followers
+
+    func fetchProjectFollowers(
+        projectId: UUID
+    ) async throws -> [PostAuthor] {
+
+        let records: [ProjectFollowerRecord] = try await client
+            .from("project_follows")
+            .select("""
+                profile:profiles!project_follows_follower_id_fkey(
+                    id,
+                    display_name,
+                    username
+                )
+                """)
+            .eq("project_id", value: projectId)
+            .order("created_at", ascending: false)
+            .limit(100)
+            .execute()
+            .value
+
+        return records.compactMap(\.profile)
+    }
+
     // MARK: - Following Lists
     
     func fetchFollowingPeople() async throws -> [Profile] {
@@ -219,7 +243,8 @@ struct FollowingService {
                     is_pinned,
                     stage,
                     stage_changed_at,
-                    is_default
+                    is_default,
+                    description
                 )
                 """)
             .eq("follower_id", value: viewerId)
@@ -267,6 +292,10 @@ private struct FollowPresence: Decodable {
     enum CodingKeys: String, CodingKey {
         case followerId = "follower_id"
     }
+}
+
+private struct ProjectFollowerRecord: Decodable {
+    let profile: PostAuthor?
 }
 
 private struct ProjectLastSeenRecord: Decodable {

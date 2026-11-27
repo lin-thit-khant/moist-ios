@@ -10,11 +10,8 @@ import SwiftUI
 
 struct RawdeaInitialAvatar: View {
     let name: String
-    var size: CGFloat = RawdeaSpacing.xl
+    var size: CGFloat = RawdeaSpacing.avatarColumn
     var font: Font = RawdeaTypography.authorName
-    /// The person's id. When given, the avatar uses that
-    /// person's tint; otherwise the neutral surface.
-    var tintSeed: UUID? = nil
 
     var body: some View {
         Text(String(name.first(where: \.isLetter) ?? "?").uppercased())
@@ -23,38 +20,20 @@ struct RawdeaInitialAvatar: View {
             .minimumScaleFactor(0.5)
             .foregroundStyle(RawdeaPalette.primaryText)
             .frame(width: size, height: size)
-            .background(
-                tintSeed.map(RawdeaPalette.avatarTint(for:)) ?? RawdeaPalette.surface,
-                in: Circle()
-            )
+            .background(RawdeaPalette.surface, in: Circle())
             .accessibilityHidden(true)
     }
 }
 
 // MARK: - Project Avatar
 
-/// A Project's initial in a rounded square, so it never reads
-/// as a person. Each Project keeps its own tint.
+/// A Project's initial in the same neutral circle as a person.
 struct RawdeaProjectAvatar: View {
     let name: String
-    let tintSeed: UUID
+    var size: CGFloat = RawdeaSpacing.avatarColumn
 
     var body: some View {
-        Text(String(name.first(where: \.isLetter) ?? "?").uppercased())
-            .font(RawdeaTypography.authorName)
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .foregroundStyle(RawdeaPalette.primaryText)
-            .frame(width: RawdeaSpacing.avatarColumn, height: RawdeaSpacing.avatarColumn)
-            .background(
-                RawdeaPalette.avatarTint(for: tintSeed),
-                in: RoundedRectangle(cornerRadius: RawdeaSpacing.projectAvatarRadius)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: RawdeaSpacing.projectAvatarRadius)
-                    .strokeBorder(RawdeaPalette.activityOutline)
-            }
-            .accessibilityHidden(true)
+        RawdeaInitialAvatar(name: name, size: size)
     }
 }
 

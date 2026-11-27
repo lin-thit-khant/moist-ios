@@ -79,12 +79,11 @@ struct RawdeaActivityCard: View {
 
         if notification.kind == .stageChange,
            let projectId = notification.projectId {
-            RawdeaProjectAvatar(name: notification.subject, tintSeed: projectId)
+            RawdeaProjectAvatar(name: notification.subject)
         } else {
             RawdeaInitialAvatar(
                 name: notification.actorName,
-                size: RawdeaSpacing.avatarColumn,
-                tintSeed: notification.actorId
+                size: RawdeaSpacing.avatarColumn
             )
         }
     }

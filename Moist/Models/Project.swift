@@ -50,6 +50,7 @@ struct Project: Identifiable, Codable {
     var stage: ProjectStage
     var stageChangedAt: Date
     let isDefault: Bool
+    var about: String = ""
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -62,5 +63,6 @@ struct Project: Identifiable, Codable {
         case stage
         case stageChangedAt = "stage_changed_at"
         case isDefault = "is_default"
+        case about = "description"
     }
 }

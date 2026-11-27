@@ -147,6 +147,10 @@ private struct FollowedProjectList: View {
 
             section("Changed since you last looked", rows: changed)
             section("Caught up", rows: caughtUp)
+
+            RawdeaFeedEnd()
+                .listRowSeparator(.hidden)
+                .listRowBackground(RawdeaPalette.canvas)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
@@ -187,15 +191,15 @@ private struct FollowedProjectRowView: View {
             HStack(alignment: .center, spacing: RawdeaSpacing.sm) {
 
                 if !dynamicTypeSize.isAccessibilitySize {
-                    RawdeaProjectAvatar(name: row.project.name, tintSeed: row.project.id)
+                    RawdeaProjectAvatar(
+                        name: row.project.name,
+                        size: RawdeaSpacing.minimumTouchTarget
+                    )
                 }
 
                 VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
-                    Text(row.project.name)
-                        .font(RawdeaTypography.authorName)
-                        .foregroundStyle(RawdeaPalette.accent)
-                    Text(row.project.stage.title)
-                        .font(RawdeaTypography.metadata)
+                    Text("\(Text(row.project.name).font(RawdeaTypography.authorName).foregroundStyle(RawdeaPalette.primaryText))  \(row.project.stage.title)")
+                        .font(RawdeaTypography.secondary)
                         .foregroundStyle(RawdeaPalette.secondaryText)
                     Text(row.summary)
                         .font(RawdeaTypography.secondary)
@@ -227,9 +231,18 @@ private struct FollowedProjectRowView: View {
     @ViewBuilder
     private var status: some View {
         if row.newCount > 0 {
-            Text("\(row.newCountText) new")
-                .font(RawdeaTypography.metadata.weight(.semibold))
-                .foregroundStyle(RawdeaPalette.primaryText)
+            HStack(spacing: RawdeaSpacing.xxs) {
+                Circle()
+                    .fill(RawdeaPalette.accent)
+                    .frame(width: RawdeaSpacing.xs, height: RawdeaSpacing.xs)
+                Text(row.newCountText)
+                    .font(RawdeaTypography.metadata.weight(.semibold))
+                    .foregroundStyle(RawdeaPalette.primaryText)
+            }
+        } else {
+            Text("Caught up")
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
         }
     }
 }

@@ -13,6 +13,8 @@ import Combine
 final class PostRowActionsViewModel: ObservableObject {
 
     @Published private(set) var isLiked = false
+    /// The Like state when first loaded, matching the fetched count.
+    private(set) var initiallyLiked: Bool?
     @Published private(set) var isBookmarked = false
 
     @Published private(set) var hasLoaded = false
@@ -57,6 +59,9 @@ final class PostRowActionsViewModel: ObservableObject {
 
             try Task.checkCancellation()
 
+            if initiallyLiked == nil {
+                initiallyLiked = snapshot.isLiked
+            }
             isLiked = snapshot.isLiked
             isBookmarked = snapshot.isBookmarked
             hasLoaded = true

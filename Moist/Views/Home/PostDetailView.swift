@@ -878,8 +878,7 @@ struct PostDetailView: View {
                 // target. A tap gesture keeps it out of VoiceOver.
                 RawdeaInitialAvatar(
                     name: commentAuthorName(comment),
-                    size: RawdeaSpacing.avatarColumn,
-                    tintSeed: comment.userId
+                    size: RawdeaSpacing.avatarColumn
                 )
                 .frame(
                     width: RawdeaSpacing.minimumTouchTarget,

@@ -12,6 +12,16 @@ struct PostService {
     
     private let client: SupabaseClient
     
+    /// A post with its author, Project and counts. Comments are
+    /// named by key because best_reply_id also links the tables.
+    static let selection = """
+        *,
+        author: profiles!posts_profile_fkey(id, display_name, username),
+        project: projects!posts_project_owner_fk(id, name, stage),
+        likes: post_likes(count),
+        replies: post_comments!post_comments_post_id_fkey(count)
+        """
+    
     init(client: SupabaseClient = SupabaseManager.client) {
         self.client = client
     }
@@ -36,18 +46,7 @@ struct PostService {
         return try await client
             .from("posts")
             .insert(newPost)
-            .select("""
-                *,
-                author: profiles!posts_profile_fkey(
-                    id,
-                    display_name,
-                    username
-                ),
-                project: projects!posts_project_owner_fk(
-                    id,
-                    name
-                )
-                """)
+            .select(Self.selection)
             .single()
             .execute()
             .value
@@ -57,18 +56,7 @@ struct PostService {
         
         return try await client
             .from("posts")
-            .select("""
-                *,
-                author: profiles!posts_profile_fkey(
-                    id,
-                    display_name,
-                    username
-                ),
-                project: projects!posts_project_owner_fk(
-                    id,
-                    name
-                )
-                """)
+            .select(Self.selection)
             .order("created_at", ascending: false)
             .execute()
             .value
@@ -78,18 +66,7 @@ struct PostService {
         
         return try await client
             .from("posts")
-            .select("""
-                *,
-                author: profiles!posts_profile_fkey(
-                    id,
-                    display_name,
-                    username
-                ),
-                project: projects!posts_project_owner_fk(
-                    id,
-                    name
-                )
-                """)
+            .select(Self.selection)
             .eq("user_id", value: userId)
             .order("created_at", ascending: false)
             .execute()
@@ -123,18 +100,7 @@ struct PostService {
             .update(["content": trimmedContent])
             .eq("id", value: postId)
             .eq("user_id", value: user.id)
-            .select("""
-                *,
-                author: profiles!posts_profile_fkey(
-                    id,
-                    display_name,
-                    username
-                ),
-                project: projects!posts_project_owner_fk(
-                    id,
-                    name
-                )
-                """)
+            .select(Self.selection)
             .single()
             .execute()
             .value
@@ -144,18 +110,7 @@ struct PostService {
         
         try await client
             .from("posts")
-            .select("""
-                *,
-                author: profiles!posts_profile_fkey(
-                    id,
-                    display_name,
-                    username
-                ),
-                project: projects!posts_project_owner_fk(
-                    id,
-                    name
-                )
-                """)
+            .select(Self.selection)
             .eq("project_id", value: projectId)
             .order("created_at", ascending: false)
             .execute()
@@ -276,18 +231,7 @@ struct PostService {
             
             let batchPosts: [Post] = try await client
                 .from("posts")
-                .select("""
-                    *,
-                    author: profiles!posts_profile_fkey(
-                        id,
-                        display_name,
-                        username
-                    ),
-                    project: projects!posts_project_owner_fk(
-                        id,
-                        name
-                    )
-                    """)
+                .select(Self.selection)
                 .in(column, values: batchIDs)
                 .order("created_at", ascending: false)
                 .order("id", ascending: false)
@@ -327,18 +271,7 @@ struct PostService {
 
         let posts: [Post] = try await client
             .from("posts")
-            .select("""
-                *,
-                author: profiles!posts_profile_fkey(
-                    id,
-                    display_name,
-                    username
-                ),
-                project: projects!posts_project_owner_fk(
-                    id,
-                    name
-                )
-                """)
+            .select(Self.selection)
             .eq("id", value: postId)
             .limit(1)
             .execute()
@@ -359,18 +292,7 @@ struct PostService {
 
         return try await client
             .from("posts")
-            .select("""
-                *,
-                author: profiles!posts_profile_fkey(
-                    id,
-                    display_name,
-                    username
-                ),
-                project: projects!posts_project_owner_fk(
-                    id,
-                    name
-                )
-                """)
+            .select(Self.selection)
             .in(
                 "id",
                 values: postIds.map(\.uuidString)

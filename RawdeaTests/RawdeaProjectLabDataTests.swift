@@ -468,6 +468,72 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         XCTAssertTrue(open.contains { $0.id == question.id })
     }
 
+    // MARK: - Description, People and Counts
+
+    func testDescriptionIsOwnerOnlyAndFiltered() async throws {
+
+        let owner = try await makeUser()
+        let reader = try await makeUser()
+        let project = try await owner.projects.createProject(name: "About me")
+        XCTAssertEqual(project.about, "")
+
+        let updated = try await owner.projects.setDescription(
+            projectId: project.id, description: "  A small log.  "
+        )
+        XCTAssertEqual(updated.about, "A small log.")
+
+        await assertThrows("Another user cannot describe it") {
+            _ = try await reader.projects.setDescription(
+                projectId: project.id, description: "Mine now"
+            )
+        }
+        await assertThrows("The publication filter applies") {
+            _ = try await owner.projects.setDescription(
+                projectId: project.id,
+                description: "www.a.com www.b.com www.c.com www.d.com"
+            )
+        }
+        await assertThrows("280 characters at most") {
+            _ = try await owner.projects.setDescription(
+                projectId: project.id,
+                description: String(repeating: "a", count: 281)
+            )
+        }
+
+        try await reader.following.followProject(projectId: project.id)
+
+        let people = try await owner.following
+            .fetchProjectFollowers(projectId: project.id)
+        XCTAssertEqual(people.map(\.id), [reader.id])
+
+        let followed = try await reader.following.fetchFollowingProjects()
+        XCTAssertEqual(followed.first?.about, "A small log.")
+
+        let post = try await owner.posts.createPost(
+            content: "Count me", projectId: project.id, kind: .question
+        )
+        let reply = try await reader.engagement.addComment(
+            postId: post.id, content: "One"
+        )
+        try await reader.engagement.like(postId: post.id)
+        // The second link between posts and comments must not
+        // confuse the count.
+        try await owner.posts.setBestReply(
+            postId: post.id, commentId: reply.id
+        )
+
+        let counted = try await reader.posts.fetchPost(postId: post.id)
+        XCTAssertEqual(counted?.likeCount, 1)
+        XCTAssertEqual(counted?.replyCount, 1)
+        XCTAssertEqual(counted?.project?.stage, .early)
+
+        try await reader.blocks.blockUser(userId: owner.id)
+
+        let blocked = try await reader.following
+            .fetchProjectFollowers(projectId: project.id)
+        XCTAssertTrue(blocked.isEmpty)
+    }
+
     // MARK: - Fixtures
 
     @MainActor

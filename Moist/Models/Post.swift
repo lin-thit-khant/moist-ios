@@ -30,6 +30,11 @@ struct Post: Identifiable, Codable {
     var isHidden: Bool = false
     var kind: PostKind = .note
     var bestReplyId: UUID? = nil
+    var likes: [PostCount]? = nil
+    var replies: [PostCount]? = nil
+    
+    var likeCount: Int { likes?.first?.count ?? 0 }
+    var replyCount: Int { replies?.first?.count ?? 0 }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -42,6 +47,8 @@ struct Post: Identifiable, Codable {
         case isHidden = "is_hidden"
         case kind
         case bestReplyId = "best_reply_id"
+        case likes
+        case replies
     }
 }
 
@@ -61,4 +68,10 @@ struct PostAuthor: Codable {
 struct PostProject:  Codable, Identifiable {
     let id: UUID
     let name: String
+    var stage: ProjectStage? = nil
+}
+
+/// A row count the database returns beside a post.
+struct PostCount: Codable {
+    let count: Int
 }

@@ -120,6 +120,7 @@ struct RawdeaHomeFeedList<Row: View>: View {
 
                         Divider()
                             .overlay(RawdeaPalette.divider)
+                            .padding(.leading, RawdeaSpacing.feedDividerInset)
                     }
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
@@ -132,6 +133,10 @@ struct RawdeaHomeFeedList<Row: View>: View {
                     }
                 } else if hasMore {
                     loadMoreRow
+                } else {
+                    RawdeaFeedEnd()
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(RawdeaPalette.canvas)
                 }
             }
         }
@@ -246,5 +251,24 @@ extension EnvironmentValues {
     var rawdeaScrollingFeedHeader: AnyView? {
         get { self[RawdeaScrollingFeedHeaderKey.self] }
         set { self[RawdeaScrollingFeedHeaderKey.self] = newValue }
+    }
+}
+
+/// The calm end of a Home list.
+struct RawdeaFeedEnd: View {
+
+    var body: some View {
+        VStack(spacing: RawdeaSpacing.xxs) {
+            Text("That's everything so far.")
+                .font(RawdeaTypography.authorName)
+                .foregroundStyle(RawdeaPalette.primaryText)
+            Text("More is still forming.")
+                .font(RawdeaTypography.secondary)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+        .padding(.vertical, RawdeaSpacing.lg)
+        .accessibilityElement(children: .combine)
     }
 }

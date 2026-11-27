@@ -25,6 +25,14 @@ enum ProjectTimeline {
         let stage: ProjectStage
         var items: [Item]
         var id: UUID { items.first?.id ?? UUID() }
+
+        /// When this stage began, if a recorded change began it.
+        var startedAt: Date? {
+            if case .stageChange(let event) = items.last {
+                return event.createdAt
+            }
+            return nil
+        }
     }
 
     static func groups(

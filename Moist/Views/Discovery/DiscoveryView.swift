@@ -369,7 +369,7 @@ struct DiscoveryView: View {
                 spacing: RawdeaSpacing.sm
             ) {
 
-                RawdeaInitialAvatar(name: displayName(for: profile), tintSeed: profile.id)
+                RawdeaInitialAvatar(name: displayName(for: profile))
 
                 VStack(
                     alignment: .leading,

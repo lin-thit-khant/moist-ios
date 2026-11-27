@@ -115,7 +115,7 @@ struct FollowingView: View {
                                 spacing: RawdeaSpacing.sm
                             ) {
 
-                                RawdeaInitialAvatar(name: name, tintSeed: profile.id)
+                                RawdeaInitialAvatar(name: name)
 
                                 VStack(
                                     alignment: .leading,

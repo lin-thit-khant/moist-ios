@@ -9,7 +9,7 @@ import SwiftUI
 
 // MARK: - Main destinations
 
-private enum RawdeaTab: Hashable {
+enum RawdeaTab: Hashable {
 
     case home
     case explore
@@ -54,6 +54,8 @@ struct RawdeaMainTabView: View {
     @Environment(\.scenePhase)
     private var scenePhase
 
+    @State private var isKeyboardVisible = false
+
     // MARK: - Selection interception
 
     private var tabSelection: Binding<RawdeaTab> {
@@ -83,6 +85,8 @@ struct RawdeaMainTabView: View {
 
     var body: some View {
 
+        VStack(spacing: 0) {
+
         TabView(selection: tabSelection) {
 
             // HOME
@@ -100,15 +104,7 @@ struct RawdeaMainTabView: View {
                     onExplore: { selectedTab = .explore }
                 )
             }
-            .tabItem {
-                Label(
-                    "Home",
-                    systemImage:
-                        selectedTab == .home
-                        ? "house.fill"
-                        : "house"
-                )
-            }
+            .toolbar(.hidden, for: .tabBar)
             .tag(RawdeaTab.home)
 
             // EXPLORE
@@ -117,15 +113,7 @@ struct RawdeaMainTabView: View {
 
                 DiscoveryView()
             }
-            .tabItem {
-                Label(
-                    "Explore",
-                    systemImage:
-                        selectedTab == .explore
-                        ? "magnifyingglass"
-                        : "magnifyingglass"
-                )
-            }
+            .toolbar(.hidden, for: .tabBar)
             .tag(RawdeaTab.explore)
 
             // CREATE ACTION
@@ -137,12 +125,7 @@ struct RawdeaMainTabView: View {
             // It must not become selected.
 
             Color.clear
-                .tabItem {
-                    Label(
-                        "Create",
-                        systemImage: "plus"
-                    )
-                }
+                .toolbar(.hidden, for: .tabBar)
                 .tag(RawdeaTab.create)
 
             // ACTIVITY
@@ -153,17 +136,8 @@ struct RawdeaMainTabView: View {
                     viewModel: notificationsViewModel
                 )
             }
-            .tabItem {
-                Label(
-                    "Activity",
-                    systemImage:
-                        selectedTab == .activity
-                        ? "bell.fill"
-                        : "bell"
-                )
-            }
+            .toolbar(.hidden, for: .tabBar)
             .tag(RawdeaTab.activity)
-            .badge(notificationsViewModel.unreadCount)
             
             // PROFILE
 
@@ -173,17 +147,30 @@ struct RawdeaMainTabView: View {
                     isSelected: selectedTab == .profile
                 )
             }
-            .tabItem {
-                Label(
-                    "Profile",
-                    systemImage:
-                        selectedTab == .profile
-                        ? "person.crop.circle.fill"
-                        : "person.crop.circle"
-                )
-            }
+            .toolbar(.hidden, for: .tabBar)
             .tag(RawdeaTab.profile)
 
+        }
+
+            // The keyboard takes the bar's place while typing.
+            if !isKeyboardVisible {
+                RawdeaTabBar(
+                    selection: tabSelection,
+                    selected: selectedTab,
+                    unreadCount: notificationsViewModel.unreadCount
+                )
+            }
+        }
+        .background(RawdeaPalette.canvas.ignoresSafeArea())
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIResponder.keyboardWillShowNotification
+        )) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIResponder.keyboardWillHideNotification
+        )) { _ in
+            isKeyboardVisible = false
         }
         .environmentObject(authViewModel)
         .environment(\.rawdeaOpenExplore, { selectedTab = .explore })
@@ -191,8 +178,6 @@ struct RawdeaMainTabView: View {
         .environment(\.rawdeaCreatePostInProject, { project in
             composeRequest = ComposeRequest(project: project)
         })
-        // Native five-tab styling, monochrome selection.
-        // There is no raised Create button.
         .tint(RawdeaPalette.primaryText)
 
         // MARK: - Compose presentation

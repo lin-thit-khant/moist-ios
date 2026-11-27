@@ -77,12 +77,6 @@ struct PostRowView: View {
     }
 
 
-    @ScaledMetric(relativeTo: .body)
-    private var readerTextSize = RawdeaTypography.readerBodySize
-
-    @ScaledMetric(relativeTo: .body)
-    private var readerLineSpacing = RawdeaTypography.readerLineSpacing
-
     // Row symbols stop growing here so they stay inside
     // their 44 pt targets.
     private static let largestSymbolSize = DynamicTypeSize.accessibility1
@@ -117,6 +111,18 @@ struct PostRowView: View {
             return "now"
         }
         return relativeTimeFormatter.localizedString(for: date, relativeTo: now)
+    }
+
+    /// The feed's short age: "2h", "3d", "5w".
+    static func shortAge(of date: Date, at now: Date) -> String {
+        let seconds = now.timeIntervalSince(date)
+        switch seconds {
+        case ..<60: return "now"
+        case ..<3_600: return "\(Int(seconds / 60))m"
+        case ..<86_400: return "\(Int(seconds / 3_600))h"
+        case ..<604_800: return "\(Int(seconds / 86_400))d"
+        default: return "\(Int(seconds / 604_800))w"
+        }
     }
 
     private static let relativeTimeFormatter: RelativeDateTimeFormatter = {
@@ -174,11 +180,6 @@ struct PostRowView: View {
         !actions.hasLoaded || actions.isLoading || actions.isUpdatingLike
     }
 
-    /// Feed rows put everything beside the avatar. Discussion and
-    /// accessibility text sizes give the post the full width.
-    private var usesAvatarColumn: Bool {
-        showsDiscussionLink && !dynamicTypeSize.isAccessibilitySize
-    }
     // MARK: - Body
 
     var body: some View {
@@ -186,10 +187,8 @@ struct PostRowView: View {
         Group {
             if isTimeline {
                 timelineLayout
-            } else if isReader {
-                readerLayout
             } else {
-                standardLayout
+                threadLayout
             }
         }
         .frame(
@@ -290,32 +289,33 @@ struct PostRowView: View {
     
     // MARK: - Layouts
 
-    private var standardLayout: some View {
+    /// Avatar column, then everything else beside it. Large text
+    /// drops the avatar to keep the width.
+    private var threadLayout: some View {
 
-        VStack(alignment: .leading, spacing: 0) {
+        HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
 
-            HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
+            if !dynamicTypeSize.isAccessibilitySize {
+                threadAvatar
+            }
 
-                avatarLink
+            VStack(alignment: .leading, spacing: 0) {
 
-                VStack(alignment: .leading, spacing: 0) {
+                threadHeader
 
-                    authorHeader
+                RawdeaKindLabel(post: post)
+                    .padding(.top, RawdeaSpacing.xxs)
 
-                    if usesAvatarColumn {
-                        postDetails
-                    }
+                postContent
+
+                hiddenLabel
+
+                if showsDiscussionLink {
+
+                    postActions
+
+                    actionError
                 }
-            }
-
-            // Large text needs the width beside the avatar too.
-            if dynamicTypeSize.isAccessibilitySize {
-                projectLine
-            }
-
-            if !usesAvatarColumn {
-                postDetails
-                    .padding(.top, showsDiscussionLink ? 0 : RawdeaSpacing.xs)
             }
         }
         .padding(.horizontal, horizontalInset)
@@ -323,252 +323,48 @@ struct PostRowView: View {
         .padding(.bottom, RawdeaSpacing.xxs)
     }
 
-    // Inside a Project timeline the date and rail are drawn by
-    // the Project screen, so the row is only the post.
+    // Inside a Project timeline the date and rail are drawn by the
+    // Project screen. Counts are text; actions are in the menu.
     private var timelineLayout: some View {
 
-        VStack(alignment: .leading, spacing: 0) {
-
-            HStack(alignment: .top, spacing: RawdeaSpacing.xs) {
-
-                RawdeaKindLabel(post: post)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                if showsOptions {
-                    optionsButton
-                        .padding(.vertical, -RawdeaSpacing.sm)
-                        .padding(.trailing, -RawdeaSpacing.sm)
-                }
-            }
-
-            postDetails
-        }
-    }
-
-    // Home shows each post on its own: who and where, the
-    // words, then the actions.
-    private var readerLayout: some View {
-
-        VStack(alignment: .leading, spacing: 0) {
-
-            readerHeader
-                // The lower name's target reaches over the text's top edge.
-                .zIndex(1)
+        VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
 
             RawdeaKindLabel(post: post)
-                .padding(.top, dynamicTypeSize.isAccessibilitySize ? RawdeaSpacing.md : 0)
-                .padding(.bottom, RawdeaSpacing.xxs)
 
             postContent
 
             hiddenLabel
 
-            // Line the outer symbols up with the post text.
-            HStack(spacing: 0) {
-
-                likeButton
-
-                discussionButton
-
-                bookmarkButton
-            }
-            .padding(.leading, -RawdeaSpacing.sm)
-            .accessibilityElement(children: .contain)
-
-            actionError
+            Text("\(counted(post.likeCount, "like"))   \(counted(post.replyCount, post.kind == .question ? "answer" : "reply"))")
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .padding(.bottom, RawdeaSpacing.sm)
         }
-        .padding(.horizontal, RawdeaSpacing.lg)
-        .padding(.top, RawdeaSpacing.md)
-        .padding(.bottom, RawdeaSpacing.xxs)
-    }
-
-    private var readerProject: PostProject? {
-        showsProjectLink ? post.project : nil
-    }
-
-    private var readerHeader: some View {
-
-        HStack(
-            alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center,
-            spacing: RawdeaSpacing.xs
-        ) {
-
-            // Large text needs the width beside the avatar.
-            if !dynamicTypeSize.isAccessibilitySize {
-                readerAvatar
-            }
-
-            readerIdentity
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if showsOptions {
-                optionsButton
-                    .padding(.trailing, -RawdeaSpacing.sm)
-            }
-        }
-    }
-
-    // A Project post carries the Project's square avatar,
-    // any other post its author's round one. The names beside
-    // it are the VoiceOver route.
-    private var readerAvatar: some View {
-
-        Group {
-            if let project = readerProject {
-                RawdeaProjectAvatar(name: project.name, tintSeed: project.id)
-            } else {
-                RawdeaInitialAvatar(
-                    name: authorName,
-                    size: RawdeaSpacing.avatarColumn,
-                    tintSeed: post.userId
-                )
-            }
-        }
-        .frame(
-            width: RawdeaSpacing.minimumTouchTarget,
-            height: RawdeaSpacing.minimumTouchTarget
-        )
         .contentShape(Rectangle())
-        .onTapGesture {
-            if let project = readerProject {
-                openPostRoute?(.project(project.id))
-            } else {
-                openPostRoute?(.author(post.userId))
-            }
-        }
-        .padding(.leading, -(RawdeaSpacing.minimumTouchTarget - RawdeaSpacing.avatarColumn) / 2)
-        .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private var readerIdentity: some View {
-
-        if let project = readerProject {
-
-            if dynamicTypeSize.isAccessibilitySize {
-
-                VStack(alignment: .leading, spacing: 0) {
-                    readerProjectLink(project)
-                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                    readerAuthorLink(stacked: true)
-                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                }
-
-            } else {
-
-                // Two tight lines centred on the avatar. Each target
-                // reaches outward, into the space above or below.
-                VStack(alignment: .leading, spacing: 0) {
-
-                    readerProjectLink(project, reach: .top)
-
-                    readerAuthorLink(stacked: false, reach: .bottom)
+        .contextMenu {
+            if showsOptions {
+                ForEach(postOptions) { option in
+                    Button(
+                        option.title,
+                        systemImage: option.symbol,
+                        role: option.isDestructive ? .destructive : nil,
+                        action: option.action
+                    )
                 }
             }
-
-        } else {
-
-            readerAuthorLink(stacked: dynamicTypeSize.isAccessibilitySize)
-                .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
         }
-    }
-
-    private var readerSeparator: some View {
-
-        Text("·")
-            .font(RawdeaTypography.metadata)
-            .foregroundStyle(RawdeaPalette.secondaryText)
-            .accessibilityHidden(true)
-    }
-
-    private func readerProjectLink(
-        _ project: PostProject,
-        reach: Edge.Set = []
-    ) -> some View {
-
-        routedPostControl(
-            to: .project(project.id)
-        ) {
-
-            ProjectRouteView(
-                projectId: project.id
-            )
-
-        } label: {
-
-            Text(project.name)
-                .font(RawdeaTypography.metadata.weight(.semibold))
-                .foregroundStyle(RawdeaPalette.accent)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                // The row's top space limits this one; the Project
-                // avatar is the full-size way in.
-                .padding(reach, RawdeaSpacing.readerNameReach - RawdeaSpacing.xxs)
-                .contentShape(Rectangle())
-                .padding(reach, -(RawdeaSpacing.readerNameReach - RawdeaSpacing.xxs))
-        }
-        .accessibilityLabel(
-            "Open Project \(project.name)"
-        )
-    }
-
-    private func readerAuthorLink(
-        stacked: Bool,
-        reach: Edge.Set = []
-    ) -> some View {
-
-        let isPrimary = readerProject == nil
-
-        return routedPostControl(
-            to: .author(post.userId)
-        ) {
-
-            AuthorProfileView(
-                userId: post.userId
-            )
-
-        } label: {
-
-            let layout = stacked
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
-                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xxs))
-
-            layout {
-
-                Text(authorName)
-                    .font(isPrimary
-                        ? RawdeaTypography.authorName
-                        : RawdeaTypography.metadata)
-                    .foregroundStyle(isPrimary
-                        ? RawdeaPalette.primaryText
-                        : RawdeaPalette.secondaryText)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(stacked ? nil : 1)
-
-                if !stacked {
-                    readerSeparator
+        .accessibilityActions {
+            if showsOptions {
+                ForEach(postOptions) { option in
+                    Button(option.title, action: option.action)
                 }
-
-                TimelineView(.periodic(from: .now, by: 60)) { context in
-                    Text(Self.relativeAge(of: post.createdAt, at: context.date))
-                        .font(RawdeaTypography.metadata)
-                        .foregroundStyle(RawdeaPalette.secondaryText)
-                        .lineLimit(1)
-                }
-                .layoutPriority(1)
             }
-            // A single-line header is a full-size target by itself.
-            .frame(
-                minHeight: reach.isEmpty ? RawdeaSpacing.minimumTouchTarget : nil
-            )
-            .padding(reach, RawdeaSpacing.readerNameReach)
-            .contentShape(Rectangle())
-            .padding(reach, -RawdeaSpacing.readerNameReach)
         }
-        .accessibilityLabel(
-            "View profile for \(authorName), \(authorHandle)"
-        )
-        .accessibilityValue(Text(post.createdAt, style: .relative))
+    }
+
+    private func counted(_ count: Int, _ noun: String) -> String {
+        if count == 1 { return "1 \(noun)" }
+        return noun == "reply" ? "\(count) replies" : "\(count) \(noun)s"
     }
 
     private var showsOptions: Bool {
@@ -576,133 +372,142 @@ struct PostRowView: View {
         return viewerId != post.userId || hasOwnerActions
     }
 
-    // MARK: - Author header
+    private var linkedProject: PostProject? {
+        showsProjectLink ? post.project : nil
+    }
 
-    // A second way into the profile with a full-size target.
-    // A tap gesture keeps it out of VoiceOver, which uses the name.
-    private var avatarLink: some View {
+    // A tap gesture keeps the avatar out of VoiceOver, which
+    // uses the names beside it.
+    private var threadAvatar: some View {
 
-        RawdeaInitialAvatar(
-            name: authorName,
-            size: RawdeaSpacing.avatarColumn,
-            tintSeed: post.userId
-        )
-        .frame(
-            width: RawdeaSpacing.minimumTouchTarget,
-            height: RawdeaSpacing.minimumTouchTarget
-        )
+        Group {
+            if let project = linkedProject {
+                RawdeaProjectAvatar(name: project.name)
+            } else {
+                RawdeaInitialAvatar(name: authorName)
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture {
-            openPostRoute?(.author(post.userId))
+            if let project = linkedProject {
+                openPostRoute?(.project(project.id))
+            } else {
+                openPostRoute?(.author(post.userId))
+            }
         }
-        .padding(-(RawdeaSpacing.minimumTouchTarget - RawdeaSpacing.avatarColumn) / 2)
         .accessibilityHidden(true)
     }
 
-    private var authorHeader: some View {
+    // "Project · Stage  author  time" on one line where it fits.
+    private var threadHeader: some View {
 
-        VStack(alignment: .leading, spacing: 0) {
+        HStack(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xxs) {
 
-            HStack(alignment: .top, spacing: RawdeaSpacing.xs) {
+            // Narrow rows put the person under the Project.
+            ViewThatFits(in: .horizontal) {
 
-                authorLink
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xxs) {
+                    projectPart
+                    authorPart
+                }
 
-                if viewerId != nil {
-
-                    // Keeps a 44 pt target without making
-                    // the name row taller.
-                    Group {
-
-                        if showsOptions {
-                            optionsButton
-                        }
+                VStack(alignment: .leading, spacing: 0) {
+                    projectPart
+                    HStack(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xxs) {
+                        authorPart
                     }
-                    .padding(.vertical, -RawdeaSpacing.sm)
-                    .padding(.trailing, -RawdeaSpacing.sm)
+                }
+
+                VStack(alignment: .leading, spacing: 0) {
+                    projectPart
+                    authorPart
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            if !dynamicTypeSize.isAccessibilitySize {
-                projectLine
+            if showsOptions {
+                optionsButton
+                    .padding(.vertical, -RawdeaSpacing.sm)
+                    .padding(.trailing, -RawdeaSpacing.sm)
             }
         }
     }
 
     @ViewBuilder
-    private var projectLine: some View {
+    private var projectPart: some View {
 
-        if showsProjectLink, let project = post.project {
-            projectLink(project)
+        if let project = linkedProject {
+
+            routedPostControl(
+                to: .project(project.id)
+            ) {
+
+                ProjectRouteView(projectId: project.id)
+
+            } label: {
+
+                // Large text puts the stage under the name.
+                let layout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+                    : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xxs))
+
+                layout {
+
+                    Text(project.name)
+                        .font(RawdeaTypography.authorName)
+                        .foregroundStyle(RawdeaPalette.primaryText)
+
+                    if let stage = project.stage {
+                        Text(dynamicTypeSize.isAccessibilitySize ? stage.title : "· \(stage.title)")
+                            .font(RawdeaTypography.secondary)
+                            .foregroundStyle(RawdeaPalette.secondaryText)
+                    }
+                }
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .multilineTextAlignment(.leading)
+                // The avatar is the full-size way in.
+                .padding(.vertical, RawdeaSpacing.xxs)
+                .contentShape(Rectangle())
+                .padding(.vertical, -RawdeaSpacing.xxs)
+            }
+            .accessibilityLabel("Open Project \(project.name)")
         }
     }
 
-    private var authorLink: some View {
+    @ViewBuilder
+    private var authorPart: some View {
 
         routedPostControl(
             to: .author(post.userId)
         ) {
 
-            AuthorProfileView(
-                userId: post.userId
-            )
+            AuthorProfileView(userId: post.userId)
 
         } label: {
 
-            let layout = dynamicTypeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
-                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xs))
-
-            layout {
-
-                Text(authorName)
-                    .font(RawdeaTypography.authorName)
-                    .foregroundStyle(RawdeaPalette.primaryText)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-
-                TimelineView(.periodic(from: .now, by: 60)) { context in
-                    Text(Self.relativeAge(of: post.createdAt, at: context.date))
-                        .font(RawdeaTypography.metadata)
-                        .foregroundStyle(RawdeaPalette.secondaryText)
-                        .lineLimit(1)
-                }
-                .layoutPriority(1)
-            }
-            // Reaches into the row's top padding only, so it
-            // never overlaps the Project line below.
-            .padding(.top, RawdeaSpacing.sm)
-            .contentShape(Rectangle())
-            .padding(.top, -RawdeaSpacing.sm)
+            Text(post.author?.username ?? authorName)
+                .font(linkedProject == nil
+                    ? RawdeaTypography.authorName
+                    : RawdeaTypography.secondary)
+                .foregroundStyle(linkedProject == nil
+                    ? RawdeaPalette.primaryText
+                    : RawdeaPalette.secondaryText)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .padding(.vertical, RawdeaSpacing.xxs)
+                .contentShape(Rectangle())
+                .padding(.vertical, -RawdeaSpacing.xxs)
         }
         .accessibilityLabel(
             "View profile for \(authorName), \(authorHandle)"
         )
-        .accessibilityValue(Text(post.createdAt, style: .relative))
-    }
 
-    // MARK: - Post details
-
-    private var postDetails: some View {
-
-        VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
-
-            // Home and timeline layouts place their own label.
-            if !isTimeline {
-                RawdeaKindLabel(post: post)
-            }
-
-            postContent
-
-            hiddenLabel
-
-            if showsDiscussionLink {
-
-                postActions
-
-                actionError
-            }
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            Text(Self.shortAge(of: post.createdAt, at: context.date))
+                .font(RawdeaTypography.secondary)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .lineLimit(1)
+                .accessibilityLabel(Self.relativeAge(of: post.createdAt, at: context.date))
         }
-        .padding(.top, !isTimeline && (post.project == nil || !showsProjectLink) ? RawdeaSpacing.xxs : 0)
     }
 
     @ViewBuilder
@@ -775,10 +580,7 @@ struct PostRowView: View {
             } label: {
 
                 Text(post.content)
-                    .font(isReader
-                        ? .system(size: readerTextSize)
-                        : RawdeaTypography.postBody)
-                    .lineSpacing(isReader ? readerLineSpacing : 0)
+                    .font(RawdeaTypography.postBody)
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(
                         RawdeaPalette.primaryText
@@ -820,70 +622,46 @@ struct PostRowView: View {
 
 
 
-    // MARK: - Project navigation
-
-    private func projectLink(
-        _ project: PostProject
-    ) -> some View {
-
-        routedPostControl(
-            to: .project(project.id)
-        ) {
-
-            ProjectRouteView(
-                projectId: project.id
-            )
-
-        } label: {
-
-            HStack(alignment: .firstTextBaseline, spacing: RawdeaSpacing.xxs) {
-
-                Image(systemName: "folder")
-                    .accessibilityHidden(true)
-
-                Text(project.name)
-                    .fixedSize(
-                        horizontal: false,
-                        vertical: true
-                    )
-            }
-            .font(RawdeaTypography.metadata)
-            .foregroundStyle(
-                RawdeaPalette.accent
-            )
-            // Text sits at the top of its target, close to the name.
-            .padding(.top, RawdeaSpacing.xxs)
-            .padding(.bottom, RawdeaSpacing.sm)
-            .frame(
-                minHeight:
-                    RawdeaSpacing.minimumTouchTarget,
-                alignment: .top
-            )
-            .contentShape(Rectangle())
-        }
-        .accessibilityLabel(
-            "Open Project \(project.name)"
-        )
-    }
-
-
     // MARK: - Independent post actions
 
     private var postActions: some View {
 
         HStack(spacing: RawdeaSpacing.xxs) {
 
-            likeButton
+            HStack(spacing: -RawdeaSpacing.xs) {
+                likeButton
+                countText(shownLikeCount)
+            }
 
             discussionButton
 
-            Spacer(minLength: 0)
-
             bookmarkButton
+
+            Spacer(minLength: 0)
         }
-        // Line the outer symbols up with the post text.
-        .padding(.horizontal, -RawdeaSpacing.sm)
+        // Line the first symbol up with the post text.
+        .padding(.leading, -RawdeaSpacing.sm)
         .accessibilityElement(children: .contain)
+    }
+
+    private func countText(_ count: Int) -> some View {
+        Text(count.formatted())
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(actions.isLiked
+                ? RawdeaPalette.accent
+                : RawdeaPalette.secondaryText)
+            .padding(.trailing, RawdeaSpacing.xs)
+            .accessibilityLabel(count == 1 ? "1 like" : "\(count) likes")
+    }
+
+    // The fetched count, moved by a change made on this row.
+    private var shownLikeCount: Int {
+        guard let initial = actions.initiallyLiked else {
+            return post.likeCount
+        }
+        return post.likeCount
+            + (actions.isLiked ? 1 : 0)
+            - (initial ? 1 : 0)
     }
 
     private var likeButton: some View {
@@ -940,11 +718,18 @@ struct PostRowView: View {
 
         } label: {
 
-            Image(systemName: "bubble.left")
-                .font(.body)
-                .dynamicTypeSize(...Self.largestSymbolSize)
-                .accessibilityHidden(true)
+            HStack(spacing: RawdeaSpacing.xxs) {
+                Image(systemName: "bubble.left")
+                    .font(.body)
+                    .dynamicTypeSize(...Self.largestSymbolSize)
+                    .accessibilityHidden(true)
+                Text(post.kind == .question
+                    ? counted(post.replyCount, "answer")
+                    : post.replyCount.formatted())
+                    .font(RawdeaTypography.metadata)
+            }
                 .foregroundStyle(RawdeaPalette.secondaryText)
+                .padding(.horizontal, RawdeaSpacing.xs)
                 .frame(
                     minWidth: RawdeaSpacing.minimumTouchTarget,
                     minHeight: RawdeaSpacing.minimumTouchTarget
@@ -952,7 +737,7 @@ struct PostRowView: View {
                 .contentShape(Rectangle())
         }
         .accessibilityLabel(
-            "Open discussion and comments"
+            "Open discussion and comments, \(counted(post.replyCount, post.kind == .question ? "answer" : "reply"))"
         )
     }
 

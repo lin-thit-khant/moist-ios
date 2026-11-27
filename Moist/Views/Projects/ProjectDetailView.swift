@@ -35,6 +35,10 @@ struct ProjectDetailView: View {
     @State private var kindFilter: PostKind?
     @State private var changedProject: Project?
     @State private var stageErrorMessage: String?
+    @State private var section = ProjectSection.timeline
+    @State private var followers: [PostAuthor]?
+    @State private var seenBefore: Date?
+    @State private var isEditingDescription = false
 
     private let projectService = ProjectService()
 
@@ -62,7 +66,17 @@ struct ProjectDetailView: View {
             RawdeaPalette.canvas
                 .ignoresSafeArea()
         )
-        .navigationTitle(project.name)
+        .navigationTitle("")
+        .sheet(isPresented: $isEditingDescription) {
+            ProjectDescriptionSheet(project: current) { updated in
+                changedProject = updated
+                await onProjectChanged()
+            }
+        }
+        .task(id: followViewModel.followerCount) {
+            followers = try? await FollowingService()
+                .fetchProjectFollowers(projectId: project.id)
+        }
         .task(id: project.id) {
             await loadStageEvents()
         }
@@ -72,7 +86,11 @@ struct ProjectDetailView: View {
         // Opening a followed Project clears its unread count.
         .task(id: followViewModel.isFollowing) {
             if followViewModel.isFollowing {
-                try? await FollowingService()
+                let service = FollowingService()
+                // Kept so this visit can mark what was new.
+                seenBefore = try? await service
+                    .fetchProjectLastSeen()[project.id]
+                try? await service
                     .markProjectSeen(projectId: project.id)
             }
         }
@@ -265,6 +283,12 @@ struct ProjectDetailView: View {
             }
 
             Button {
+                isEditingDescription = true
+            } label: {
+                Label("Description", systemImage: "text.alignleft")
+            }
+
+            Button {
                 projectToRename = project
             } label: {
                 Label("Rename", systemImage: "pencil")
@@ -366,131 +390,264 @@ struct ProjectDetailView: View {
         return name.isEmpty ? ownerProfile.username : name
     }
 
-    private var followerCountText: String {
-        let count = followViewModel.followerCount
-        return count == 1 ? "1 follower" : "\(count.formatted()) followers"
+    private var startedText: String {
+        "started \(current.createdAt.formatted(.dateTime.month(.abbreviated).year()))"
     }
 
     private var stageSummary: String {
-        let since = current.stageChangedAt.formatted(.dateTime.day().month().year())
-        return "\(current.stage.title) since \(since)"
+        let since = current.stageChangedAt.formatted(.dateTime.day().month(.abbreviated))
+        let posts = viewModel.posts.count
+        let open = viewModel.posts.filter {
+            $0.kind == .question && $0.bestReplyId == nil && !$0.isHidden
+        }.count
+        let questions = open == 0
+            ? "No open questions"
+            : open == 1 ? "1 open question" : "\(open) open questions"
+        return "\(current.stage.title) since \(since) · \(posts == 1 ? "1 post" : "\(posts) posts") · \(questions)"
     }
 
     private var projectHeader: some View {
 
-        // Reads as part of the page rather than a card.
-        VStack(
-            alignment: .leading,
-            spacing: 0
-        ) {
+        VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
 
-            VStack(
-                alignment: .leading,
-                spacing: RawdeaSpacing.xs
-            ) {
+            HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
 
-                RawdeaProjectCard(
-                    project: current,
-                    showsOwnerStatus: isOwner
-                )
+                VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
 
-                RawdeaStageTrack(stage: current.stage)
+                    Text(current.name)
+                        .font(.title.weight(.bold))
+                        .foregroundStyle(RawdeaPalette.primaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
 
-                Text(stageSummary)
-                    .font(RawdeaTypography.metadata)
-                    .foregroundStyle(RawdeaPalette.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                // Who the Project belongs to, linking to their profile.
-                if !isOwner, let ownerName, let ownerProfile {
-
-                    // A button, so the List row adds no chevron
-                    // and only the name opens the profile.
+                    // Who it belongs to, linking to their profile.
                     Button {
-                        openPostRoute?(.author(ownerProfile.id))
+                        openPostRoute?(.author(current.userId))
                     } label: {
-                        HStack(spacing: RawdeaSpacing.xs) {
-                            Text("by \(ownerName)")
-                                .font(RawdeaTypography.secondary)
-                                .foregroundStyle(RawdeaPalette.primaryText)
-                                .lineLimit(2)
-                        }
-                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                        .contentShape(Rectangle())
+                        Text(ownerName.map { "\($0) · \(startedText)" } ?? startedText)
+                            .font(RawdeaTypography.secondary)
+                            .foregroundStyle(RawdeaPalette.secondaryText)
+                            .multilineTextAlignment(.leading)
+                            .frame(minHeight: RawdeaSpacing.minimumTouchTarget, alignment: .top)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("By \(ownerName)")
                     .accessibilityHint("Opens profile")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                if followViewModel.isLoading &&
-                   !followViewModel.hasLoaded {
-
-                    RawdeaLoadingIndicator()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .accessibilityLabel("Loading Project details")
-
-                } else if followViewModel.hasLoaded {
-
-                    Label(followerCountText, systemImage: "person.2")
-                        .font(RawdeaTypography.metadata)
-                        .foregroundStyle(RawdeaPalette.secondaryText)
-
-                    if !followViewModel.isOwnProject &&
-                       !project.isHidden &&
-                       !project.isArchived {
-
-                        RawdeaFollowButton(
-                            isFollowing: followViewModel.isFollowing,
-                            isUpdating: followViewModel.isUpdating,
-                            followLabel: "Follow Project",
-                            unfollowLabel: "Unfollow Project"
-                        ) {
-                            Task {
-                                await followViewModel.toggleFollow(project: project)
-                            }
-                        }
-                        .accessibilityIdentifier("project-follow-action")
-                    }
-                }
-
-                if let error =
-                    followViewModel.errorMessage {
-
-                    RawdeaInlineError(
-                        message: error
+                if !dynamicTypeSize.isAccessibilitySize {
+                    RawdeaInitialAvatar(
+                        name: current.name,
+                        size: 68,
+                        font: .title.weight(.bold)
                     )
+                }
+            }
 
-                    if !followViewModel.hasLoaded {
+            if isOwner && (current.isHidden || current.isArchived) {
+                Label(
+                    current.isArchived ? "Archived" : "Hidden",
+                    systemImage: current.isArchived ? "archivebox" : "eye.slash"
+                )
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+            }
 
-                        Button(
-                            "Retry Follow Status"
-                        ) {
+            if !current.about.isEmpty {
+                Text(current.about)
+                    .font(RawdeaTypography.postBody)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-                            Task {
+            RawdeaStageTrack(stage: current.stage)
 
-                                await followViewModel.load(
-                                    project: project
-                                )
-                            }
+            Text(stageSummary)
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if followViewModel.hasLoaded &&
+               !followViewModel.isOwnProject &&
+               !current.isHidden &&
+               !current.isArchived {
+
+                followButton
+            }
+
+            if let error = followViewModel.errorMessage {
+
+                RawdeaInlineError(message: error)
+
+                if !followViewModel.hasLoaded {
+                    Button("Retry Follow Status") {
+                        Task {
+                            await followViewModel.load(project: project)
                         }
-                        .frame(
-                            minHeight:
-                                RawdeaSpacing.minimumTouchTarget
-                        )
                     }
+                    .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(
-            .horizontal,
-            RawdeaSpacing.screenInset
-        )
-        .padding(
-            .vertical,
-            RawdeaSpacing.sm
-        )
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.top, RawdeaSpacing.xs)
+    }
+
+    private var followButton: some View {
+
+        let isFollowing = followViewModel.isFollowing
+
+        return Button {
+            Task {
+                await followViewModel.toggleFollow(project: project)
+            }
+        } label: {
+            HStack(spacing: RawdeaSpacing.xs) {
+                if followViewModel.isUpdating {
+                    ProgressView()
+                        .tint(isFollowing ? RawdeaPalette.primaryText : RawdeaPalette.onPrimaryFill)
+                }
+                Text(isFollowing ? "Following" : "Follow")
+            }
+            .font(RawdeaTypography.authorName)
+            .foregroundStyle(isFollowing ? RawdeaPalette.primaryText : RawdeaPalette.onPrimaryFill)
+            .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
+            .background(
+                isFollowing ? RawdeaPalette.canvas : RawdeaPalette.primaryFill,
+                in: RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+                    .strokeBorder(RawdeaPalette.activityOutline)
+                    .allowsHitTesting(false)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(followViewModel.isUpdating)
+        .accessibilityLabel(isFollowing ? "Unfollow Project" : "Follow Project")
+        .accessibilityIdentifier("project-follow-action")
+    }
+
+    // MARK: - Sections
+
+    private var sectionTabs: some View {
+
+        HStack(spacing: 0) {
+            ForEach(ProjectSection.allCases, id: \.self) { item in
+                let isSelected = section == item
+
+                Button {
+                    section = item
+                } label: {
+                    Text(item.rawValue)
+                        .font(RawdeaTypography.authorName)
+                        .foregroundStyle(isSelected ? RawdeaPalette.primaryText : RawdeaPalette.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .fill(isSelected ? RawdeaPalette.accent : RawdeaPalette.divider)
+                                .frame(height: isSelected ? 2 : 0.5)
+                                .accessibilityHidden(true)
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(.top, RawdeaSpacing.sm)
+    }
+
+    @ViewBuilder
+    private var peopleRows: some View {
+
+        if let ownerProfile {
+            personRow(
+                id: ownerProfile.id,
+                name: ownerName ?? ownerProfile.username,
+                detail: "Owner"
+            )
+            .timelineListRow()
+        }
+
+        if let followers {
+
+            Text(followViewModel.followerCount == 1
+                 ? "1 follower"
+                 : "\(followViewModel.followerCount) followers")
+                .font(RawdeaTypography.secondary.weight(.medium))
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .padding(.horizontal, RawdeaSpacing.screenInset)
+                .padding(.vertical, RawdeaSpacing.xs)
+                .timelineListRow()
+
+            ForEach(followers, id: \.id) { person in
+                personRow(
+                    id: person.id,
+                    name: person.displayName.isEmpty ? person.username : person.displayName,
+                    detail: "@\(person.username)"
+                )
+                .timelineListRow()
+            }
+
+        } else {
+
+            RawdeaLoadingIndicator("Loading people...")
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, RawdeaSpacing.lg)
+                .timelineListRow()
+        }
+    }
+
+    private func personRow(id: UUID, name: String, detail: String) -> some View {
+
+        Button {
+            openPostRoute?(.author(id))
+        } label: {
+            HStack(spacing: RawdeaSpacing.sm) {
+                RawdeaInitialAvatar(name: name)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(name)
+                        .font(RawdeaTypography.authorName)
+                        .foregroundStyle(RawdeaPalette.primaryText)
+                    Text(detail)
+                        .font(RawdeaTypography.metadata)
+                        .foregroundStyle(RawdeaPalette.secondaryText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, RawdeaSpacing.screenInset)
+            .padding(.vertical, RawdeaSpacing.xs)
+            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens profile")
+    }
+
+    private var aboutRows: some View {
+
+        VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
+            Text(current.about.isEmpty ? "No description yet." : current.about)
+                .foregroundStyle(current.about.isEmpty
+                    ? RawdeaPalette.secondaryText
+                    : RawdeaPalette.primaryText)
+            Text("Started \(current.createdAt.formatted(.dateTime.day().month().year()))")
+                .foregroundStyle(RawdeaPalette.secondaryText)
+            ForEach(stageEvents) { event in
+                Text("Moved to \(event.toStage.title) on \(event.createdAt.formatted(.dateTime.day().month().year()))")
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+            }
+        }
+        .font(RawdeaTypography.postBody)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(RawdeaSpacing.screenInset)
     }
 
     // MARK: - Project posts
@@ -502,22 +659,33 @@ struct ProjectDetailView: View {
             // The header now scrolls with the
             // remaining Project content.
 
-            VStack(spacing: 0) {
-
-                projectHeader
-
-                Divider()
-                    .overlay(RawdeaPalette.divider)
-            }
+            projectHeader
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
             .listRowBackground(
                 RawdeaPalette.canvas
             )
 
+            if let question = openQuestion, section == .timeline {
+                openQuestionCard(question)
+                    .timelineListRow()
+            }
+
+            sectionTabs
+                .timelineListRow()
+
+            if section == .people {
+
+                peopleRows
+
+            } else if section == .about {
+
+                aboutRows
+                    .timelineListRow()
+
             // MARK: - Loading
 
-            if viewModel.isLoading &&
+            } else if viewModel.isLoading &&
                viewModel.posts.isEmpty {
 
                 RawdeaLoadingIndicator("Loading posts...")
@@ -579,11 +747,6 @@ struct ProjectDetailView: View {
 
             } else {
 
-                if let question = openQuestion {
-                    openQuestionCard(question)
-                        .timelineListRow()
-                }
-
                 filterChips
                     .timelineListRow()
 
@@ -602,7 +765,7 @@ struct ProjectDetailView: View {
                     // A filtered list is not a history, so it
                     // drops the stage headings.
                     if kindFilter == nil {
-                        groupHeader(group.stage)
+                        groupHeader(group.stage, range: range(of: group))
                             .timelineListRow()
                     }
 
@@ -682,7 +845,7 @@ struct ProjectDetailView: View {
             openPostRoute?(.discussion(post.id))
         } label: {
             VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
-                Text("\(Image(systemName: PostKind.question.symbol)) Open question")
+                Text("\(Image(systemName: PostKind.question.symbol)) Open question · \(post.replyCount == 1 ? "1 answer" : "\(post.replyCount) answers")")
                     .font(RawdeaTypography.metadata.weight(.semibold))
                     .foregroundStyle(RawdeaPalette.secondaryText)
                 Text(post.content)
@@ -724,13 +887,33 @@ struct ProjectDetailView: View {
         .padding(.top, RawdeaSpacing.xs)
     }
 
-    private func groupHeader(_ stage: ProjectStage) -> some View {
+    /// "since 3 Nov" for the current stage, "Sep 2026 to 3 Nov" before.
+    private func range(of group: ProjectTimeline.Group) -> String {
+        let all = timelineGroups
+        guard let index = all.firstIndex(where: { $0.id == group.id }) else {
+            return ""
+        }
+        func day(_ date: Date) -> String {
+            date.formatted(.dateTime.day().month(.abbreviated))
+        }
+        let start = group.startedAt ?? current.createdAt
+        if index == 0 {
+            return "since \(day(start))"
+        }
+        guard let end = all[index - 1].startedAt else { return "" }
+        return "\(day(start)) to \(day(end))"
+    }
+
+    private func groupHeader(_ stage: ProjectStage, range: String) -> some View {
 
         HStack(spacing: RawdeaSpacing.xs) {
             Text(stage.title)
                 .font(RawdeaTypography.metadata.weight(.semibold))
                 .foregroundStyle(RawdeaPalette.primaryText)
                 .accessibilityAddTraits(.isHeader)
+            Text(range)
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
             Rectangle()
                 .fill(RawdeaPalette.divider)
                 .frame(height: 1)
@@ -747,7 +930,11 @@ struct ProjectDetailView: View {
         switch item {
 
         case .post(let post):
-            RawdeaTimelineRow(date: post.createdAt, isStageChange: false) {
+            RawdeaTimelineRow(
+                date: post.createdAt,
+                isStageChange: false,
+                isNew: seenBefore.map { post.createdAt > $0 } ?? false
+            ) {
                 PostRowView(
                     post: post,
                     currentUserId: currentUserId,
@@ -778,9 +965,14 @@ struct ProjectDetailView: View {
         case .stageChange(let event):
             RawdeaTimelineRow(date: event.createdAt, isStageChange: true) {
                 Text("\(Image(systemName: "arrow.right.circle")) Moved to \(event.toStage.title)")
-                    .font(RawdeaTypography.authorName)
+                    .font(RawdeaTypography.metadata.weight(.semibold))
                     .foregroundStyle(RawdeaPalette.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, RawdeaSpacing.sm)
+                    .padding(.vertical, RawdeaSpacing.xxs)
+                    .overlay {
+                        Capsule().strokeBorder(RawdeaPalette.primaryText)
+                    }
                     .padding(.bottom, RawdeaSpacing.sm)
                     .accessibilityLabel("Moved to \(event.toStage.title)")
             }
@@ -797,6 +989,7 @@ private struct RawdeaTimelineRow<Content: View>: View {
 
     let date: Date
     let isStageChange: Bool
+    var isNew = false
     @ViewBuilder let content: Content
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -846,10 +1039,14 @@ private struct RawdeaTimelineRow<Content: View>: View {
                 .fill(RawdeaPalette.divider)
                 .frame(width: 1)
             Circle()
-                .fill(isStageChange ? RawdeaPalette.primaryText : RawdeaPalette.canvas)
+                .fill(isStageChange
+                    ? RawdeaPalette.primaryText
+                    : isNew ? RawdeaPalette.accent : RawdeaPalette.canvas)
                 .overlay {
                     Circle().strokeBorder(
-                        isStageChange ? RawdeaPalette.primaryText : RawdeaPalette.secondaryText,
+                        isStageChange
+                            ? RawdeaPalette.primaryText
+                            : isNew ? RawdeaPalette.accent : RawdeaPalette.secondaryText,
                         lineWidth: 1.5
                     )
                 }
@@ -860,6 +1057,12 @@ private struct RawdeaTimelineRow<Content: View>: View {
         .padding(.bottom, -RawdeaSpacing.xs)
         .accessibilityHidden(true)
     }
+}
+
+private enum ProjectSection: String, CaseIterable {
+    case timeline = "Timeline"
+    case people = "People"
+    case about = "About"
 }
 
 private extension View {

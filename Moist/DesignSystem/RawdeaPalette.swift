@@ -15,33 +15,33 @@ enum RawdeaPalette {
 
     static let canvas = adaptive(
         light: 0xFFFFFF,
-        dark: 0x17191C
+        dark: 0x101010
     )
 
     static let surface = adaptive(
-        light: 0xF7F8FA,
-        dark: 0x292D32
+        light: 0xF2F2F2,
+        dark: 0x1E1E1E
     )
 
     // MARK: - Typography
 
     static let primaryText = adaptive(
-        light: 0x20262C,
-        dark: 0xF3F4F5
+        light: 0x000000,
+        dark: 0xF3F5F7
     )
 
     static let secondaryText = adaptive(
-        light: 0x68727D,
-        dark: 0xB1B8C0,
-        increasedLight: 0x565F68,
+        light: 0x6C6C70,
+        dark: 0x8E8E93,
+        increasedLight: 0x48484A,
         increasedDark: 0xD2D7DC
     )
 
     // MARK: - Brand
 
     static let accent = adaptive(
-        light: 0xB33D4A,
-        dark: 0xF19DA3
+        light: 0xB2394B,
+        dark: 0xC4505F
     )
 
     // Use on top of the accent fill.
@@ -50,7 +50,7 @@ enum RawdeaPalette {
 
     static let onAccent = adaptive(
         light: 0xFFFFFF,
-        dark: 0x17191C
+        dark: 0xFFFFFF
     )
 
     static let softBlush = adaptive(
@@ -65,53 +65,30 @@ enum RawdeaPalette {
     // for Projects and likes.
 
     static let primaryFill = adaptive(
-        light: 0x20262C,
-        dark: 0xF3F4F5
+        light: 0x000000,
+        dark: 0xF3F5F7
     )
 
     // Use on top of primaryFill.
 
     static let onPrimaryFill = adaptive(
         light: 0xFFFFFF,
-        dark: 0x17191C
+        dark: 0x101010
     )
-
-    // MARK: - Avatar tints
-
-    // Soft backgrounds for initial avatars. Primary text
-    // keeps at least 4.5:1 contrast on every tint.
-
-    static let avatarTints: [Color] = [
-        adaptive(light: 0xF4DEDF, dark: 0x3A2A30), // blush
-        adaptive(light: 0xE3E8EF, dark: 0x2A3340), // slate
-        adaptive(light: 0xE2ECE5, dark: 0x263A2E), // sage
-        adaptive(light: 0xF2E8D8, dark: 0x3A3226), // sand
-        adaptive(light: 0xE9E3F0, dark: 0x332C3D), // lilac
-        adaptive(light: 0xDFECEC, dark: 0x243838)  // mist
-    ]
-
-    /// The same person always gets the same tint, even after
-    /// changing their display name.
-    static func avatarTint(for id: UUID) -> Color {
-        let sum = withUnsafeBytes(of: id.uuid) { bytes in
-            bytes.reduce(0) { $0 &+ Int($1) }
-        }
-        return avatarTints[sum % avatarTints.count]
-    }
 
     // MARK: - Dividers and borders
 
     static let divider = adaptive(
-        light: 0xE5E7EB,
-        dark: 0x3B4046
+        light: 0xE5E5EA,
+        dark: 0x2C2C2C
     )
 
     // Quiet Outline Activity:
     // subtle normally, stronger with Increase Contrast.
 
     static let activityOutline = adaptive(
-        light: 0xE5E7EB,
-        dark: 0x3B4046,
+        light: 0xE5E5EA,
+        dark: 0x2C2C2C,
         increasedLight: 0x858D95,
         increasedDark: 0x7D858E
     )

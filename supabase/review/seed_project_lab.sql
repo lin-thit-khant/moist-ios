@@ -169,6 +169,18 @@ from (values (106, 1), (106, 3), (106, 5), (104, 2), (105, 4), (108, 6)) as l(po
 join lab_people p on p.n = l.person
 on conflict do nothing;
 
+-- Descriptions ----------------------------------------------------------------
+
+update public.projects p
+set description = d.description
+from (values
+    (101, 'Glaze tests, failures included. One potter, one kiln, a lot of tiles.'),
+    (103, 'Turning kitchen scraps into soil, four floors up.'),
+    (104, 'A weekly show recorded on train platforms.')
+) as d(n, description)
+where p.id = format('0000eeee-0001-4000-8000-%s', lpad(d.n::text, 12, '0'))::uuid
+  and p.description = '';
+
 -- Home shows these as already read: one Project caught up, one partly new ----
 
 update public.project_follows f

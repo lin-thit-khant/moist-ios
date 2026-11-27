@@ -211,7 +211,7 @@ struct ExploreHomeSections: View {
                 HStack(spacing: RawdeaSpacing.sm) {
 
                     if !dynamicTypeSize.isAccessibilitySize {
-                        RawdeaProjectAvatar(name: item.project.name, tintSeed: item.project.id)
+                        RawdeaProjectAvatar(name: item.project.name)
                     }
 
                     VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {

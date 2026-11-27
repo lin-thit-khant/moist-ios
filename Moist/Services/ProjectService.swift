@@ -130,6 +130,24 @@ struct ProjectService {
             .value
     }
     
+    func setDescription(
+        projectId: UUID,
+        description: String
+    ) async throws -> Project {
+        let user = try await client.auth.session.user
+        
+        return try await client
+            .from("projects")
+            .update(["description": description
+                .trimmingCharacters(in: .whitespacesAndNewlines)])
+            .eq("id", value: projectId)
+            .eq("user_id", value: user.id)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+    
     func setPinned(
         projectId: UUID,
         pinned: Bool

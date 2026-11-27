@@ -141,6 +141,27 @@ struct HomeView: View {
         .navigationTitle("Rawdea")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Menu {
+                    Button("Saved posts", systemImage: "bookmark") {
+                        openPostRoute?(.savedPosts)
+                    }
+                    Button("Following", systemImage: "person.2") {
+                        openPostRoute?(.following)
+                    }
+                    Button("Settings", systemImage: "gearshape") {
+                        openPostRoute?(.settings)
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal")
+                        .frame(
+                            width: RawdeaSpacing.minimumTouchTarget,
+                            height: RawdeaSpacing.minimumTouchTarget
+                        )
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Menu")
+            }
             ToolbarItem(placement: .principal) {
                 Text("Rawdea")
                     .font(RawdeaTypography.wordmark)
@@ -259,7 +280,7 @@ struct HomeView: View {
                 .overlay(alignment: .bottom) {
                     if isSelected {
                         Rectangle()
-                            .fill(RawdeaPalette.primaryText)
+                            .fill(RawdeaPalette.accent)
                             .frame(height: 2)
                             .accessibilityHidden(true)
                     }
