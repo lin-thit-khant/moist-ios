@@ -23,8 +23,8 @@ struct RawdeaProfileWorkSections<Chips: View, Posts: View>: View {
                     .foregroundStyle(RawdeaPalette.secondaryText)
                     .accessibilityAddTraits(.isHeader)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: RawdeaSpacing.xs, content: chips)
+                RawdeaWrapLayout(spacing: RawdeaSpacing.xs) {
+                    chips()
                 }
             }
 
@@ -90,7 +90,7 @@ struct RawdeaProjectChip: View {
     var body: some View {
         RawdeaChip(
             title: "\(project.name) · \(status)",
-            symbol: project.isPinned ? "pin.fill" : nil,
+            avatar: project.name,
             isSelected: false
         ) {
             openPostRoute?(.project(project.id))

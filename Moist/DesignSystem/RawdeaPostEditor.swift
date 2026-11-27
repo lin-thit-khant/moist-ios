@@ -57,7 +57,7 @@ struct RawdeaPostEditor: View {
                     // inset so text lines up with the screen.
                     .padding(.horizontal, isPlain ? -5 : RawdeaSpacing.xs)
                     .padding(.vertical, isPlain ? 0 : RawdeaSpacing.xs)
-                    .frame(minHeight: isPlain ? 160 : 230)
+                    .frame(minHeight: isPlain ? 76 : 230)
                     .focused($isEditorFocused)
                     .disabled(!isEnabled)
                     .textInputAutocapitalization(.sentences)

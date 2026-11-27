@@ -288,7 +288,7 @@ struct ProfileView: View {
             RawdeaPalette.canvas
                 .ignoresSafeArea()
         )
-        .navigationTitle("Profile")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         
         .toolbar {
@@ -551,25 +551,16 @@ struct ProfileView: View {
 
     // MARK: - Profile actions
 
-    // Two equal pills, stacked at accessibility sizes.
     private func profileActions(_ profile: Profile) -> some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 0))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: RawdeaSpacing.xs))
-
-        return layout {
-            NavigationLink {
-                EditProfileView(
-                    viewModel: viewModel,
-                    profile: profile
-                )
-            } label: {
-                RawdeaOutlinePillLabel(title: "Edit profile")
-            }
-            .buttonStyle(.plain)
-
-            RawdeaShareProfileLink(profile: profile)
+        NavigationLink {
+            EditProfileView(
+                viewModel: viewModel,
+                profile: profile
+            )
+        } label: {
+            RawdeaOutlinePillLabel(title: "Edit profile")
         }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Projects

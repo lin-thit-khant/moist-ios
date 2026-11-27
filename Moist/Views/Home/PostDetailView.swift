@@ -87,15 +87,18 @@ struct PostDetailView: View {
 
                 ScrollViewReader { proxy in
 
-                    discussionList(post: post)
+                    // A question has its answer field in the page.
+                    discussionList(post: post, scrollProxy: proxy)
                         .safeAreaInset(
                             edge: .bottom,
                             spacing: 0
                         ) {
 
-                            commentComposer(
-                                scrollProxy: proxy
-                            )
+                            if post.kind != .question {
+                                commentComposer(
+                                    scrollProxy: proxy
+                                )
+                            }
                         }
                 }
 
@@ -137,6 +140,23 @@ struct PostDetailView: View {
         )
         .navigationTitle(viewModel.post?.kind == .question ? "Question" : "Discussion")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let post = viewModel.post,
+               post.kind == .question,
+               let viewerId = viewModel.viewerId,
+               viewerId != post.userId {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Report Post", systemImage: "flag") {
+                            reportTarget = .post(post.id)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .accessibilityLabel("Post options")
+                }
+            }
+        }
 
         // MARK: - Initial loading
 
@@ -246,7 +266,8 @@ struct PostDetailView: View {
     // MARK: - Discussion list
 
     private func discussionList(
-        post: Post
+        post: Post,
+        scrollProxy: ScrollViewProxy
     ) -> some View {
 
         List {
@@ -255,11 +276,26 @@ struct PostDetailView: View {
             // form one continuous reading area.
             VStack(spacing: 0) {
 
-                PostRowView(
-                    post: post,
-                    currentUserId: viewModel.viewerId,
-                    showsDiscussionLink: false
-                )
+                if post.kind == .question {
+
+                    questionHeader(post)
+
+                    questionStatus(post)
+                        .padding(.horizontal, RawdeaSpacing.screenInset)
+                        .padding(.bottom, RawdeaSpacing.sm)
+
+                    Divider()
+                        .overlay(RawdeaPalette.divider)
+                        .padding(.horizontal, RawdeaSpacing.md)
+
+                } else {
+
+                    PostRowView(
+                        post: post,
+                        currentUserId: viewModel.viewerId,
+                        showsDiscussionLink: false
+                    )
+                }
 
                 discussionActions
 
@@ -297,17 +333,15 @@ struct PostDetailView: View {
                 Divider()
                     .overlay(RawdeaPalette.divider)
                     .padding(.horizontal, RawdeaSpacing.md)
+
+                if post.kind == .question {
+                    commentComposer(scrollProxy: scrollProxy)
+                }
             }
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
             .listRowBackground(RawdeaPalette.canvas)
             .id("original-post")
-
-            if post.kind == .question {
-                questionStatus(post)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(RawdeaPalette.canvas)
-            }
 
             Text(post.kind == .question ? "Answers" : "Comments")
                 .font(RawdeaTypography.sectionTitle)
@@ -862,6 +896,7 @@ struct PostDetailView: View {
 
         let usesColumn = !dynamicTypeSize.isAccessibilitySize
         let continuesThread = usesColumn &&
+            viewModel.post?.kind != .question &&
             comment.id != viewModel.orderedComments.last?.id
 
         return VStack(
@@ -940,29 +975,88 @@ struct PostDetailView: View {
 
     // MARK: - Question
 
+    private func questionHeader(_ post: Post) -> some View {
+
+        let name = post.project?.name ?? "Project"
+        let author = post.author?.username ?? "unknown"
+        let date = post.createdAt.formatted(.dateTime.day().month(.abbreviated))
+        let stage = post.project?.stage?.title
+
+        return VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
+
+            Button {
+                if let projectId = post.projectId {
+                    openPostRoute?(.project(projectId))
+                }
+            } label: {
+                HStack(spacing: RawdeaSpacing.sm) {
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        RawdeaProjectAvatar(name: name)
+                    }
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(name)
+                            .font(RawdeaTypography.authorName)
+                            .foregroundStyle(RawdeaPalette.primaryText)
+                        Text([author, stage, date].compactMap { $0 }.joined(separator: " · "))
+                            .font(RawdeaTypography.secondary)
+                            .foregroundStyle(RawdeaPalette.secondaryText)
+                    }
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Opens Project")
+
+            Text(post.content)
+                .font(.body)
+                .foregroundStyle(RawdeaPalette.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.top, RawdeaSpacing.sm)
+        .padding(.bottom, RawdeaSpacing.sm)
+    }
+
     private func questionStatus(_ post: Post) -> some View {
 
         let isAnswered = post.bestReplyId != nil
+        let count = max(post.replyCount, viewModel.comments.count)
+        let counted = count == 1 ? "1 answer" : "\(count) answers"
+        let isAuthor = viewModel.viewerId == post.userId
+        let author = post.author?.username ?? "the author"
+        let note = isAnswered
+            ? "Best answer chosen by \(isAuthor ? "you" : author)"
+            : isAuthor ? "Pick the best answer" : "Waiting for \(author) to pick one"
 
-        return Label {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(isAnswered ? "Answered" : "Open")
-                    .font(RawdeaTypography.authorName)
-                    .foregroundStyle(RawdeaPalette.primaryText)
-                Text(isAnswered
-                     ? "A best answer has been chosen."
-                     : viewModel.viewerId == post.userId
-                        ? "Pick the answer that helped most."
-                        : "Waiting for the author to pick an answer.")
-                    .font(RawdeaTypography.metadata)
-                    .foregroundStyle(RawdeaPalette.secondaryText)
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.xs))
+
+        return layout {
+            HStack(spacing: RawdeaSpacing.xs) {
+                if isAnswered {
+                    Image(systemName: "checkmark")
+                } else {
+                    Circle()
+                        .fill(RawdeaPalette.accent)
+                        .frame(width: RawdeaSpacing.xs, height: RawdeaSpacing.xs)
+                }
+                Text("\(isAnswered ? "Answered" : "Open") · \(counted)")
             }
-            .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: isAnswered ? "checkmark.circle.fill" : "questionmark.circle")
-                .foregroundStyle(RawdeaPalette.primaryText)
+            .font(RawdeaTypography.authorName)
+            .foregroundStyle(RawdeaPalette.primaryText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(note)
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(RawdeaSpacing.sm)
         .background(
             RawdeaPalette.surface,
@@ -985,17 +1079,31 @@ struct PostDetailView: View {
                     .foregroundStyle(RawdeaPalette.primaryText)
             }
 
-            if isAuthor {
+            if isAuthor && (isBest || post.bestReplyId == nil) {
                 Button {
                     Task {
                         await viewModel.chooseBestReply(isBest ? nil : comment.id)
                     }
                 } label: {
-                    RawdeaOutlinePillLabel(title: isBest ? "Remove choice" : "Mark as best")
-                        .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
+                    Text(isBest ? "Remove choice" : "Mark as best")
+                        .font(isBest
+                            ? RawdeaTypography.metadata
+                            : RawdeaTypography.secondary.weight(.semibold))
+                        .foregroundStyle(isBest
+                            ? RawdeaPalette.secondaryText
+                            : RawdeaPalette.onAccent)
+                        .padding(.horizontal, isBest ? 0 : RawdeaSpacing.sm)
+                        .padding(.vertical, RawdeaSpacing.xs)
+                        .background(
+                            isBest ? Color.clear : RawdeaPalette.accent,
+                            in: RoundedRectangle(cornerRadius: RawdeaSpacing.xs)
+                        )
+                        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.isChoosingBestReply)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }

@@ -23,6 +23,17 @@ enum SupabaseManager {
         supabaseKey: requiredConfigValue(forKey: "SUPABASE_KEY")
     )
     
+    /// A client whose session is never saved, for checking a password.
+    static func verificationClient() -> SupabaseClient {
+        SupabaseClient(
+            supabaseURL: URL(string: requiredConfigValue(forKey: "SUPABASE_URL"))!,
+            supabaseKey: requiredConfigValue(forKey: "SUPABASE_KEY"),
+            options: SupabaseClientOptions(
+                auth: .init(storage: RawdeaMemoryAuthStorage())
+            )
+        )
+    }
+    
     static func debugConfiguration() {
         print("=== MOIST SUPABASE DEBUG ===")
 
@@ -40,3 +51,22 @@ enum SupabaseManager {
     }
 }
 
+
+/// Keeps a session in memory only.
+final class RawdeaMemoryAuthStorage: AuthLocalStorage, @unchecked Sendable {
+
+    private let lock = NSLock()
+    private var values: [String: Data] = [:]
+
+    func store(key: String, value: Data) throws {
+        lock.withLock { values[key] = value }
+    }
+
+    func retrieve(key: String) throws -> Data? {
+        lock.withLock { values[key] }
+    }
+
+    func remove(key: String) throws {
+        lock.withLock { values[key] = nil }
+    }
+}

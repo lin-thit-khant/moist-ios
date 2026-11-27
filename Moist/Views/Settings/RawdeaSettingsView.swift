@@ -93,8 +93,7 @@ struct RawdeaSettingsView: View {
                 } label: {
 
                     settingsRow(
-                        title: "Design System Preview",
-                        symbol: "paintpalette"
+                        title: "Design System Preview"
                     )
                 }
                 .listRowBackground(
@@ -221,9 +220,7 @@ struct RawdeaSettingsView: View {
                 ) {
 
                     settingsRow(
-                        title: "Appearance",
-                        symbol:
-                            "circle.lefthalf.filled"
+                        title: "Appearance"
                     )
 
                     Text(appearance.title)
@@ -257,9 +254,7 @@ struct RawdeaSettingsView: View {
             } label: {
 
                 settingsRow(
-                    title: "Blocked people",
-                    symbol:
-                        "person.crop.circle.badge.xmark"
+                    title: "Blocked people"
                 )
             }
             .listRowBackground(
@@ -273,8 +268,7 @@ struct RawdeaSettingsView: View {
             } label: {
 
                 settingsRow(
-                    title: "Report a problem",
-                    symbol: "shield"
+                    title: "Report a problem"
                 )
             }
             .listRowBackground(
@@ -288,8 +282,7 @@ struct RawdeaSettingsView: View {
             } label: {
 
                 settingsRow(
-                    title: "Community guidelines",
-                    symbol: "book"
+                    title: "Community guidelines"
                 )
             }
             .listRowBackground(
@@ -314,8 +307,7 @@ struct RawdeaSettingsView: View {
                 } label: {
 
                     settingsRow(
-                        title: "Moderation Queue",
-                        symbol: "checkmark.shield"
+                        title: "Moderation Queue"
                     )
                 }
                 .listRowBackground(
@@ -329,8 +321,7 @@ struct RawdeaSettingsView: View {
                 } label: {
 
                     settingsRow(
-                        title: "Safety Support Inbox",
-                        symbol: "tray.full"
+                        title: "Safety Support Inbox"
                     )
                 }
                 .listRowBackground(
@@ -377,20 +368,29 @@ struct RawdeaSettingsView: View {
 
         Section("Account") {
 
-            LabeledContent {
-
+            VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
+                Text("Email")
+                    .font(RawdeaTypography.body)
+                    .foregroundStyle(RawdeaPalette.primaryText)
                 Text(email ?? "—")
                     .font(RawdeaTypography.metadata)
                     .foregroundStyle(RawdeaPalette.secondaryText)
                     .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .listRowBackground(
+                RawdeaPalette.canvas
+            )
+
+            NavigationLink {
+
+                ChangePasswordView()
 
             } label: {
 
-                Text("Email")
-                    .font(RawdeaTypography.body)
-                    .foregroundStyle(RawdeaPalette.primaryText)
+                settingsRow(title: "Password")
             }
-            .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
             .listRowBackground(
                 RawdeaPalette.canvas
             )
@@ -534,8 +534,7 @@ struct RawdeaSettingsView: View {
 
                     settingsRow(
                         title: "Sign out",
-                        symbol:
-                            "rectangle.portrait.and.arrow.right"
+                        isStrong: true
                     )
 
                     if authViewModel.isLoading {
@@ -558,8 +557,6 @@ struct RawdeaSettingsView: View {
 
                 settingsRow(
                     title: "Delete account",
-                    symbol:
-                        "person.crop.circle.badge.minus",
                     isDestructive: true
                 )
             }
@@ -609,8 +606,7 @@ struct RawdeaSettingsView: View {
                 Link(destination: url) {
 
                     settingsRow(
-                        title: "Privacy Policy",
-                        symbol: "hand.raised"
+                        title: "Privacy Policy"
                     )
                 }
                 .listRowBackground(
@@ -626,8 +622,7 @@ struct RawdeaSettingsView: View {
                 } label: {
 
                     settingsRow(
-                        title: "Privacy Information",
-                        symbol: "hand.raised"
+                        title: "Privacy Information"
                     )
                 }
                 .listRowBackground(
@@ -641,44 +636,27 @@ struct RawdeaSettingsView: View {
 
     private func settingsRow(
         title: String,
-        symbol: String,
-        isDestructive: Bool = false
+        isDestructive: Bool = false,
+        isStrong: Bool = false
     ) -> some View {
 
-        HStack(
-            spacing: RawdeaSpacing.sm
-        ) {
-
-            Image(systemName: symbol)
-                .font(.system(.body))
-                .foregroundStyle(
-                    isDestructive
-                    ? RawdeaPalette.danger
-                    : RawdeaPalette.secondaryText
-                )
-                .frame(minWidth: 24)
-                .accessibilityHidden(true)
-
-            Text(title)
-                .font(RawdeaTypography.body)
-                .foregroundStyle(
-                    isDestructive
-                    ? RawdeaPalette.danger
-                    : RawdeaPalette.primaryText
-                )
-                .multilineTextAlignment(.leading)
-                .fixedSize(
-                    horizontal: false,
-                    vertical: true
-                )
-
-            Spacer(minLength: 0)
-        }
-        .frame(
-            minHeight:
-                RawdeaSpacing.minimumTouchTarget
-        )
-        .contentShape(Rectangle())
+        Text(title)
+            .font(isDestructive || isStrong
+                ? RawdeaTypography.authorName
+                : RawdeaTypography.body)
+            .foregroundStyle(
+                isDestructive
+                ? RawdeaPalette.accent
+                : RawdeaPalette.primaryText
+            )
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: RawdeaSpacing.minimumTouchTarget,
+                alignment: .leading
+            )
+            .contentShape(Rectangle())
     }
 
     // MARK: - URL validation

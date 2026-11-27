@@ -97,6 +97,8 @@ struct HomeView: View {
                     )
                 }
             }
+            // Rows must not draw over the selector.
+            .clipped()
         }
         .environment(
             \.rawdeaScrollingFeedHeader,

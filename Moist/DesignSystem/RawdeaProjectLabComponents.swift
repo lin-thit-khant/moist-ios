@@ -107,12 +107,21 @@ struct RawdeaChip: View {
 
     let title: String
     var symbol: String? = nil
+    /// A name whose initial sits in a small circle.
+    var avatar: String? = nil
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: RawdeaSpacing.xxs) {
+                if let avatar {
+                    RawdeaInitialAvatar(
+                        name: avatar,
+                        size: RawdeaSpacing.lg,
+                        font: RawdeaTypography.caption.weight(.bold)
+                    )
+                }
                 if let symbol {
                     Image(systemName: symbol)
                         .accessibilityHidden(true)
@@ -134,5 +143,57 @@ struct RawdeaChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - Wrapping
+
+/// Lays views in rows, starting a new row when one is full.
+struct RawdeaWrapLayout: Layout {
+
+    let spacing: CGFloat
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let width = proposal.width ?? .infinity
+        let frames = frames(in: width, subviews: subviews)
+        return CGSize(
+            width: proposal.width ?? (frames.map(\.maxX).max() ?? 0),
+            height: frames.map(\.maxY).max() ?? 0
+        )
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        for (subview, frame) in zip(subviews, frames(in: bounds.width, subviews: subviews)) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(frame.size)
+            )
+        }
+    }
+
+    private func frames(in width: CGFloat, subviews: Subviews) -> [CGRect] {
+        var origin = CGPoint.zero
+        var rowHeight: CGFloat = 0
+
+        return subviews.map { subview in
+            let size = subview.sizeThatFits(ProposedViewSize(width: width, height: nil))
+            if origin.x > 0, origin.x + size.width > width {
+                origin = CGPoint(x: 0, y: origin.y + rowHeight)
+                rowHeight = 0
+            }
+            let frame = CGRect(origin: origin, size: size)
+            origin.x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+            return frame
+        }
     }
 }

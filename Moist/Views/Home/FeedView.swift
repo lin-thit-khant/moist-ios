@@ -16,10 +16,17 @@ struct FeedView: View {
     let onCreatePost: () -> Void
 
     @State private var selectedPostForEditing: Post?
+    @State private var stageRows: [HomeStageRow] = []
+
+    // The feed still reads without its stage changes.
+    private func loadStageRows() async {
+        stageRows = (try? await ProjectService().fetchRecentStageRows()) ?? []
+    }
 
     var body: some View {
         RawdeaHomeFeedList(
             posts: viewModel.posts,
+            stageRows: stageRows,
             hasLoaded: viewModel.hasLoaded,
             isLoading: viewModel.isLoading,
             hasLoadError: viewModel.errorMessage != nil,
@@ -31,7 +38,10 @@ struct FeedView: View {
             emptyMessage: "Share the first idea with Rawdea.",
             emptyActionTitle: "Create a post",
             emptyAction: onCreatePost,
-            refresh: viewModel.refreshPosts,
+            refresh: {
+                await viewModel.refreshPosts()
+                await loadStageRows()
+            },
             loadMore: viewModel.loadMorePosts
         ) { post in
             PostRowView(
@@ -43,6 +53,9 @@ struct FeedView: View {
                 },
                 isReader: true
             )
+        }
+        .task {
+            await loadStageRows()
         }
         .onAppear {
             Task {
@@ -71,6 +84,7 @@ struct FeedView: View {
 struct RawdeaHomeFeedList<Row: View>: View {
 
     let posts: [Post]
+    var stageRows: [HomeStageRow] = []
     let hasLoaded: Bool
     let isLoading: Bool
     let hasLoadError: Bool
@@ -114,9 +128,18 @@ struct RawdeaHomeFeedList<Row: View>: View {
                     }
                 }
 
-                ForEach(posts) { post in
+                ForEach(HomeFeedItem.merge(
+                    posts: posts,
+                    stages: stageRows,
+                    hasMore: hasMore
+                )) { item in
                     VStack(spacing: 0) {
-                        postRow(post)
+                        switch item {
+                        case .post(let post):
+                            postRow(post)
+                        case .stage(let row):
+                            RawdeaStageFeedRow(row: row)
+                        }
 
                         Divider()
                             .overlay(RawdeaPalette.divider)
@@ -270,5 +293,56 @@ struct RawdeaFeedEnd: View {
         .multilineTextAlignment(.center)
         .padding(.vertical, RawdeaSpacing.lg)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// "Kiln Log moved to In progress", with the stage track.
+struct RawdeaStageFeedRow: View {
+
+    let row: HomeStageRow
+
+    @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        Button {
+            openPostRoute?(.project(row.project.id))
+        } label: {
+            HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
+
+                if !dynamicTypeSize.isAccessibilitySize {
+                    RawdeaProjectAvatar(name: row.project.name)
+                }
+
+                VStack(alignment: .leading, spacing: RawdeaSpacing.xs) {
+
+                    Text("\(Text(row.project.name).font(RawdeaTypography.authorName).foregroundStyle(RawdeaPalette.primaryText))  \(row.project.owner?.username ?? "")  \(PostRowView.shortAge(of: row.createdAt, at: .now))")
+                        .font(RawdeaTypography.secondary)
+                        .foregroundStyle(RawdeaPalette.secondaryText)
+
+                    Text("\(Image(systemName: "arrow.right.circle")) Moved to \(row.toStage.title)")
+                        .font(RawdeaTypography.metadata.weight(.semibold))
+                        .foregroundStyle(RawdeaPalette.primaryText)
+                        .padding(.horizontal, RawdeaSpacing.sm)
+                        .padding(.vertical, RawdeaSpacing.xxs)
+                        .overlay {
+                            Capsule().strokeBorder(RawdeaPalette.primaryText)
+                        }
+
+                    RawdeaStageTrack(stage: row.toStage)
+                        .frame(maxWidth: 260)
+                }
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, RawdeaSpacing.screenInset)
+            .padding(.vertical, RawdeaSpacing.sm)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("\(row.project.name) moved to \(row.toStage.title)")
+        .accessibilityHint("Opens Project")
     }
 }

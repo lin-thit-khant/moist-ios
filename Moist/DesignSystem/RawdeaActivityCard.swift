@@ -11,11 +11,13 @@ import SwiftUI
 /// One flat Activity row. Unread rows carry the accent dot.
 struct RawdeaActivityCard: View {
 
-    let notification: RawdeaNotification
+    let group: RawdeaActivityGroup
 
     var isOpening: Bool = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var notification: RawdeaNotification { group.latest }
 
     var body: some View {
 
@@ -33,7 +35,7 @@ struct RawdeaActivityCard: View {
                 spacing: RawdeaSpacing.xxs
             ) {
 
-                Text("\(Text(notification.subject).fontWeight(.semibold)) \(notification.action)")
+                Text("\(Text(group.subject).fontWeight(.semibold)) \(notification.action)")
                     .font(RawdeaTypography.secondary)
                     .foregroundStyle(RawdeaPalette.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -44,19 +46,20 @@ struct RawdeaActivityCard: View {
                         .foregroundStyle(RawdeaPalette.secondaryText)
                         .lineLimit(2)
                 }
-
-                Text(PostRowView.relativeAge(of: notification.createdAt, at: .now))
-                    .font(RawdeaTypography.caption)
-                    .foregroundStyle(RawdeaPalette.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(PostRowView.shortAge(of: notification.createdAt, at: .now))
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .accessibilityLabel(PostRowView.relativeAge(of: notification.createdAt, at: .now))
 
             if isOpening {
 
                 ProgressView()
                     .accessibilityHidden(true)
 
-            } else if !notification.isRead {
+            } else if !group.isRead {
 
                 Circle()
                     .fill(RawdeaPalette.accent)
@@ -71,7 +74,7 @@ struct RawdeaActivityCard: View {
         )
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityValue(notification.isRead ? "Read" : "Unread")
+        .accessibilityValue(group.isRead ? "Read" : "Unread")
     }
 
     @ViewBuilder

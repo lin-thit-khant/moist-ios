@@ -6,6 +6,7 @@
 //
 
 
+import Supabase
 import SwiftUI
 
 struct CreatePostView: View {
@@ -21,6 +22,10 @@ struct CreatePostView: View {
     @State private var selectedProject: Project?
     @State private var kind = PostKind.note
     @State private var movesStage = false
+    @State private var authorName: String?
+
+    @Environment(\.dynamicTypeSize)
+    private var dynamicTypeSize
 
     /// Project chosen before Compose opened, such as from a Project screen.
     private let initialProject: Project?
@@ -88,54 +93,9 @@ struct CreatePostView: View {
 
             ScrollView {
 
-                VStack(
-                    alignment: .leading,
-                    spacing: RawdeaSpacing.lg
-                ) {
-
-                    // The destination and the draft read as one block.
-                    VStack(
-                        alignment: .leading,
-                        spacing: RawdeaSpacing.xs
-                    ) {
-
-                        projectChip
-
-                        kindPicker
-
-                        RawdeaPostEditor(
-                            content: $content,
-                            placeholder: placeholder,
-                            isEnabled:
-                                !viewModel.isPublishing,
-                            isPlain: true
-                        )
-                    }
-
-                    kindDetails
-
-                    moderationNotice
-
-                    if let error =
-                        viewModel.errorMessage {
-
-                        RawdeaInlineError(
-                            message: error
-                        )
-                    }
-                }
-                .padding(
-                    .horizontal,
-                    RawdeaSpacing.screenInset
-                )
-                .padding(
-                    .top,
-                    RawdeaSpacing.xs
-                )
-                .padding(
-                    .bottom,
-                    RawdeaSpacing.lg
-                )
+                composerBody
+                    .padding(.horizontal, RawdeaSpacing.screenInset)
+                    .padding(.vertical, RawdeaSpacing.sm)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(
@@ -143,7 +103,7 @@ struct CreatePostView: View {
                     .ignoresSafeArea()
             )
 
-            .navigationTitle("New Post")
+            .navigationTitle("New post")
             .navigationBarTitleDisplayMode(.inline)
 
             .toolbar {
@@ -164,24 +124,13 @@ struct CreatePostView: View {
                     )
                 }
 
-                // Publish stays reachable while the
-                // keyboard is up, matching Edit Profile.
-                ToolbarItem(
-                    placement: .confirmationAction
-                ) {
-
-                    Button("Publish") {
-                        Task {
-                            await publish()
-                        }
-                    }
-                    .disabled(!canPublish)
-                }
             }
-            .safeAreaInset(edge: .bottom) {
-                if viewModel.isPublishing {
-                    postingPill
-                }
+            // Post stays above the keyboard.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                postBar
+            }
+            .task {
+                await loadAuthorName()
             }
 
             // Protect unsaved drafts from
@@ -262,6 +211,118 @@ struct CreatePostView: View {
         }
     }
 
+    // MARK: - Layout
+
+    /// An avatar with its thread line beside who, where and what.
+    private var composerBody: some View {
+
+        HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
+
+            if !dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: RawdeaSpacing.xs) {
+                    RawdeaInitialAvatar(name: authorName ?? "?")
+                    Capsule()
+                        .fill(RawdeaPalette.divider)
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
+                        .accessibilityHidden(true)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: RawdeaSpacing.xs) {
+
+                if let authorName {
+                    Text(authorName)
+                        .font(RawdeaTypography.authorName)
+                        .foregroundStyle(RawdeaPalette.primaryText)
+                }
+
+                projectChip
+
+                kindPicker
+
+                RawdeaPostEditor(
+                    content: $content,
+                    placeholder: placeholder,
+                    isEnabled: !viewModel.isPublishing,
+                    isPlain: true
+                )
+
+                kindDetails
+
+                moderationNotice
+
+                if let error = viewModel.errorMessage {
+                    RawdeaInlineError(message: error)
+                }
+            }
+        }
+    }
+
+    private var postBar: some View {
+
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: RawdeaSpacing.xs))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.sm))
+
+        return layout {
+
+            Text("Every idea goes in a Project")
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                Task { await publish() }
+            } label: {
+                HStack(spacing: RawdeaSpacing.xs) {
+                    if viewModel.isPublishing {
+                        ProgressView()
+                            .tint(RawdeaPalette.onAccent)
+                    }
+                    Text(viewModel.isPublishing ? "Posting…" : "Post")
+                }
+                .font(RawdeaTypography.authorName)
+                .foregroundStyle(canPublish || viewModel.isPublishing
+                    ? RawdeaPalette.onAccent
+                    : RawdeaPalette.secondaryText)
+                .padding(.horizontal, RawdeaSpacing.lg)
+                .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+                .background(
+                    canPublish || viewModel.isPublishing
+                        ? RawdeaPalette.accent
+                        : RawdeaPalette.surface,
+                    in: RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(!canPublish)
+        }
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.vertical, RawdeaSpacing.xs)
+        .background(RawdeaPalette.canvas)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(RawdeaPalette.divider)
+                .frame(height: 1)
+                .accessibilityHidden(true)
+        }
+        .onChange(of: viewModel.isPublishing) { _, isPublishing in
+            if isPublishing {
+                AccessibilityNotification.Announcement("Posting").post()
+            }
+        }
+    }
+
+    private func loadAuthorName() async {
+        guard let user = try? await SupabaseManager.client.auth.session.user else {
+            return
+        }
+        authorName = try? await ProfileService()
+            .fetchProfile(userId: user.id)
+            .username
+    }
+
     // MARK: - Project destination
 
     private var projectChip: some View {
@@ -274,8 +335,11 @@ struct CreatePostView: View {
 
             HStack(spacing: RawdeaSpacing.xxs) {
 
-                Image(systemName: "folder")
-                    .accessibilityHidden(true)
+                RawdeaInitialAvatar(
+                    name: selectedProject?.name ?? "General",
+                    size: RawdeaSpacing.lg,
+                    font: RawdeaTypography.caption.weight(.bold)
+                )
 
                 Text(selectedProject.map { "\($0.name) · \($0.stage.title)" } ?? "General")
                     .multilineTextAlignment(.leading)
@@ -286,18 +350,9 @@ struct CreatePostView: View {
                     .accessibilityHidden(true)
             }
             .font(RawdeaTypography.metadata.weight(.semibold))
-            // Red marks a chosen Project only.
-            .foregroundStyle(
-                selectedProject == nil
-                ? RawdeaPalette.primaryText
-                : RawdeaPalette.accent
-            )
+            .foregroundStyle(RawdeaPalette.primaryText)
             .padding(.horizontal, RawdeaSpacing.sm)
             .padding(.vertical, RawdeaSpacing.xs)
-            .background(
-                RawdeaPalette.surface,
-                in: RoundedRectangle(cornerRadius: RawdeaSpacing.lg)
-            )
             .overlay {
                 RoundedRectangle(cornerRadius: RawdeaSpacing.lg)
                     .strokeBorder(RawdeaPalette.activityOutline)
@@ -342,16 +397,17 @@ struct CreatePostView: View {
 
         if let nextStage, let current = selectedProject?.stage {
 
-            VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
+            VStack(alignment: .leading, spacing: RawdeaSpacing.xs) {
 
-                Toggle("Move to \(nextStage.title)", isOn: $movesStage)
-                    .tint(RawdeaPalette.accent)
-                    .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-                    .disabled(viewModel.isPublishing)
+                Text("Project stage")
+                    .font(RawdeaTypography.secondary.weight(.medium))
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+
+                stageChoice(current: current, next: nextStage)
 
                 detailText(movesStage
                     ? "Followers will see the Project move to \(nextStage.title)."
-                    : "The Project stays in \(current.title).")
+                    : "The stage stays the same.")
             }
 
         } else if kind == .question {
@@ -360,40 +416,56 @@ struct CreatePostView: View {
         }
     }
 
+    private func stageChoice(
+        current: ProjectStage,
+        next: ProjectStage
+    ) -> some View {
+
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 0))
+            : AnyLayout(HStackLayout(spacing: 0))
+
+        return layout {
+            stageSegment("Stay in \(current.title)", moves: false)
+            stageSegment("Move to \(next.title)", moves: true)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+                .strokeBorder(RawdeaPalette.activityOutline)
+                .allowsHitTesting(false)
+        }
+        .disabled(viewModel.isPublishing)
+    }
+
+    private func stageSegment(_ title: String, moves: Bool) -> some View {
+
+        let isSelected = movesStage == moves
+
+        return Button {
+            movesStage = moves
+        } label: {
+            Text(title)
+                .font(RawdeaTypography.secondary.weight(.semibold))
+                .foregroundStyle(isSelected
+                    ? RawdeaPalette.primaryText
+                    : RawdeaPalette.secondaryText)
+                .multilineTextAlignment(.center)
+                .padding(RawdeaSpacing.xs)
+                .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
+                .background(isSelected ? RawdeaPalette.surface : RawdeaPalette.canvas)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
     private func detailText(_ text: String) -> some View {
 
         Text(text)
             .font(RawdeaTypography.metadata)
             .foregroundStyle(RawdeaPalette.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
-    }
-
-    // MARK: - Publishing status
-
-    // The sheet stays open until the server answers, so a
-    // rejected post keeps its draft.
-    private var postingPill: some View {
-
-        HStack(spacing: RawdeaSpacing.xs) {
-
-            ProgressView()
-                .accessibilityHidden(true)
-
-            Text("Posting…")
-                .font(RawdeaTypography.authorName)
-                .foregroundStyle(RawdeaPalette.primaryText)
-        }
-        .padding(.horizontal, RawdeaSpacing.md)
-        .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
-        .background(RawdeaPalette.surface, in: Capsule())
-        .overlay {
-            Capsule().strokeBorder(RawdeaPalette.activityOutline)
-        }
-        .padding(.bottom, RawdeaSpacing.xs)
-        .accessibilityElement(children: .combine)
-        .onAppear {
-            AccessibilityNotification.Announcement("Posting").post()
-        }
     }
 
     // MARK: - Moderation disclosure

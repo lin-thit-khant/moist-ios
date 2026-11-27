@@ -12,6 +12,9 @@ struct WelcomeView: View {
     @ObservedObject var authViewModel:
         AuthViewModel
 
+    @Environment(\.dynamicTypeSize)
+    private var dynamicTypeSize
+
     var body: some View {
 
         GeometryReader { geometry in
@@ -22,6 +25,8 @@ struct WelcomeView: View {
                     alignment: .leading,
                     spacing: 0
                 ) {
+
+                    Spacer(minLength: 0)
 
                     introduction
 
@@ -100,13 +105,14 @@ struct WelcomeView: View {
     // An illustration, not anyone's real Project.
     private var exampleTimeline: some View {
 
-        VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
-            exampleRow("Today", "Progress", "Third firing done.")
-            exampleRow("18 Nov", "Decision", "Dropping the matte white glaze.")
-            exampleRow("3 Nov", "Stage", "Moved to In progress")
+        VStack(alignment: .leading, spacing: 0) {
+            exampleRow("Today", "Progress", "Third firing done.", dot: RawdeaPalette.accent)
+            exampleRow("18 Nov", "Decision", "Dropping the matte white glaze.", dot: nil)
+            exampleRow("3 Nov", "Stage", "Moved to In progress", dot: RawdeaPalette.primaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(RawdeaSpacing.md)
+        .padding(.horizontal, RawdeaSpacing.sm)
+        .padding(.vertical, RawdeaSpacing.xs)
         .background(
             RawdeaPalette.surface,
             in: RoundedRectangle(cornerRadius: RawdeaSpacing.cardRadius)
@@ -118,18 +124,39 @@ struct WelcomeView: View {
     private func exampleRow(
         _ date: String,
         _ kind: String,
-        _ text: String
+        _ text: String,
+        dot: Color?
     ) -> some View {
 
-        VStack(alignment: .leading, spacing: 0) {
-            Text("\(date) · \(kind)")
-                .font(RawdeaTypography.metadata)
-                .foregroundStyle(RawdeaPalette.secondaryText)
-            Text(text)
-                .font(RawdeaTypography.secondary)
-                .foregroundStyle(RawdeaPalette.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: RawdeaSpacing.sm) {
+
+            if !dynamicTypeSize.isAccessibilitySize {
+                Text(date)
+                    .font(RawdeaTypography.metadata)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                    .frame(width: RawdeaSpacing.minimumTouchTarget + RawdeaSpacing.xs, alignment: .trailing)
+
+                Circle()
+                    .fill(dot ?? RawdeaPalette.surface)
+                    .overlay {
+                        Circle().strokeBorder(dot ?? RawdeaPalette.secondaryText, lineWidth: 1.5)
+                    }
+                    .frame(width: RawdeaSpacing.xs + 1, height: RawdeaSpacing.xs + 1)
+                    .padding(.top, RawdeaSpacing.xxs)
+            }
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(dynamicTypeSize.isAccessibilitySize ? "\(date) · \(kind)" : kind)
+                    .font(RawdeaTypography.metadata.weight(.medium))
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                Text(text)
+                    .font(RawdeaTypography.secondary)
+                    .foregroundStyle(RawdeaPalette.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(.vertical, RawdeaSpacing.xs)
     }
 
     // MARK: - Sign-in choices

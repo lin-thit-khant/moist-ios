@@ -73,6 +73,7 @@ struct FollowingFeedView: View {
     private var postFeed: some View {
         RawdeaHomeFeedList(
             posts: viewModel.posts,
+            stageRows: viewModel.stageRows,
             hasLoaded: viewModel.hasLoaded,
             isLoading: viewModel.isLoading,
             hasLoadError: viewModel.errorMessage != nil,

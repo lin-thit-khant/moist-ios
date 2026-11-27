@@ -131,8 +131,6 @@ struct AuthorProfileView: View {
                                 blockViewModel.isUpdating
                         )
 
-                        RawdeaShareProfileLink(profile: profile)
-
                         // Preserve existing public
                         // posts and Projects.
 
@@ -163,7 +161,7 @@ struct AuthorProfileView: View {
             RawdeaPalette.canvas
                 .ignoresSafeArea()
         )
-        .navigationTitle("Profile")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
 
         // MARK: - Block Menu

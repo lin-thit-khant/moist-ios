@@ -43,12 +43,13 @@ struct DiscoveryService {
     // MARK: - Explore
 
     /// Posts from visible Projects, newest first. Posts policies
-    /// already leave out blocked and removed content.
-    private static let visiblePostSelection = """
-        *,
-        author: profiles!posts_profile_fkey(id, display_name, username),
-        project: projects!posts_project_owner_fk!inner(id, name, stage)
-        """
+    /// already leave out blocked and removed content. The inner
+    /// join lets the query filter by the Project.
+    private static let visiblePostSelection = PostService.selection
+        .replacingOccurrences(
+            of: "posts_project_owner_fk(",
+            with: "posts_project_owner_fk!inner("
+        )
 
     // shortcut: looks at the newest 100 posts. Replace with a
     // database function when one busy Project can fill them.

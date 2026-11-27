@@ -72,6 +72,8 @@ struct RawdeaFollowButton: View {
     let isFollowing: Bool
     let isUpdating: Bool
     var isBlocked: Bool = false
+    /// Fills the row, as the main action of a profile.
+    var isWide: Bool = false
     let followLabel: String
     let unfollowLabel: String
     let action: () -> Void
@@ -80,16 +82,13 @@ struct RawdeaFollowButton: View {
         let isMuted = isFollowing || isBlocked
         let foreground = isMuted ? RawdeaPalette.primaryText : RawdeaPalette.onPrimaryFill
         let background = isMuted ? RawdeaPalette.canvas : RawdeaPalette.primaryFill
-        let shape = Capsule()
+        let shape = RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
 
         Button(action: action) {
             HStack(spacing: RawdeaSpacing.xs) {
                 if isUpdating {
                     ProgressView()
                         .tint(foreground)
-                        .accessibilityHidden(true)
-                } else if isFollowing {
-                    Image(systemName: "checkmark")
                         .accessibilityHidden(true)
                 }
 
@@ -98,9 +97,9 @@ struct RawdeaFollowButton: View {
             }
             .font(RawdeaTypography.authorName)
             .foregroundStyle(foreground)
-            .padding(.horizontal, RawdeaSpacing.md)
+            .padding(.horizontal, RawdeaSpacing.sm)
             .padding(.vertical, RawdeaSpacing.xs)
-            .frame(minWidth: 96)
+            .frame(maxWidth: isWide ? .infinity : nil)
             .background(background, in: shape)
             .overlay {
                 if isMuted {
@@ -140,7 +139,8 @@ struct RawdeaOutlinePillLabel: View {
             .padding(.vertical, RawdeaSpacing.xs)
             .frame(maxWidth: .infinity)
             .background {
-                Capsule().strokeBorder(RawdeaPalette.activityOutline)
+                RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
+                    .strokeBorder(RawdeaPalette.activityOutline)
             }
             .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
             .contentShape(Rectangle())

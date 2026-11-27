@@ -40,8 +40,10 @@ struct NotificationsView: View {
         }
     }
 
-    private var visibleNotifications: [RawdeaNotification] {
-        viewModel.notifications.filter { $0.matches(filter) }
+    private var visibleGroups: [RawdeaActivityGroup] {
+        RawdeaActivityGroup.grouping(
+            viewModel.notifications.filter { $0.matches(filter) }
+        )
     }
 
     // MARK: - Body
@@ -100,7 +102,7 @@ struct NotificationsView: View {
 
             } else {
 
-                if visibleNotifications.isEmpty {
+                if visibleGroups.isEmpty {
 
                     Text("Nothing here yet.")
                         .font(RawdeaTypography.secondary)
@@ -111,11 +113,9 @@ struct NotificationsView: View {
                         .listRowBackground(RawdeaPalette.canvas)
                 }
 
-                ForEach(
-                    visibleNotifications
-                ) { notification in
+                ForEach(visibleGroups) { group in
 
-                    activityRow(notification)
+                    activityRow(group)
                 }
 
                 if viewModel.notifications.count >= 100 {
@@ -174,7 +174,7 @@ struct NotificationsView: View {
                 .ignoresSafeArea()
         )
         .navigationTitle("Activity")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
 
         // MARK: - Mark all read
 
@@ -312,25 +312,30 @@ struct NotificationsView: View {
     // MARK: - Activity card
 
     private func activityRow(
-        _ notification: RawdeaNotification
+        _ group: RawdeaActivityGroup
     ) -> some View {
 
         Button {
 
             Task {
 
+                // The whole row is read together.
+                for other in group.notifications.dropFirst() where !other.isRead {
+                    _ = await viewModel.markAsRead(notificationId: other.id)
+                }
+
                 await openNotification(
-                    notification
+                    group.latest
                 )
             }
 
         } label: {
 
             RawdeaActivityCard(
-                notification: notification,
+                group: group,
                 isOpening:
                     openingNotificationId ==
-                    notification.id
+                    group.id
             )
             .contentShape(Rectangle())
         }

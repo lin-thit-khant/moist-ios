@@ -87,6 +87,7 @@ struct RawdeaUserFollowSection: View {
             isFollowing: viewModel.isFollowing,
             isUpdating: viewModel.isUpdating,
             isBlocked: isInteractionBlocked,
+            isWide: true,
             followLabel: "Follow account",
             unfollowLabel: "Unfollow account"
         ) {

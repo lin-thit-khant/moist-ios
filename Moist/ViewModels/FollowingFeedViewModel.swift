@@ -30,6 +30,8 @@ final class FollowingFeedViewModel: ObservableObject {
     /// when only people are followed; Home then shows their posts.
     @Published private(set) var projectRows: [FollowedProjectRow] = []
 
+    @Published private(set) var stageRows: [HomeStageRow] = []
+
     // MARK: - Dependencies
 
     private let followingFeedService: FollowingFeedService
@@ -54,6 +56,7 @@ final class FollowingFeedViewModel: ObservableObject {
 
         posts = []
         projectRows = []
+        stageRows = []
 
         hasLoaded = false
         hasFollowedSources = false
@@ -98,6 +101,7 @@ final class FollowingFeedViewModel: ObservableObject {
 
                 posts = []
                 projectRows = []
+                stageRows = []
                 hasFollowedSources = false
                 hasMore = false
                 nextPageCursor = nil
@@ -114,6 +118,9 @@ final class FollowingFeedViewModel: ObservableObject {
             try Task.checkCancellation()
 
             projectRows = rows
+
+            // The feed still reads without its stage changes.
+            stageRows = (try? await followingFeedService.fetchStageRows()) ?? []
 
             // Load the first page.
 

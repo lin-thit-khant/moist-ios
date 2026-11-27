@@ -45,7 +45,7 @@ struct RawdeaAuthLegalLink: View {
 
         } label: {
 
-            Text("By continuing you agree to the \(Text("Terms").underline()) and \(Text("Privacy Policy").underline()).")
+            Text("Read the \(Text("community guidelines and privacy information").underline()).")
                 .font(RawdeaTypography.caption)
                 .foregroundStyle(RawdeaPalette.secondaryText)
                 .multilineTextAlignment(.center)

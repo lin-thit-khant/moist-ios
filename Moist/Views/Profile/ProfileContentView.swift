@@ -55,9 +55,7 @@ struct ProfileContentView: View {
                 ) {
 
                     Text(displayName)
-                        .font(
-                            RawdeaTypography.screenTitle
-                        )
+                        .font(.title.weight(.bold))
                         .foregroundStyle(
                             RawdeaPalette.primaryText
                         )
@@ -71,7 +69,7 @@ struct ProfileContentView: View {
 
                     // A username is one unbroken token, so wrapping splits it
                     // mid-word. Keep it on one line; VoiceOver still reads it in full.
-                    Text("@\(profile.username)")
+                    Text(profile.username)
                         .font(
                             RawdeaTypography.secondary
                         )
@@ -129,19 +127,3 @@ struct ProfileContentView: View {
     }
 }
 
-// MARK: - Share
-
-/// Rawdea has no public web addresses yet, so this shares the handle.
-struct RawdeaShareProfileLink: View {
-
-    let profile: Profile
-
-    var body: some View {
-        ShareLink(
-            item: "\(ProfileContentView.displayName(for: profile)) (@\(profile.username)) on Rawdea"
-        ) {
-            RawdeaOutlinePillLabel(title: "Share profile")
-        }
-        .buttonStyle(.plain)
-    }
-}

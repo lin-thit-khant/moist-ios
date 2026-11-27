@@ -534,6 +534,55 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         XCTAssertTrue(blocked.isEmpty)
     }
 
+    // MARK: - Home Stage Rows and Password
+
+    func testStageRowsFollowVisibility() async throws {
+
+        let owner = try await makeUser()
+        let reader = try await makeUser()
+        let project = try await owner.projects.createProject(name: "Moves")
+        _ = try await owner.projects.setStage(
+            projectId: project.id, stage: .shipped
+        )
+
+        let rows = try await reader.projects.fetchRecentStageRows()
+        let row = try XCTUnwrap(rows.first { $0.project.id == project.id })
+        XCTAssertEqual(row.toStage, .shipped)
+        XCTAssertNotNil(row.project.owner?.username)
+
+        try await reader.blocks.blockUser(userId: owner.id)
+
+        let blocked = try await reader.projects.fetchRecentStageRows()
+        XCTAssertFalse(blocked.contains { $0.project.id == project.id })
+    }
+
+    func testPasswordChangeNeedsTheCurrentOne() async throws {
+
+        let email = "projectlab-\(UUID().uuidString.lowercased())@example.test"
+        let first = UUID().uuidString
+        let second = UUID().uuidString
+
+        let client = makeClient()
+        let response = try await client.auth.signUp(email: email, password: first)
+        userIds.append(response.user.id)
+
+        let service = PasswordService(client: client, verifier: makeClient())
+
+        await assertThrows("A wrong current password is refused") {
+            try await service.changePassword(current: second, new: second)
+        }
+        _ = try await makeClient().auth.signIn(email: email, password: first)
+
+        try await service.changePassword(current: first, new: second)
+
+        _ = try await makeClient().auth.signIn(email: email, password: second)
+        await assertThrows("The old password stops working") {
+            _ = try await makeClient().auth.signIn(email: email, password: first)
+        }
+        // The app's own session survives.
+        _ = try await client.auth.session
+    }
+
     // MARK: - Fixtures
 
     @MainActor
@@ -555,14 +604,7 @@ final class RawdeaProjectLabDataTests: XCTestCase {
 
     private func makeUser() async throws -> TestUser {
 
-        // In-memory storage leaves the app's own session untouched.
-        let client = SupabaseClient(
-            supabaseURL: supabaseURL,
-            supabaseKey: publishableKey,
-            options: SupabaseClientOptions(
-                auth: .init(storage: MemoryAuthStorage())
-            )
-        )
+        let client = makeClient()
 
         let response = try await client.auth.signUp(
             email: "projectlab-\(UUID().uuidString.lowercased())@example.test",
@@ -572,6 +614,17 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         userIds.append(response.user.id)
 
         return TestUser(id: response.user.id, client: client)
+    }
+
+    // In-memory storage leaves the app's own session untouched.
+    private func makeClient() -> SupabaseClient {
+        SupabaseClient(
+            supabaseURL: supabaseURL,
+            supabaseKey: publishableKey,
+            options: SupabaseClientOptions(
+                auth: .init(storage: RawdeaMemoryAuthStorage())
+            )
+        )
     }
 
     private func assertThrows(
@@ -587,20 +640,3 @@ final class RawdeaProjectLabDataTests: XCTestCase {
     }
 }
 
-private final class MemoryAuthStorage: AuthLocalStorage, @unchecked Sendable {
-
-    private let lock = NSLock()
-    private var values: [String: Data] = [:]
-
-    func store(key: String, value: Data) throws {
-        lock.withLock { values[key] = value }
-    }
-
-    func retrieve(key: String) throws -> Data? {
-        lock.withLock { values[key] }
-    }
-
-    func remove(key: String) throws {
-        lock.withLock { values[key] = nil }
-    }
-}

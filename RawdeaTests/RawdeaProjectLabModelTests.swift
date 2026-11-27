@@ -99,4 +99,47 @@ final class RawdeaProjectLabModelTests: XCTestCase {
 
         XCTAssertEqual(row.newCountText, "9+")
     }
+
+    func testLikesOnOnePostShareARow() {
+
+        let post = UUID()
+        func like(_ postId: UUID, day: Int) -> RawdeaNotification {
+            RawdeaNotification(
+                id: UUID(), recipientId: UUID(), actorId: UUID(),
+                kind: .postLike, postId: postId, projectId: nil,
+                isRead: false, createdAt: date(day), actor: nil
+            )
+        }
+
+        let groups = RawdeaActivityGroup.grouping(
+            [like(post, day: 3), like(UUID(), day: 2), like(post, day: 1)]
+        )
+
+        XCTAssertEqual(groups.map(\.notifications.count), [2, 1])
+        XCTAssertEqual(groups.first?.subject, "Someone and 1 other")
+    }
+
+    func testStageRowsSitByDateWithinLoadedPosts() throws {
+
+        func row(day: Int) -> HomeStageRow {
+            HomeStageRow(
+                id: UUID(), toStage: .shipped, createdAt: date(day),
+                project: .init(id: projectId, name: "Lab", userId: UUID(), owner: nil)
+            )
+        }
+        let newer = post(6)
+        let older = post(4)
+        let between = row(day: 5)
+        let early = row(day: 1)
+
+        let paged = HomeFeedItem.merge(
+            posts: [newer, older], stages: [between, early], hasMore: true
+        )
+        XCTAssertEqual(paged.map(\.id), [newer.id, between.id, older.id])
+
+        let all = HomeFeedItem.merge(
+            posts: [newer, older], stages: [between, early], hasMore: false
+        )
+        XCTAssertEqual(all.last?.id, early.id)
+    }
 }

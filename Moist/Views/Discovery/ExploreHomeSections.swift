@@ -211,18 +211,15 @@ struct ExploreHomeSections: View {
                 HStack(spacing: RawdeaSpacing.sm) {
 
                     if !dynamicTypeSize.isAccessibilitySize {
-                        RawdeaProjectAvatar(name: item.project.name)
+                        RawdeaProjectAvatar(name: item.project.name, size: RawdeaSpacing.minimumTouchTarget)
                     }
 
                     VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
-                        Text(item.project.name)
-                            .font(RawdeaTypography.authorName)
-                            .foregroundStyle(RawdeaPalette.primaryText)
-                        Text("\(item.project.stage.title) · \(PostRowView.relativeAge(of: item.latest.createdAt, at: .now))")
-                            .font(RawdeaTypography.metadata)
+                        Text("\(Text(item.project.name).font(RawdeaTypography.authorName).foregroundStyle(RawdeaPalette.primaryText))  \(item.project.stage.title)  \(PostRowView.shortAge(of: item.latest.createdAt, at: .now))")
+                            .font(RawdeaTypography.secondary)
                             .foregroundStyle(RawdeaPalette.secondaryText)
                         Text(item.latest.content)
-                            .font(RawdeaTypography.metadata)
+                            .font(RawdeaTypography.secondary)
                             .foregroundStyle(RawdeaPalette.secondaryText)
                             .lineLimit(2)
                     }
@@ -251,17 +248,30 @@ struct ExploreHomeSections: View {
 
     private func questionRow(_ post: Post) -> some View {
 
-        Button {
+        let answers = post.replyCount == 1 ? "1 answer" : "\(post.replyCount) answers"
+
+        return Button {
             openPostRoute?(.discussion(post.id))
         } label: {
-            VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
-                Text("\(Image(systemName: PostKind.question.symbol)) \(post.project?.name ?? "Project") · Open")
-                    .font(RawdeaTypography.metadata.weight(.medium))
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: RawdeaSpacing.sm))
+
+            layout {
+                VStack(alignment: .leading, spacing: RawdeaSpacing.xxs) {
+                    Text("\(Image(systemName: PostKind.question.symbol)) \(post.project?.name ?? "Project") · Open")
+                        .font(RawdeaTypography.metadata.weight(.medium))
+                        .foregroundStyle(RawdeaPalette.secondaryText)
+                    Text(post.content)
+                        .font(RawdeaTypography.secondary)
+                        .foregroundStyle(RawdeaPalette.primaryText)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(answers)
+                    .font(RawdeaTypography.metadata)
                     .foregroundStyle(RawdeaPalette.secondaryText)
-                Text(post.content)
-                    .font(RawdeaTypography.secondary)
-                    .foregroundStyle(RawdeaPalette.primaryText)
-                    .lineLimit(2)
             }
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget, alignment: .leading)

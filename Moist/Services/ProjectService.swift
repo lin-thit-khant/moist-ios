@@ -148,6 +148,29 @@ struct ProjectService {
             .value
     }
     
+    /// Recent stage changes of visible Projects, newest first.
+    func fetchRecentStageRows(limit: Int = 50) async throws -> [HomeStageRow] {
+        try await client
+            .from("project_stage_events")
+            .select("""
+                id,
+                to_stage,
+                created_at,
+                project: projects!inner(
+                    id,
+                    name,
+                    user_id,
+                    owner: profiles!projects_user_id_fkey(username)
+                )
+                """)
+            .eq("project.is_hidden", value: false)
+            .eq("project.is_archived", value: false)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+    }
+    
     func setPinned(
         projectId: UUID,
         pinned: Bool

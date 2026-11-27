@@ -154,7 +154,48 @@ struct RawdeaNotification: Identifiable, Decodable {
         case .projects:
             return kind == .stageChange || kind == .projectFollow
         case .likes:
-            return kind == .postLike
+            return kind == .postLike || kind == .userFollow
         }
+    }
+}
+
+/// One Activity row. Likes on the same post share a row.
+struct RawdeaActivityGroup: Identifiable {
+
+    let notifications: [RawdeaNotification]
+
+    var latest: RawdeaNotification { notifications[0] }
+    var id: UUID { latest.id }
+    var isRead: Bool { notifications.allSatisfy(\.isRead) }
+
+    /// "soe and 13 others" when several people liked one post.
+    var subject: String {
+        let others = Set(notifications.map(\.actorId)).count - 1
+        switch others {
+        case ..<1: return latest.subject
+        case 1: return "\(latest.subject) and 1 other"
+        default: return "\(latest.subject) and \(others) others"
+        }
+    }
+
+    /// Keeps the newest-first order of what it is given.
+    static func grouping(
+        _ notifications: [RawdeaNotification]
+    ) -> [RawdeaActivityGroup] {
+
+        var order: [String] = []
+        var groups: [String: [RawdeaNotification]] = [:]
+
+        for item in notifications {
+            let key = item.kind == .postLike
+                ? "like-\(item.postId?.uuidString ?? item.id.uuidString)"
+                : item.id.uuidString
+            if groups[key] == nil {
+                order.append(key)
+            }
+            groups[key, default: []].append(item)
+        }
+
+        return order.compactMap { groups[$0].map(RawdeaActivityGroup.init) }
     }
 }

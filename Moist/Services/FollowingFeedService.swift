@@ -25,6 +25,24 @@ struct FollowingFeedService {
         self.postService = postService
     }
 
+    // MARK: - Followed Stage Changes
+
+    /// Changes in followed Projects or by followed people.
+    func fetchStageRows() async throws -> [HomeStageRow] {
+
+        let projects = Set(try await followingService
+            .fetchFollowingProjects().map(\.id))
+        let people = Set(try await followingService
+            .fetchFollowingPeople().map(\.id))
+
+        return try await ProjectService()
+            .fetchRecentStageRows()
+            .filter {
+                projects.contains($0.project.id) ||
+                people.contains($0.project.userId)
+            }
+    }
+
     // MARK: - Followed Projects
 
     // shortcut: one request per followed Project. Replace with one
