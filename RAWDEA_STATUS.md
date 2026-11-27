@@ -1,19 +1,16 @@
 # Rawdea status
 
-Last updated: 2026-11-26. Verify with git before starting work.
+Last updated: 2026-11-27. Verify with git before starting work.
 Keep this file under 60 lines.
 
 ## Repository
-- Branch: feature/rawdea-migration. Direction C Batch 0+1: 4674049.
+- Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest confirmed pushed code commit: c5a645f.
-- Review seed data (supabase/review/) is loaded in the local database.
-- .cursor/ is local tool config. Never commit it.
-- Graphify ignored 57e4c03. Tool rules: AGENTS.md, Tools.
+- Latest confirmed pushed code commit: 607dbd3.
+- Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
 ## Done (milestones 1-14, then UI/UX)
-- Earlier UI/UX batches 1-10: 48884a4 to 72f9b3f. Direction C 0-1 4674049, 2 28fded8, 3 3e30d5b, 4 7a5afa1, 5 869e7ba,
-  6 e6bdec6, 7 61c0559. Direction C is complete.
+- UI/UX batches 1-10: 48884a4 to 72f9b3f. Direction C 0-7: 4674049 to 61c0559, complete.
 - Accessibility sweep 421046a: Increase Contrast checked on Home, Discussion, Profile
   and Compose; Welcome, Log in and Sign up checked for Dark Mode and large text.
 - App icon 68ea27b: seen on the iOS 27.0 simulator Home Screen.
@@ -23,32 +20,35 @@ Keep this file under 60 lines.
   Activity default and largest text, Profile light.
 - Home reader layout c5a645f (both feeds, plus critique P2 fixes): default size light
   and dark, largest text light and scrolled dark, tab switching, Project and name taps.
-- XCTest suite (29; five grouping tests removed) passed as of c5a645f.
+- Welcome, Log in, Create account 607dbd3 (auth "Index" style): default and largest
+  text, light and dark; mode switch, legal link, Forgot password, local email login.
+- XCTest suite (29) passed on the 607dbd3 changes.
 
 ## Standing decisions
 - Direction C ("like Threads", with Rawdea's Project signatures).
 - Content loading uses RawdeaLoadingIndicator (the logo cell); buttons and actions
   keep the native spinner. No skeletons or shimmer.
-- No counts in the feed. No repost or share.
-- No AI attribution on commits. No new major backend features planned.
+- No counts in the feed, repost or share. No AI attribution. No new major backend features.
+- Google sign-in parked (2026-11-27). Green is for signed-out screens only.
 
 ## Direction C rules
-- Red only on the Project name, a liked heart and the loader. SF only, no serif.
+- Signed in: red only on the Project name, a liked heart and the loader. SF only, no serif.
 - Outside Home: 36 pt avatar column, name and time on one line, Project line under.
 - Home (replaces the above there): no grouping; avatar header with Project name above
   author and time, options top right, 16 pt text, actions bottom left.
 
 ## Next (implementation needs Lin's approval)
 - Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
+- Before release: hide or finish the Apple and Google stubs; add Terms and a privacy URL.
 
 ## Unverified
 - Home reader: VoiceOver, Contrast, Motion, device, empty/error, own/hidden posts.
-- Pull to refresh on the other 9 screens and iOS 17 (system spinner fallback).
-- Cell loader on other screens, Load More, Increase Contrast and a real device.
-- VoiceOver playback. Like bounce, haptic and Reduce Motion fade.
+- Pull to refresh: other 9 screens, iOS 17. Cell loader: other screens, Load More, Contrast, device.
+- VoiceOver playback. Like bounce, haptic, Reduce Motion fade. Reset password screen.
 - App icon dark and tinted variants not supplied. Not checked on a device.
-- Reset password screen. Public "Nothing shared yet" and all-pinned Project states.
-- Checked 2026-11-26: owner Project view and post actions, red Project chip,
+- Auth screens: VoiceOver, Contrast, iOS 17, small phone, device, sign-up submit,
+  error/loading states. Some default-dark and scrolled shots predate final tweaks.
+- Public "Nothing shared yet" and all-pinned Project states. Checked 2026-11-26: owner Project view and post actions, red Project chip,
   rejected post keeps its draft, "Posting…" pill, Project follow toggle.
 
 ## Open observations
