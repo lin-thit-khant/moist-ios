@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: 8f2e19b. Review data: seed_project_lab.sql (474b2d6).
+- Latest code commit: 1b4594b. Review data: seed_project_lab.sql (474b2d6).
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
 ## Done (milestones 1-14, then UI/UX)
@@ -28,22 +28,26 @@ Keep this file under 60 lines.
 - Prototype 1:1 part 1 8f2e19b (style, tab bar, Home, Project, description migration):
   40 XCTest pass; partly checked on the simulator, light and Dark.
 
+- Prototype 1:1 part 2 1b4594b (other screens, Home stage rows, Password): 44 XCTest pass;
+  checked on the simulator in light, default size.
+
 ## Standing decisions
 - 1:1 with prototype Gkq2TXsyMs7N37rMVunFHx (2026-11-27): show counts; system font; darker
   grey; keep the Following switch; no Apple sign-in, Share links or Terms until real.
+- Project timeline posts have no visible buttons (option A); actions on long-press.
 - Content loading uses RawdeaLoadingIndicator (the logo cell); buttons and actions
   keep the native spinner. No skeletons or shimmer.
 - No repost. No AI attribution.
 - Google sign-in parked (2026-11-27). Welcome follows Thread style (Project Lab).
 
 ## Next (implementation needs Lin's approval)
-- 1:1 part 2: Compose, Question, Explore, Activity, Profile (remove Share), Settings
-  (Password), Welcome (remove Terms wording), stage rows in the Home feed.
 - Lin: VoiceOver playback and Reduce Motion on a device. Then App Store preparation.
 - Welcome hides the Apple and Google stubs.
 - Before release: add Terms and a privacy URL.
 
 ## Unverified
+- 1:1 part 2: Dark Mode, largest text, password change by hand, Following stage rows.
+  Mark All Read and the Compose content-rules note stay although the prototype has none.
 - 1:1 part 1: People and About tabs, description editing, long-press post actions
   (timeline rows have no visible buttons).
 - Project Lab: VoiceOver, device, empty/error states, stage menu and failure alert,
