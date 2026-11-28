@@ -1,12 +1,12 @@
 # Rawdea status
 
-Last updated: 2026-11-27. Verify with git before starting work.
+Last updated: 2026-11-28. Verify with git before starting work.
 Keep this file under 60 lines.
 
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: b0f184a (not pushed). Latest confirmed pushed commit: 818ba19.
+- Latest code commit: e1980d5 (not pushed). Latest confirmed pushed commit: 3f5d7db.
 - Review data: seed_project_lab.sql.
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
@@ -36,6 +36,8 @@ Keep this file under 60 lines.
   the system): 45 XCTest pass; light default, Dark and largest text partly checked.
 - Like animation b0f184a (Classic pop, approved): 45 XCTest pass; feed and detail checked
   by simulator recordings; dark and largest text predate the last Reduce Motion/count edit.
+- Stage sweep and Early dots e1980d5: 49 XCTest pass on the committed files; dots and sweep
+  recorded in the simulator, partly in dark, largest text and Reduce Motion.
 
 ## Standing decisions
 - 1:1 with prototype Gkq2TXsyMs7N37rMVunFHx (2026-11-27): show counts; system font; darker
@@ -48,7 +50,7 @@ Keep this file under 60 lines.
 
 ## Next (implementation needs Lin's approval)
 - Lin: VoiceOver playback, Reduce Motion and Like haptic on a device. Then App Store prep.
-- Stage change animation: prototype only (Motion Lab); not approved to build.
+- Early dots: no growing stage dot (removed by Lin); haptics are not capped for many posts.
 - Welcome hides the Apple and Google stubs.
 - Before release: add Terms and a privacy URL.
 
@@ -67,6 +69,8 @@ Keep this file under 60 lines.
 - Auth screens: VoiceOver, Contrast, iOS 17, small phone, device, sign-up submit,
   error/loading states. Some default-dark and scrolled shots predate final tweaks.
 - Public "Nothing shared yet" and all-pinned Project states.
+- Stage motion: haptics, VoiceOver, device, Contrast, large counts, sweep in dark or largest
+  text, final Reduce Motion list change. White current stage is faint in light.
 - Largest text: heart briefly touches the count; stage pill overflows; username wraps
   mid-word. Post detail Like count stays grey while the feed count turns crimson.
 
