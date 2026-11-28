@@ -18,6 +18,7 @@ enum RawdeaPublicContact {
     // Replace with working HTTPS pages.
     static let supportURL = ""
     static let privacyPolicyURL = ""
+    static let termsURL = ""
 }
 
 // MARK: - Public Safety Information

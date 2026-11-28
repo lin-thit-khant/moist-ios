@@ -74,6 +74,12 @@ enum RawdeaAuthFormMode {
         }
     }
 
+    /// Creating an account needs the terms ticked first.
+    func termsSatisfied(accepted: Bool) -> Bool {
+
+        self != .signUp || accepted
+    }
+
     var buttonTitle: String {
 
         switch self {
@@ -122,6 +128,7 @@ struct RawdeaAuthFormView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var acceptedTerms = false
 
     // MARK: - Validation
 
@@ -177,6 +184,7 @@ struct RawdeaAuthFormView: View {
     private var canSubmit: Bool {
 
         isFormValid &&
+        mode.termsSatisfied(accepted: acceptedTerms) &&
         !authViewModel.isLoading
     }
 
@@ -216,6 +224,14 @@ struct RawdeaAuthFormView: View {
                         RawdeaAuthStatus(
                             message: status
                         )
+                    }
+
+                    if mode == .signUp {
+
+                        RawdeaTermsAgreementRow(
+                            isAccepted: $acceptedTerms
+                        )
+                        .disabled(authViewModel.isLoading)
                     }
 
                     RawdeaPrimaryButton(
@@ -318,6 +334,7 @@ struct RawdeaAuthFormView: View {
                 // A password typed for one mode
                 // should not carry into the other.
                 password = ""
+                acceptedTerms = false
                 mode = mode == .login ? .signUp : .login
                 authViewModel.clearMessages()
 

@@ -19,6 +19,8 @@ struct RawdeaSettingsView: View {
     @State private var email: String?
     // Nil until loaded, so "None" is never a guess.
     @State private var blockedCount: Int?
+    // Nil until checked. The server still authorizes every moderation call.
+    @State private var isModerator: Bool?
 
     // Nil until loaded, so a toggle never shows a guess.
     @State private var preferences: NotificationPreferences?
@@ -57,6 +59,10 @@ struct RawdeaSettingsView: View {
 
             safetySection
 
+            if isModerator == true {
+                moderationSection
+            }
+
             aboutSection
 
             signOutSection
@@ -79,6 +85,16 @@ struct RawdeaSettingsView: View {
                 .client.auth.session.user.email
 
             await loadPreferences()
+        }
+        .task {
+            guard isModerator == nil else { return }
+            do {
+                isModerator = try await ModerationService().isModerator()
+            } catch is CancellationError {
+                return
+            } catch {
+                isModerator = false
+            }
         }
         .onAppear {
             Task {
@@ -162,14 +178,12 @@ struct RawdeaSettingsView: View {
 
             } label: {
 
-                VStack(alignment: .leading, spacing: 0) {
-                    settingsRow(title: "Blocked people")
-                    if let blockedCount {
-                        Text(blockedCount == 0 ? "None" : "\(blockedCount)")
-                            .font(RawdeaTypography.metadata)
-                            .foregroundStyle(RawdeaPalette.secondaryText)
+                detailRow(
+                    title: "Blocked people",
+                    detail: blockedCount.map {
+                        $0 == 0 ? "None" : "\($0)"
                     }
-                }
+                )
             }
             .listRowBackground(
                 RawdeaPalette.canvas
@@ -183,6 +197,44 @@ struct RawdeaSettingsView: View {
 
                 settingsRow(
                     title: "Report a problem"
+                )
+            }
+            .listRowBackground(
+                RawdeaPalette.canvas
+            )
+        }
+    }
+
+    // MARK: - Moderation
+
+    private var moderationSection: some View {
+
+        Section("Moderation") {
+
+            NavigationLink {
+
+                ModerationQueueView()
+
+            } label: {
+
+                detailRow(
+                    title: "Reports",
+                    detail: "Posts, comments and accounts waiting"
+                )
+            }
+            .listRowBackground(
+                RawdeaPalette.canvas
+            )
+
+            NavigationLink {
+
+                ModerationSafetyInboxView()
+
+            } label: {
+
+                detailRow(
+                    title: "Safety inbox",
+                    detail: "Appeals and problems from people"
                 )
             }
             .listRowBackground(
@@ -486,6 +538,22 @@ struct RawdeaSettingsView: View {
                 alignment: .leading
             )
             .contentShape(Rectangle())
+    }
+
+    private func detailRow(
+        title: String,
+        detail: String?
+    ) -> some View {
+
+        VStack(alignment: .leading, spacing: 0) {
+            settingsRow(title: title)
+            if let detail {
+                Text(detail)
+                    .font(RawdeaTypography.metadata)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     // MARK: - URL validation

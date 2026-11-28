@@ -61,6 +61,125 @@ struct RawdeaAuthLegalLink: View {
     }
 }
 
+// MARK: - Terms agreement
+
+/// Required tick before an account can be created.
+struct RawdeaTermsAgreementRow: View {
+
+    @Binding var isAccepted: Bool
+
+    @State private var showsGuidelines = false
+    @Environment(\.openURL) private var openURL
+
+    static let statement =
+        "I agree to the Terms and Community Guidelines. I know there is no tolerance for abusive content."
+
+    private static let guidelinesURL = URL(string: "rawdea://community-guidelines")!
+
+    /// Nil until a real HTTPS page is configured, so no dead link ships.
+    static func termsLink(_ value: String) -> URL? {
+
+        guard let url = URL(string: value),
+              url.scheme == "https",
+              url.host != nil else {
+            return nil
+        }
+
+        return url
+    }
+
+    static func attributedStatement(termsURL: URL?) -> AttributedString {
+
+        var text = AttributedString(statement)
+
+        func link(_ phrase: String, to url: URL) {
+            guard let range = text.range(of: phrase) else { return }
+            text[range].link = url
+            text[range].underlineStyle = .single
+        }
+
+        link("Community Guidelines", to: guidelinesURL)
+
+        if let termsURL {
+            link("Terms", to: termsURL)
+        }
+
+        return text
+    }
+
+    var body: some View {
+
+        let termsURL = Self.termsLink(RawdeaPublicContact.termsURL)
+
+        HStack(alignment: .top, spacing: RawdeaSpacing.xxs) {
+
+            Button {
+
+                isAccepted.toggle()
+
+            } label: {
+
+                Image(systemName: isAccepted ? "checkmark.square.fill" : "square")
+                    .font(.title2)
+                    .foregroundStyle(
+                        isAccepted
+                        ? RawdeaPalette.accent
+                        : RawdeaPalette.secondaryText
+                    )
+                    .frame(
+                        minWidth: RawdeaSpacing.minimumTouchTarget,
+                        minHeight: RawdeaSpacing.minimumTouchTarget
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Self.statement)
+            .accessibilityValue(isAccepted ? "Checked" : "Not checked")
+            .accessibilityAddTraits(isAccepted ? [.isToggle, .isSelected] : .isToggle)
+            .accessibilityAction(named: "Read Community Guidelines") {
+                showsGuidelines = true
+            }
+            .accessibilityActions {
+                if let termsURL {
+                    Button("Read Terms") { openURL(termsURL) }
+                }
+            }
+
+            // The checkbox already reads this text and offers its links.
+            Text(Self.attributedStatement(termsURL: termsURL))
+                .font(RawdeaTypography.secondary)
+                .foregroundStyle(RawdeaPalette.primaryText)
+                .tint(RawdeaPalette.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: RawdeaSpacing.minimumTouchTarget,
+                    alignment: .leading
+                )
+                .environment(\.openURL, OpenURLAction { url in
+                    guard url == Self.guidelinesURL else {
+                        return .systemAction
+                    }
+                    showsGuidelines = true
+                    return .handled
+                })
+                .accessibilityHidden(true)
+        }
+        .sheet(isPresented: $showsGuidelines) {
+
+            NavigationStack {
+
+                SafetyInformationView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showsGuidelines = false }
+                        }
+                    }
+            }
+        }
+    }
+}
+
 // MARK: - Authentication heading
 
 struct RawdeaAuthHeading: View {

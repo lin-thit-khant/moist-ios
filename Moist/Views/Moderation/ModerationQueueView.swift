@@ -13,6 +13,8 @@ struct ModerationQueueView: View {
     @StateObject private var viewModel =
         ModerationQueueViewModel()
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
 
         Group {
@@ -212,7 +214,12 @@ struct ModerationQueueView: View {
             spacing: 8
         ) {
 
-            HStack {
+            // Stacked at large text so words never break.
+            let header = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading))
+                : AnyLayout(HStackLayout())
+
+            header {
 
                 Label(
                     report.targetTitle,
@@ -221,7 +228,9 @@ struct ModerationQueueView: View {
                 .font(.subheadline)
                 .fontWeight(.semibold)
 
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Spacer()
+                }
 
                 Text(report.createdAt, style: .relative)
                     .font(.caption)

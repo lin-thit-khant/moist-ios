@@ -13,6 +13,8 @@ struct ModerationSafetyInboxView: View {
     @StateObject private var viewModel =
         SafetyInboxViewModel()
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State private var selectedStatus:
         SafetyInboxStatus = .open
 
@@ -87,14 +89,21 @@ struct ModerationSafetyInboxView: View {
                                 spacing: 8
                             ) {
 
-                                HStack {
+                                // Stacked at large text so words never break.
+                                let header = dynamicTypeSize.isAccessibilitySize
+                                    ? AnyLayout(VStackLayout(alignment: .leading))
+                                    : AnyLayout(HStackLayout())
+
+                                header {
 
                                     Text(
                                         request.kind.capitalized
                                     )
                                     .fontWeight(.semibold)
 
-                                    Spacer()
+                                    if !dynamicTypeSize.isAccessibilitySize {
+                                        Spacer()
+                                    }
 
                                     Text(
                                         request.createdAt,
