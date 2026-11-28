@@ -16,31 +16,10 @@ final class RawdeaEarlyArrivalTests: XCTestCase {
         }
     }
 
-    func testPlaysOnlyOnceForAFollowerOfAnEarlyProjectWithPosts() {
-        func plays(
-            _ stage: ProjectStage = .early,
-            follower: Bool = true,
-            posts: Int = 3,
-            seen: Bool = false
-        ) -> Bool {
-            EarlyArrival.shouldPlay(
-                stage: stage, isFollower: follower, postCount: posts, wasSeen: seen
-            )
-        }
-
-        XCTAssertTrue(plays())
-        XCTAssertFalse(plays(.inProgress))
-        XCTAssertFalse(plays(.shipped))
-        XCTAssertFalse(plays(follower: false))
-        XCTAssertFalse(plays(posts: 0))
-        XCTAssertFalse(plays(seen: true))
-    }
-
-    func testSeenKeyIsPerViewerAndProject() {
-        let viewer = UUID(), other = UUID(), project = UUID()
-        XCTAssertNotEqual(
-            EarlyArrival.seenKey(viewerId: viewer, projectId: project),
-            EarlyArrival.seenKey(viewerId: other, projectId: project)
-        )
+    func testPlaysForAnyEarlyProjectWithPosts() {
+        XCTAssertTrue(EarlyArrival.shouldPlay(stage: .early, postCount: 3))
+        XCTAssertFalse(EarlyArrival.shouldPlay(stage: .inProgress, postCount: 3))
+        XCTAssertFalse(EarlyArrival.shouldPlay(stage: .shipped, postCount: 3))
+        XCTAssertFalse(EarlyArrival.shouldPlay(stage: .early, postCount: 0))
     }
 }

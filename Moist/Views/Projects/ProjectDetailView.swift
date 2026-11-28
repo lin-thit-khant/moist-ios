@@ -41,7 +41,6 @@ struct ProjectDetailView: View {
     @State private var isEditingDescription = false
 
     // Early arrival
-    @State private var havePostsLoaded = false
     @State private var hasCheckedArrival = false
     @State private var arrivalCount: Int?
 
@@ -154,13 +153,9 @@ struct ProjectDetailView: View {
             await viewModel.loadPosts(
                 projectId: project.id
             )
-            havePostsLoaded = !Task.isCancelled && viewModel.errorMessage == nil
-        }
-
-        // MARK: - Early arrival
-
-        .task(id: havePostsLoaded && followViewModel.hasLoaded) {
-            await checkEarlyArrival()
+            if !Task.isCancelled && viewModel.errorMessage == nil {
+                checkEarlyArrival()
+            }
         }
 
         // MARK: - Load follow state
@@ -404,30 +399,20 @@ struct ProjectDetailView: View {
 
     // MARK: - Early arrival
 
-    // Decided once, on the visit's first complete load.
-    private func checkEarlyArrival() async {
+    // Decided on the first complete load of each page, so
+    // refreshing does not replay it.
+    private func checkEarlyArrival() {
 
-        guard havePostsLoaded,
-              followViewModel.hasLoaded,
-              !hasCheckedArrival,
-              let viewerId = try? await SupabaseManager
-                  .client.auth.session.user.id else {
-            return
-        }
-
+        guard !hasCheckedArrival else { return }
         hasCheckedArrival = true
-        let key = EarlyArrival.seenKey(viewerId: viewerId, projectId: project.id)
 
         guard EarlyArrival.shouldPlay(
             stage: current.stage,
-            isFollower: followViewModel.isFollowing,
-            postCount: viewModel.posts.count,
-            wasSeen: UserDefaults.standard.bool(forKey: key)
+            postCount: viewModel.posts.count
         ) else {
             return
         }
 
-        UserDefaults.standard.set(true, forKey: key)
         arrivalCount = viewModel.posts.count
     }
 

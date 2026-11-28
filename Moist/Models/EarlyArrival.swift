@@ -5,7 +5,7 @@
 
 import Foundation
 
-/// The one-time arrival of an Early Project's posts: one dot per
+/// The arrival of an Early Project's posts: one dot per
 /// post, falling into the Early bar one after another.
 enum EarlyArrival {
 
@@ -23,18 +23,8 @@ enum EarlyArrival {
         lead + Double(index) * gap(count: count)
     }
 
-    /// It plays once, for a follower of a Project that is still Early.
-    static func shouldPlay(
-        stage: ProjectStage,
-        isFollower: Bool,
-        postCount: Int,
-        wasSeen: Bool
-    ) -> Bool {
-        stage == .early && isFollower && postCount > 0 && !wasSeen
-    }
-
-    /// Remembered on this device, per viewer and Project.
-    static func seenKey(viewerId: UUID, projectId: UUID) -> String {
-        "rawdea.earlyArrival.\(viewerId.uuidString).\(projectId.uuidString)"
+    /// It plays each time a Project that is still Early is opened.
+    static func shouldPlay(stage: ProjectStage, postCount: Int) -> Bool {
+        stage == .early && postCount > 0
     }
 }
