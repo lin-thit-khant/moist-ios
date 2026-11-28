@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: 4d7192b. Latest confirmed pushed commit: 4d7192b.
+- Latest code commit: c7f1229. Latest confirmed pushed commit: c7f1229.
 - Review data: seed_project_lab.sql.
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
@@ -72,6 +72,9 @@ Keep this file under 60 lines.
 - Public "Nothing shared yet" and all-pinned Project states.
 - Early dots on every open (4d7192b, 48 XCTest pass): Reduce Motion, dark and large text not
   rechecked.
+- In progress glow and snake c7f1229 (54 XCTest pass; simulator 1/8/50 posts): device, VoiceOver,
+  Contrast, backgrounding, scrolled-off track unchecked. 50 dots read as a ribbon; never settles.
+- Shipped stage animation: prototype only (Motion Lab); not approved to build.
 - Stage motion: haptics, VoiceOver, device, Contrast, large counts, sweep in dark or largest
   text, final Reduce Motion list change. White current stage is faint in light.
 - Largest text: heart briefly touches the count; stage pill overflows; username wraps
