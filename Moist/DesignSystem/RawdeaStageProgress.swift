@@ -27,6 +27,47 @@ struct RawdeaStageProgress: View {
     @State private var finished = 0
     @State private var softFade = false
 
+    // Shipping
+    @State private var shipping: Shipping?
+    /// The stage already shown, so a new one is not drawn finished
+    /// before its play begins.
+    @State private var shownStage: ProjectStage?
+    @State private var previousSummary = ""
+    @State private var shippedOpacity = 1.0
+    /// Reduce Motion: the joined line is still fading in.
+    @State private var isFading = false
+    @State private var taps = 0
+    @State private var shippedSuccess = 0
+
+    private struct Shipping: Equatable {
+        let id = UUID()
+        let arrival: ShippedArrival
+        let startedAt: Date
+
+        static func == (a: Self, b: Self) -> Bool { a.id == b.id }
+    }
+
+    // nil unless shipped. At rest, one joined crimson line.
+    private func shippedFrame(at date: Date) -> ShippedArrival.Frame? {
+        guard stage == .shipped else { return nil }
+        if let shipping {
+            return shipping.arrival.frame(at: date.timeIntervalSince(shipping.startedAt))
+        }
+        if isNewlyShipped && !reduceMotion {
+            return .start
+        }
+        var frame = ShippedArrival.Frame.rest
+        frame.hasArrived = !isFading && !isNewlyShipped
+        return frame
+    }
+
+    /// Shipped, but its change has not been picked up yet.
+    private var isNewlyShipped: Bool {
+        guard stage == .shipped, shipping == nil, !isFading,
+              let shownStage else { return false }
+        return shownStage != .shipped
+    }
+
     private struct Dot {
         /// Where along the Early bar it lands, from 0 to 1.
         let position: Double
@@ -39,41 +80,49 @@ struct RawdeaStageProgress: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
+        TimelineView(.animation(paused: shipping == nil)) { timeline in
 
-            RawdeaStageTrack(
-                stage: stage,
-                earlyPulse: pulse,
-                livePostCount: postCount
-            )
+            let shipped = shippedFrame(at: timeline.date)
+            let isAwaited = shipped?.hasArrived == false
+
+            VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
+
+                RawdeaStageTrack(
+                    stage: stage,
+                    earlyPulse: pulse,
+                    livePostCount: postCount,
+                    shipped: shipped,
+                    shippedOpacity: isNewlyShipped && reduceMotion ? 0 : shippedOpacity
+                )
                 .opacity(softFade ? 0.3 : 1)
 
-            // The count takes the summary's place, so nothing moves.
-            ZStack(alignment: .topLeading) {
+                // The count takes the summary's place, so nothing moves.
+                ZStack(alignment: .topLeading) {
 
-                Text(summary)
-                    .opacity(isPlaying ? 0 : 1)
-                    .id(stage)
-                    .transition(reduceMotion
-                        ? .opacity
-                        : .asymmetric(
-                            insertion: .offset(y: RawdeaSpacing.sm).combined(with: .opacity),
-                            removal: .identity
-                        ))
+                    Text(isAwaited ? previousSummary : summary)
+                        .opacity(isPlaying ? 0 : 1)
+                        .id(isAwaited ? .inProgress : stage)
+                        .transition(reduceMotion
+                            ? .opacity
+                            : .asymmetric(
+                                insertion: .offset(y: RawdeaSpacing.sm).combined(with: .opacity),
+                                removal: .identity
+                            ))
 
-                if isPlaying {
-                    Text("\(landed) of \(dots.count == 1 ? "1 post" : "\(dots.count) posts")")
-                        .monospacedDigit()
-                        .accessibilityHidden(true)
+                    if isPlaying {
+                        Text("\(landed) of \(dots.count == 1 ? "1 post" : "\(dots.count) posts")")
+                            .monospacedDigit()
+                            .accessibilityHidden(true)
+                    }
                 }
+                .font(RawdeaTypography.metadata)
+                .foregroundStyle(RawdeaPalette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .animation(
+                    reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.45),
+                    value: isAwaited ? .inProgress : stage
+                )
             }
-            .font(RawdeaTypography.metadata)
-            .foregroundStyle(RawdeaPalette.secondaryText)
-            .fixedSize(horizontal: false, vertical: true)
-            .animation(
-                reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.45),
-                value: stage
-            )
         }
         .overlayPreferenceValue(RawdeaEarlyBarKey.self) { anchor in
             if isPlaying, let anchor {
@@ -84,6 +133,37 @@ struct RawdeaStageProgress: View {
                 .accessibilityHidden(true)
             }
         }
+        .overlayPreferenceValue(RawdeaStageBarsKey.self) { bars in
+            if let shipping, let from = bars[1], let to = bars[2] {
+                GeometryReader { proxy in
+                    RawdeaShippedDots(
+                        arrival: shipping.arrival,
+                        startedAt: shipping.startedAt,
+                        from: proxy[from],
+                        to: proxy[to]
+                    )
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
+        }
+        .onAppear { shownStage = stage }
+        // Leaving mid-play settles on the finished line.
+        .onDisappear {
+            shipping = nil
+            isFading = false
+            shippedOpacity = 1
+            shownStage = stage
+        }
+        .onChange(of: summary) { old, _ in previousSummary = old }
+        .onChange(of: stage) { old, new in
+            beginShipping(from: old, to: new)
+        }
+        .task(id: shipping?.id) {
+            await runShipping()
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: taps)
+        .sensoryFeedback(.success, trigger: shippedSuccess)
         .sensoryFeedback(.impact(weight: .light), trigger: landed) { _, new in
             new > 0 && new < dots.count
         }
@@ -91,6 +171,59 @@ struct RawdeaStageProgress: View {
         .task(id: arrivalCount) {
             await play()
         }
+    }
+
+    private func beginShipping(from old: ProjectStage, to new: ProjectStage) {
+
+        shipping = nil
+        isFading = false
+        shippedOpacity = 1
+
+        switch ShippedArrival.change(from: old, to: new, reduceMotion: reduceMotion) {
+        case .none:
+            shownStage = new
+        case .fade:
+            shownStage = new
+            isFading = true
+            shippedOpacity = 0
+            // On the next turn, so the fade has somewhere to start.
+            Task {
+                withAnimation(.easeInOut(duration: 0.2)) { shippedOpacity = 1 }
+                try? await Task.sleep(for: .seconds(ShippedArrival.fade))
+                isFading = false
+            }
+        case .play:
+            shownStage = old
+            shipping = Shipping(
+                arrival: ShippedArrival(count: postCount),
+                startedAt: Date()
+            )
+        }
+    }
+
+    private func runShipping() async {
+
+        guard let shipping else { return }
+        let arrival = shipping.arrival
+
+        func wait(until time: Double) async -> Bool {
+            let seconds = time - Date().timeIntervalSince(shipping.startedAt)
+            if seconds > 0 {
+                try? await Task.sleep(for: .seconds(seconds))
+            }
+            return !Task.isCancelled
+        }
+
+        for time in arrival.hapticTimes {
+            guard await wait(until: time) else { return }
+            taps += 1
+        }
+        guard await wait(until: arrival.arrived) else { return }
+        if !arrival.arcs.isEmpty { shippedSuccess += 1 }
+
+        guard await wait(until: arrival.end) else { return }
+        shownStage = .shipped
+        self.shipping = nil
     }
 
     /// Room around the bar for dots to start in.

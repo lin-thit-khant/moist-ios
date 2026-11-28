@@ -63,11 +63,17 @@ struct RawdeaStageTrack: View {
     var earlyPulse = 0
     /// The Project's posts, to bring the In progress segment to life.
     var livePostCount: Int? = nil
+    /// How a shipped Project's joined line looks now, on its page.
+    var shipped: ShippedArrival.Frame? = nil
+    /// Reduce Motion fades the joined line in.
+    var shippedOpacity = 1.0
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        // Until the dots arrive, the track still reads In progress.
+        let stage = shipped?.hasArrived == false ? .inProgress : self.stage
         let stages = ProjectStage.allCases
         let current = stages.firstIndex(of: stage) ?? 0
 
@@ -93,20 +99,38 @@ struct RawdeaStageTrack: View {
                                 CubicKeyframe(0, duration: 0.29)
                             }
                             .anchorPreference(key: RawdeaEarlyBarKey.self, value: .bounds) { $0 }
+                            .overlay(alignment: .trailing) { bridge(0) }
+                            // The bridge reaches over the next segment.
+                            .zIndex(2)
                     } else if stages[index] == .inProgress {
                         segment(isReached: index <= current, isDone: index < current)
                             .modifier(RawdeaInProgressGlow(
                                 stage: stage,
-                                postCount: livePostCount
+                                // Shipping stops the dots at once.
+                                postCount: shipped == nil ? livePostCount : nil
                             ))
+                            .overlay { shippedFill(shipped?.inProgressFill, sweeps: false) }
+                            .overlay(alignment: .trailing) { bridge(1) }
+                            .anchorPreference(key: RawdeaStageBarsKey.self, value: .bounds) { [index: $0] }
                             // Its dots pass over the neighbouring segments.
                             .zIndex(1)
                     } else {
                         segment(isReached: index <= current, isDone: index < current)
+                            .overlay { shippedFill(shipped?.shippedFill, sweeps: true) }
+                            .anchorPreference(key: RawdeaStageBarsKey.self, value: .bounds) { [index: $0] }
                     }
                 }
             }
             .animation(reduceMotion ? nil : .snappy(duration: 0.7), value: stage)
+            // The one glow along the joined line.
+            .background {
+                if let glow = shipped?.glow, glow > 0 {
+                    Capsule()
+                        .fill(RawdeaPalette.accent.opacity(0.45 * glow))
+                        .padding(-4)
+                        .blur(radius: 7)
+                }
+            }
 
             // Large text has no room for three columns; the
             // line under the track already names the stage.
@@ -125,6 +149,29 @@ struct RawdeaStageTrack: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Stage: \(stage.title)")
+    }
+
+    // Crimson laid over a segment while a Project ships and after.
+    @ViewBuilder
+    private func shippedFill(_ amount: Double?, sweeps: Bool) -> some View {
+        if let amount {
+            let curve = UnitCurve.bezier(
+                startControlPoint: UnitPoint(x: 0.3, y: 0.9),
+                endControlPoint: UnitPoint(x: 0.3, y: 1)
+            )
+            Capsule()
+                .fill(RawdeaPalette.accent)
+                .scaleEffect(x: sweeps ? curve.value(at: amount) : 1, anchor: .leading)
+                .opacity((sweeps ? 1 : amount) * shippedOpacity)
+        }
+    }
+
+    @ViewBuilder
+    private func bridge(_ index: Int) -> some View {
+        if let progress = shipped?.bridges[index], progress > 0 {
+            RawdeaStageBridge(progress: progress)
+                .opacity(shippedOpacity)
+        }
     }
 
     // Both fills stay in place and widen from the leading edge, so a
