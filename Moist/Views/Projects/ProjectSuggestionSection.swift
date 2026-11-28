@@ -15,11 +15,13 @@ struct ProjectSuggestionSection: View {
 
     @State private var count = 0
     @State private var isSuggesting = false
+    /// Active contributors post directly instead.
+    @State private var isContributor = false
 
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
 
     private var canSuggest: Bool {
-        !isOwner && isFollowing && project.takesSuggestions
+        !isOwner && !isContributor && isFollowing && project.takesSuggestions
     }
 
     var body: some View {
@@ -30,7 +32,6 @@ struct ProjectSuggestionSection: View {
                 RawdeaPillButton(title: "Suggest an update") {
                     isSuggesting = true
                 }
-                .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("project-suggest-action")
             }
 
@@ -61,6 +62,8 @@ struct ProjectSuggestionSection: View {
                 .buttonStyle(.plain)
             }
         }
+        // Empty, it takes no space of its own in the header.
+        .padding(.top, canSuggest || count > 0 ? 0 : -RawdeaSpacing.sm)
         .sheet(isPresented: $isSuggesting) {
             SuggestUpdateSheet(project: project) {
                 await load()
@@ -90,6 +93,9 @@ struct ProjectSuggestionSection: View {
             count = (try? await service.fetchWaiting(projectId: project.id).count) ?? 0
         } else {
             count = (try? await service.fetchMine(projectId: project.id).count) ?? 0
+            let membership = try? await CollaborationService()
+                .fetchMyMembership(projectId: project.id)
+            isContributor = membership?.status == .active
         }
     }
 }

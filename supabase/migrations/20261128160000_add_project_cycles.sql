@@ -29,7 +29,8 @@ create table public.project_cycles (
         on delete cascade,
 
     cycle integer not null check (cycle > 1),
-    started_at timestamptz not null default now(),
+    -- Real time, to compare with when people joined.
+    started_at timestamptz not null default clock_timestamp(),
 
     previous_name text,
     previous_started_at timestamptz,

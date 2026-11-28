@@ -12,6 +12,7 @@ struct SuggestUpdateSheet: View {
     let onSent: () async -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @StateObject private var viewModel = SuggestUpdateViewModel()
 
     @State private var kind = PostKind.note
@@ -63,6 +64,11 @@ struct SuggestUpdateSheet: View {
                     if let error = viewModel.errorMessage {
                         RawdeaInlineError(message: error)
                     }
+
+                    // A pinned button would cover large text.
+                    if dynamicTypeSize.isAccessibilitySize {
+                        sendButton
+                    }
                 }
                 .padding(.horizontal, RawdeaSpacing.screenInset)
                 .padding(.vertical, RawdeaSpacing.sm)
@@ -78,24 +84,30 @@ struct SuggestUpdateSheet: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                RawdeaPillButton(
-                    title: viewModel.isSending ? "Sending…" : "Send suggestion",
-                    isPrimary: true,
-                    isWorking: viewModel.isSending
-                ) {
-                    Task { await send() }
+                if !dynamicTypeSize.isAccessibilitySize {
+                    sendButton
+                        .padding(.horizontal, RawdeaSpacing.screenInset)
+                        .padding(.vertical, RawdeaSpacing.xs)
+                        .background(RawdeaPalette.canvas)
                 }
-                .disabled(!canSend)
-                .opacity(canSend || viewModel.isSending ? 1 : 0.5)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.horizontal, RawdeaSpacing.screenInset)
-                .padding(.vertical, RawdeaSpacing.xs)
-                .background(RawdeaPalette.canvas)
             }
             .interactiveDismissDisabled(!content.isEmpty || viewModel.isSending)
             .onChange(of: content) { _, _ in viewModel.clearError() }
             .onChange(of: kind) { _, _ in viewModel.clearError() }
         }
+    }
+
+    private var sendButton: some View {
+        RawdeaPillButton(
+            title: viewModel.isSending ? "Sending…" : "Send suggestion",
+            isPrimary: true,
+            isWorking: viewModel.isSending
+        ) {
+            Task { await send() }
+        }
+        .disabled(!canSend)
+        .opacity(canSend || viewModel.isSending ? 1 : 0.5)
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
     private func send() async {

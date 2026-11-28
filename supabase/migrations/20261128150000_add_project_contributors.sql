@@ -19,7 +19,7 @@ create table public.project_members (
             'invited', 'active', 'declined', 'left', 'removed'
         )),
 
-    invited_at timestamptz not null default now(),
+    invited_at timestamptz not null default clock_timestamp(),
     joined_at timestamptz,
     ended_at timestamptz,
 
@@ -166,7 +166,7 @@ begin
     values (p_project_id, p_user_id, 'invited')
     on conflict (project_id, user_id) do update
     set status = 'invited',
-        invited_at = now(),
+        invited_at = clock_timestamp(),
         joined_at = null,
         ended_at = null;
 

@@ -696,7 +696,6 @@ struct ProjectDetailView: View {
             RawdeaPillButton(title: "Start next cycle", isPrimary: true) {
                 isStartingCycle = true
             }
-            .frame(maxWidth: .infinity)
         } else if current.canOfferUndoCycle() {
             RawdeaPillButton(title: "Undo Cycle \(current.cycleNumber)") {
                 isConfirmingUndoCycle = true

@@ -54,6 +54,8 @@ struct ContributedToSection: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Empty, it takes no space of its own in the profile.
+        .padding(.top, projects.isEmpty ? -RawdeaSpacing.md : 0)
         // A failed load only leaves the list out.
         .task(id: userId) {
             if let loaded = try? await CollaborationService()

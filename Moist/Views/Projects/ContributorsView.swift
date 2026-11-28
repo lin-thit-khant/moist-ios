@@ -12,6 +12,7 @@ struct ContributorsView: View {
     @State private var removal: Removal?
 
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private struct Removal {
         let member: ProjectMember
@@ -221,7 +222,12 @@ struct ContributorsView: View {
 
     private func candidateRow(_ candidate: ContributorCandidate) -> some View {
 
-        RawdeaWrapLayout(spacing: RawdeaSpacing.xs) {
+        // Large text puts Invite under the name.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xs))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.xs))
+
+        return layout {
 
             person(
                 id: candidate.userId,

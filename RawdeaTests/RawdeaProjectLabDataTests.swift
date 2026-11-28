@@ -705,6 +705,164 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         }
     }
 
+    // MARK: - Collaborators
+
+    // Every select and function call the app makes, decoded.
+    func testCollaborationRoundTrip() async throws {
+
+        let owner = try await makeUser()
+        let helper = try await makeUser()
+        let asker = try await makeUser()
+
+        var project = try await owner.projects.createProject(name: "Ledger")
+        XCTAssertEqual(project.suggestionsEnabled, true)
+        XCTAssertEqual(project.cycle, 1)
+
+        try await helper.following.followProject(projectId: project.id)
+        try await asker.following.followProject(projectId: project.id)
+
+        // Suggest, review, answer. New accounts may send 3 things
+        // an hour, so the two of them share the work.
+        try await helper.suggestions.suggest(
+            projectId: project.id, kind: .note, content: "First idea"
+        )
+        for text in ["Second idea", "Third idea"] {
+            try await asker.suggestions.suggest(
+                projectId: project.id, kind: .note, content: text
+            )
+        }
+
+        let waiting = try await owner.suggestions.fetchWaiting(projectId: project.id)
+        XCTAssertEqual(waiting.map(\.content), ["First idea", "Second idea", "Third idea"])
+        XCTAssertNotNil(waiting.first?.author?.username)
+
+        let grouped = try await owner.activity.fetchNotifications()
+        XCTAssertEqual(
+            grouped.first { $0.kind == .suggestionsWaiting }?.itemCount, 3
+        )
+
+        try await owner.suggestions.decide(id: waiting[0].id, approve: true)
+        try await owner.suggestions.decide(id: waiting[1].id, approve: false)
+        try await asker.suggestions.withdraw(id: waiting[2].id)
+
+        let mine = try await asker.suggestions.fetchMine(projectId: project.id)
+        XCTAssertEqual(Set(mine.map(\.status)), [.declined, .withdrawn])
+        XCTAssertEqual(mine.first?.project?.name, "Ledger")
+
+        let approvedMine = try await helper.suggestions.fetchMine()
+        XCTAssertNotNil(approvedMine.first?.postId)
+
+        // Invite and accept.
+        let approved = try await owner.collaboration
+            .fetchApprovedSuggestions(projectId: project.id)
+        XCTAssertEqual(approved.map(\.userId), [helper.id])
+
+        try await owner.collaboration.invite(projectId: project.id, userId: helper.id)
+        let invited = try await helper.collaboration
+            .fetchMyMembership(projectId: project.id)
+        XCTAssertEqual(invited?.status, .invited)
+        try await helper.collaboration.respond(projectId: project.id, accept: true)
+
+        let members = try await asker.collaboration.fetchMembers(projectId: project.id)
+        XCTAssertEqual(members.map(\.status), [.active])
+        XCTAssertNotNil(members.first?.person?.username)
+
+        let contributing = try await helper.collaboration.fetchContributingProjects()
+        XCTAssertEqual(contributing.map(\.id), [project.id])
+
+        // Contribute; the owner hides it and shows it again.
+        let question = try await helper.posts.createPost(
+            content: "Which font?", projectId: project.id, kind: .question
+        )
+        XCTAssertEqual(question.project?.userId, owner.id)
+
+        let answer = try await asker.engagement.addComment(
+            postId: question.id, content: "Serif"
+        )
+        try await owner.collaboration.setBestReplyAsOwner(
+            postId: question.id, commentId: answer.id
+        )
+        try await owner.collaboration.setBestReplyAsOwner(
+            postId: question.id, commentId: nil
+        )
+
+        try await owner.collaboration.setOwnerHidden(postId: question.id, hidden: true)
+        let unseen = try await asker.posts.fetchPost(postId: question.id)
+        XCTAssertNil(unseen)
+        let flagged = try await helper.posts.fetchPost(postId: question.id)
+        XCTAssertEqual(flagged?.ownerHidden, true)
+        try await owner.collaboration.setOwnerHidden(postId: question.id, hidden: false)
+
+        // A held contribution is queued.
+        let reason = try await helper.collaboration.holdContribution(
+            content: "See a.com and b.com", projectId: project.id, kind: .note
+        )
+        XCTAssertEqual(reason, .severalLinks)
+
+        // Credit.
+        let preview = try await owner.collaboration.creditPreview(
+            projectId: project.id, stage: .shipped
+        )
+        XCTAssertEqual(preview.count, 1)
+        project = try await owner.projects.setStage(
+            projectId: project.id, stage: .shipped
+        )
+        var events = try await asker.projects.fetchStageEvents(projectId: project.id)
+        XCTAssertEqual(events.first?.creditNames, preview)
+
+        let credited = try await helper.activity.fetchNotifications()
+        XCTAssertTrue(credited.contains { $0.kind == .credited })
+
+        let contributed = try await asker.collaboration
+            .fetchContributedTo(userId: helper.id)
+        XCTAssertEqual(contributed.first?.cycles, [1])
+        XCTAssertEqual(contributed.first?.isContributor, true)
+
+        // Next cycle and undo.
+        let second = try await owner.projects.startCycle(
+            projectId: project.id, note: "Round two", name: "Winter",
+            stage: .inProgress
+        )
+        XCTAssertEqual(second.cycle, 2)
+        XCTAssertEqual(second.cycleName, "Winter")
+        XCTAssertNotNil(second.cycleStartedAt)
+
+        events = try await asker.projects.fetchStageEvents(projectId: project.id)
+        XCTAssertEqual(events.first?.marker, "Started Cycle 2: Winter")
+
+        let rows = try await asker.projects.fetchRecentStageRows()
+        XCTAssertTrue(rows.contains { $0.marker == "Started Cycle 2: Winter" })
+
+        let told = try await helper.activity.fetchNotifications()
+        XCTAssertEqual(
+            told.first { $0.kind == .cycleStarted }?.action,
+            "started Cycle 2: Winter"
+        )
+
+        let undone = try await owner.projects.undoCycle(projectId: project.id)
+        XCTAssertEqual(undone.cycle, 1)
+        XCTAssertEqual(undone.stage, .shipped)
+        XCTAssertNil(undone.cycleName)
+
+        // Leave, then be removed.
+        try await helper.collaboration.leave(projectId: project.id)
+        try await owner.collaboration.remove(
+            projectId: project.id, userId: helper.id, hidePosts: true
+        )
+
+        let off = try await owner.projects.setSuggestionsEnabled(
+            projectId: project.id, enabled: false
+        )
+        XCTAssertEqual(off.suggestionsEnabled, false)
+
+        var preferences = try await owner.activity.fetchPreferences()
+        preferences.suggestions = false
+        preferences.collaboration = false
+        try await owner.activity.savePreferences(preferences)
+        let saved = try await owner.activity.fetchPreferences()
+        XCTAssertEqual(saved, preferences)
+    }
+
     // MARK: - Fixtures
 
     @MainActor
@@ -721,6 +879,12 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         }
         var engagement: PostEngagementService {
             PostEngagementService(client: client)
+        }
+        var suggestions: SuggestionService {
+            SuggestionService(client: client)
+        }
+        var collaboration: CollaborationService {
+            CollaborationService(client: client)
         }
     }
 

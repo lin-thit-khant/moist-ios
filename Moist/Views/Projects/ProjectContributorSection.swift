@@ -65,6 +65,11 @@ struct ProjectContributorSection: View {
                 RawdeaInlineError(message: error)
             }
         }
+        // Empty, it takes no space of its own in the header.
+        .padding(
+            .top,
+            viewModel.membership?.holdsPlace == true ? 0 : -RawdeaSpacing.sm
+        )
         .onAppear { Task { await viewModel.load() } }
         .confirmationDialog(
             "Leave this Project?",
