@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: e1980d5 (not pushed). Latest confirmed pushed commit: 3f5d7db.
+- Latest code commit: 4d7192b. Latest confirmed pushed commit: 4d7192b.
 - Review data: seed_project_lab.sql.
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
@@ -51,6 +51,7 @@ Keep this file under 60 lines.
 ## Next (implementation needs Lin's approval)
 - Lin: VoiceOver playback, Reduce Motion and Like haptic on a device. Then App Store prep.
 - Early dots: no growing stage dot (removed by Lin); haptics are not capped for many posts.
+- Early dots replay when returning to a Home-opened Project (ProjectRouteView rebuilds).
 - Welcome hides the Apple and Google stubs.
 - Before release: add Terms and a privacy URL.
 
@@ -69,6 +70,8 @@ Keep this file under 60 lines.
 - Auth screens: VoiceOver, Contrast, iOS 17, small phone, device, sign-up submit,
   error/loading states. Some default-dark and scrolled shots predate final tweaks.
 - Public "Nothing shared yet" and all-pinned Project states.
+- Early dots on every open (4d7192b, 48 XCTest pass): Reduce Motion, dark and large text not
+  rechecked.
 - Stage motion: haptics, VoiceOver, device, Contrast, large counts, sweep in dark or largest
   text, final Reduce Motion list change. White current stage is faint in light.
 - Largest text: heart briefly touches the count; stage pill overflows; username wraps
