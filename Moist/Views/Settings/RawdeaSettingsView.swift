@@ -219,7 +219,7 @@ struct RawdeaSettingsView: View {
 
                 detailRow(
                     title: "Reports",
-                    detail: "Posts, comments and accounts waiting"
+                    detail: "Held posts and reports waiting"
                 )
             }
             .listRowBackground(

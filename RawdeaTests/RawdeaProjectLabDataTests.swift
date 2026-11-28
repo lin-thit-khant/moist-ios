@@ -196,6 +196,48 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         XCTAssertTrue(blocked.isEmpty)
     }
 
+    // MARK: - Hold for review
+
+    func testNewAccountAllowHoldBlockAndLimit() async throws {
+
+        let author = try await makeUser()
+        let compose = CreatePostViewModel(
+            postService: author.posts,
+            projectService: author.projects,
+            heldPostService: HeldPostService(client: author.client)
+        )
+
+        let allowed = await compose.publish(content: "Plain progress note")
+        XCTAssertTrue(allowed)
+        XCTAssertNotNil(compose.publishedPost)
+        XCTAssertNil(compose.heldReason)
+
+        let blocked = await compose.publish(content: "Send me your password")
+        XCTAssertFalse(blocked)
+        XCTAssertNil(compose.heldReason)
+
+        let held = await compose.publish(content: "My notes: example.com/notes")
+        XCTAssertTrue(held)
+        XCTAssertNil(compose.publishedPost)
+        XCTAssertEqual(compose.heldReason, .newAccountLink)
+
+        let mine = try await author.posts.fetchPosts(userId: author.id)
+        XCTAssertEqual(mine.map(\.content), ["Plain progress note"])
+
+        let third = await compose.publish(content: "Third")
+        XCTAssertTrue(third)
+        let fourth = await compose.publish(content: "Fourth")
+        XCTAssertFalse(fourth)
+        XCTAssertEqual(compose.errorMessage?.contains("3 times an hour"), true)
+
+        let notices = try await HeldPostService(client: author.client).fetchMine()
+        XCTAssertTrue(notices.isEmpty, "No notice before a decision")
+
+        await assertThrows("Only moderators read the queue") {
+            _ = try await HeldPostService(client: author.client).fetchQueue()
+        }
+    }
+
     // MARK: - Best Reply
 
     func testOnlyQuestionAuthorChoosesBestReply() async throws {

@@ -38,6 +38,7 @@ struct CreatePostView: View {
     @State private var isShowingProjectPicker = false
     @State private var isShowingDiscardConfirmation = false
     @State private var isShowingStageFailure = false
+    @State private var heldMovedStage = false
 
     let onPostCreated: (Post) -> Void
 
@@ -130,7 +131,8 @@ struct CreatePostView: View {
         draft.isValid &&
         !needsProjectCheck &&
         !viewModel.isPublishing &&
-        viewModel.publishedPost == nil
+        viewModel.publishedPost == nil &&
+        viewModel.heldReason == nil
     }
 
     // MARK: - Body
@@ -141,9 +143,15 @@ struct CreatePostView: View {
 
             ScrollView {
 
-                composerBody
-                    .padding(.horizontal, RawdeaSpacing.screenInset)
-                    .padding(.vertical, RawdeaSpacing.sm)
+                Group {
+                    if let reason = viewModel.heldReason {
+                        heldNote(reason)
+                    } else {
+                        composerBody
+                    }
+                }
+                .padding(.horizontal, RawdeaSpacing.screenInset)
+                .padding(.vertical, RawdeaSpacing.sm)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(
@@ -160,22 +168,26 @@ struct CreatePostView: View {
                     placement: .cancellationAction
                 ) {
 
-                    Button("Cancel") {
-                        requestDismissal()
+                    if viewModel.heldReason == nil {
+                        Button("Cancel") {
+                            requestDismissal()
+                        }
+                        .disabled(
+                            viewModel.isPublishing
+                        )
+                        .frame(
+                            minHeight:
+                                RawdeaSpacing.minimumTouchTarget
+                        )
                     }
-                    .disabled(
-                        viewModel.isPublishing
-                    )
-                    .frame(
-                        minHeight:
-                            RawdeaSpacing.minimumTouchTarget
-                    )
                 }
 
             }
             // Post stays above the keyboard.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                postBar
+                if viewModel.heldReason == nil {
+                    postBar
+                }
             }
             .task {
                 await restoreProject()
@@ -190,7 +202,7 @@ struct CreatePostView: View {
             // A deliberate Cancel action shows
             // the discard confirmation.
             .interactiveDismissDisabled(
-                hasUnsavedDraft ||
+                (hasUnsavedDraft && viewModel.heldReason == nil) ||
                 viewModel.isPublishing
             )
 
@@ -247,7 +259,8 @@ struct CreatePostView: View {
         }
 
         .onChange(of: draftToSave) { _, updated in
-            guard viewModel.publishedPost == nil else { return }
+            guard viewModel.publishedPost == nil,
+                  viewModel.heldReason == nil else { return }
             SavedPostDraft.save(updated, for: userId)
         }
 
@@ -277,6 +290,29 @@ struct CreatePostView: View {
 
             movesStage = false
             viewModel.clearError()
+        }
+    }
+
+    // MARK: - Held for review
+
+    private func heldNote(_ reason: HoldReason) -> some View {
+
+        VStack(alignment: .leading, spacing: RawdeaSpacing.md) {
+
+            RawdeaNote(
+                title: "Sent for a quick check",
+                message: "A moderator will look at this before it shows up. You can leave the app. We will tell you the result in Activity."
+            ) {
+                RawdeaNoteDetail("Reason: \(reason.text)")
+                if heldMovedStage {
+                    RawdeaNoteDetail("The Project stage didn't change.")
+                }
+            }
+
+            RawdeaPillButton(title: "Done", isPrimary: true) {
+                dismiss()
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 
@@ -586,7 +622,11 @@ struct CreatePostView: View {
 
         SavedPostDraft.save(nil, for: userId)
 
-        if viewModel.stageChangeFailed {
+        if viewModel.heldReason != nil {
+            // The composer now shows the notice.
+            AccessibilityNotification.Announcement("Sent for a quick check").post()
+            heldMovedStage = movesStage && nextStage != nil
+        } else if viewModel.stageChangeFailed {
             isShowingStageFailure = true
         } else {
             finishPublishing()

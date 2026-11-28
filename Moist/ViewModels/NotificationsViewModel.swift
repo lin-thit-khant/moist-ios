@@ -18,6 +18,12 @@ final class NotificationsViewModel: ObservableObject {
 
     @Published private(set) var unreadCount = 0
 
+    /// Results of the signed-in person's held posts.
+    @Published private(set) var heldNotices: [HeldPostNotice] = []
+
+    /// The held post whose second look is being sent.
+    @Published private(set) var askingId: UUID?
+
     // MARK: - Loading
 
     @Published private(set) var isLoading = false
@@ -36,16 +42,20 @@ final class NotificationsViewModel: ObservableObject {
     @Published private(set) var actionErrorMessage: String?
 
     private let service: NotificationService
+    private let heldPostService: HeldPostService
 
     // Identifies the latest badge request.
     private var badgeRequestID = UUID()
 
     init(
         service: NotificationService =
-            NotificationService()
+            NotificationService(),
+        heldPostService: HeldPostService? =
+            nil
     ) {
 
         self.service = service
+        self.heldPostService = heldPostService ?? HeldPostService()
     }
 
     private var isBusy: Bool {
@@ -67,6 +77,7 @@ final class NotificationsViewModel: ObservableObject {
         // checking their current visibility.
 
         notifications = []
+        heldNotices = []
         hasLoaded = false
 
         // Do not set unreadCount to zero here.
@@ -99,10 +110,19 @@ final class NotificationsViewModel: ObservableObject {
             let loaded = try await service
                 .fetchNotifications()
 
+            // A server without hold-for-review still shows Activity.
+            let held = (try? await heldPostService.fetchMine()) ?? []
+
             try Task.checkCancellation()
 
             notifications = loaded
+            heldNotices = held
             hasLoaded = true
+
+            // Results on screen count as read.
+            if held.contains(where: { !$0.seen }) {
+                try? await heldPostService.markSeen()
+            }
 
             await updateUnreadCount()
 
@@ -143,8 +163,11 @@ final class NotificationsViewModel: ObservableObject {
 
         do {
 
-            let count = try await service
+            var count = try await service
                 .fetchUnreadCount()
+
+            let held = (try? await heldPostService.fetchMine()) ?? []
+            count += held.filter { !$0.seen }.count
 
             try Task.checkCancellation()
 
@@ -273,6 +296,35 @@ final class NotificationsViewModel: ObservableObject {
             // notifications after marking all read.
 
             await updateUnreadCount()
+
+        } catch {
+
+            actionErrorMessage =
+                error.localizedDescription
+        }
+    }
+
+    // MARK: - Second look
+
+    func askForSecondLook(id: UUID) async {
+
+        guard askingId == nil else {
+            return
+        }
+
+        askingId = id
+        actionErrorMessage = nil
+
+        defer {
+
+            askingId = nil
+        }
+
+        do {
+
+            try await heldPostService.askForSecondLook(id: id)
+
+            heldNotices = try await heldPostService.fetchMine()
 
         } catch {
 

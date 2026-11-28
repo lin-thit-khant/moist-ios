@@ -13,6 +13,9 @@ struct ModerationQueueView: View {
     @StateObject private var viewModel =
         ModerationQueueViewModel()
 
+    @StateObject private var heldViewModel =
+        HeldQueueViewModel()
+
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -64,6 +67,11 @@ struct ModerationQueueView: View {
             await viewModel.prepare()
         }
 
+        .task(id: viewModel.isAuthorized) {
+            guard viewModel.isAuthorized == true else { return }
+            await heldViewModel.load()
+        }
+
         .onAppear {
 
             guard viewModel.isAuthorized == true else {
@@ -82,124 +90,205 @@ struct ModerationQueueView: View {
 
         List {
 
-            Section {
+            heldSection
 
-                Picker(
-                    "Review Status",
-                    selection: $viewModel.selectedStatus
-                ) {
+            Group {
 
-                    ForEach(ModerationStatus.allCases) { status in
+                Section {
 
-                        Text(status.title)
-                            .tag(status)
+                    Picker(
+                        "Review Status",
+                        selection: $viewModel.selectedStatus
+                    ) {
+
+                        ForEach(ModerationStatus.allCases) { status in
+
+                            Text(status.title)
+                                .tag(status)
+                        }
                     }
-                }
-                .pickerStyle(.menu)
-                .disabled(
-                    viewModel.isLoading ||
-                    viewModel.isLoadingMore
-                )
+                    .pickerStyle(.menu)
+                    .disabled(
+                        viewModel.isLoading ||
+                        viewModel.isLoadingMore
+                    )
 
-            } header: {
+                } header: {
 
-                Text("Report Queue")
+                    Text("Report Queue")
 
-            } footer: {
+                } footer: {
 
-                Text(
-                    "Pending reports are displayed oldest first."
-                )
-            }
-
-            if viewModel.isLoading {
-
-                Section {
-
-                    RawdeaLoadingIndicator("Loading reports...")
-                        .frame(maxWidth: .infinity)
-                }
-
-            } else if viewModel.reports.isEmpty &&
-                      viewModel.errorMessage == nil {
-
-                Section {
-
-                    ContentUnavailableView(
-                        "No Reports",
-                        systemImage: "checkmark.shield",
-                        description: Text(
-                            "There are no reports with this status."
-                        )
+                    Text(
+                        "Pending reports are displayed oldest first."
                     )
                 }
 
-            } else {
+                if viewModel.isLoading {
 
-                Section("Reports") {
+                    Section {
 
-                    ForEach(viewModel.reports) { report in
-
-                        NavigationLink {
-
-                            ModerationReportDetailView(
-                                reportId: report.id
-                            )
-
-                        } label: {
-
-                            reportRow(report)
-                        }
+                        RawdeaLoadingIndicator("Loading reports...")
+                            .frame(maxWidth: .infinity)
                     }
 
-                    if viewModel.hasMore {
+                } else if viewModel.reports.isEmpty &&
+                          viewModel.errorMessage == nil {
 
-                        HStack {
+                    Section {
 
-                            Spacer()
+                        ContentUnavailableView(
+                            "No Reports",
+                            systemImage: "checkmark.shield",
+                            description: Text(
+                                "There are no reports with this status."
+                            )
+                        )
+                    }
 
-                            if viewModel.isLoadingMore {
+                } else {
 
-                                RawdeaLoadingIndicator("Loading more...")
+                    Section("Reports") {
 
-                            } else {
+                        ForEach(viewModel.reports) { report in
 
-                                Button("Load More Reports") {
+                            NavigationLink {
 
-                                    Task {
-                                        await viewModel.loadMore()
-                                    }
-                                }
-                                .buttonStyle(.bordered)
+                                ModerationReportDetailView(
+                                    reportId: report.id
+                                )
+
+                            } label: {
+
+                                reportRow(report)
                             }
+                        }
 
-                            Spacer()
+                        if viewModel.hasMore {
+
+                            HStack {
+
+                                Spacer()
+
+                                if viewModel.isLoadingMore {
+
+                                    RawdeaLoadingIndicator("Loading more...")
+
+                                } else {
+
+                                    Button("Load More Reports") {
+
+                                        Task {
+                                            await viewModel.loadMore()
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
+
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+
+                if let error = viewModel.errorMessage {
+
+                    Section {
+
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+
+                        Button("Retry") {
+
+                            Task {
+                                await viewModel.reload()
+                            }
                         }
                     }
                 }
             }
+            .listRowBackground(RawdeaPalette.canvas)
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(RawdeaPalette.canvas.ignoresSafeArea())
 
-            if let error = viewModel.errorMessage {
+        .rawdeaRefreshable {
+            await heldViewModel.load()
+            await viewModel.reload()
+        }
+    }
 
-                Section {
+    // MARK: - Held Posts
 
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+    private var heldSection: some View {
 
-                    Button("Retry") {
+        Section("Held posts") {
 
-                        Task {
-                            await viewModel.reload()
-                        }
-                    }
+            if let error = heldViewModel.errorMessage {
+
+                RawdeaInlineError(message: error)
+
+                Button("Try Again") {
+                    Task { await heldViewModel.load() }
+                }
+                .frame(minHeight: RawdeaSpacing.minimumTouchTarget)
+            }
+
+            if !heldViewModel.hasLoaded {
+
+                if heldViewModel.errorMessage == nil {
+                    RawdeaLoadingIndicator("Loading held posts...")
+                        .frame(maxWidth: .infinity)
+                }
+
+            } else if heldViewModel.items.isEmpty {
+
+                Text("Queue is empty. Held posts appear here with the reason.")
+                    .font(RawdeaTypography.secondary)
+                    .foregroundStyle(RawdeaPalette.secondaryText)
+
+            } else {
+
+                ForEach(heldViewModel.items) { item in
+                    heldRow(item)
+                        .listRowSeparator(.hidden)
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listRowBackground(RawdeaPalette.canvas)
+    }
 
-        .rawdeaRefreshable {
-            await viewModel.reload()
+    private func heldRow(_ item: HeldQueueItem) -> some View {
+
+        let buttons = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xs))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.xs))
+
+        return RawdeaNote(
+            title: "@\(item.username) · \(item.accountAge())",
+            message: item.content
+        ) {
+
+            RawdeaNoteDetail("Held because: \(item.reason.text)")
+
+            if item.appealed {
+                RawdeaNoteDetail("Second look requested.")
+            }
+
+            buttons {
+                RawdeaPillButton(title: "Approve", isPrimary: true) {
+                    Task { await heldViewModel.decide(item, approve: true) }
+                }
+                RawdeaPillButton(title: "Remove") {
+                    Task { await heldViewModel.decide(item, approve: false) }
+                }
+                if heldViewModel.decidingId == item.id {
+                    ProgressView()
+                }
+            }
+            .disabled(heldViewModel.decidingId != nil)
         }
     }
 

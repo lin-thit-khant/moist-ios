@@ -22,6 +22,16 @@ enum PublicationErrorMessage {
         \(String(reflecting: error))
         """.lowercased()
 
+        if details.contains("rawdea_rate_limit") {
+
+            return "Too many posts for now. New accounts can post 3 times an hour. Try again later."
+        }
+
+        if details.contains("rawdea_filter_held_edit:") {
+
+            return "This change needs a check first, so it wasn't saved. Remove the link or reword it and try again."
+        }
+
         guard details.contains(
             "rawdea_filter_blocked:"
         ) else {

@@ -79,7 +79,8 @@ struct NotificationsView: View {
                         RawdeaPalette.canvas
                     )
 
-            } else if viewModel.notifications.isEmpty {
+            } else if viewModel.notifications.isEmpty &&
+                        viewModel.heldNotices.isEmpty {
 
                 RawdeaEmptyState(
                     symbol: "bell",
@@ -94,7 +95,14 @@ struct NotificationsView: View {
 
             } else {
 
-                if visibleGroups.isEmpty {
+                if filter == .all {
+                    ForEach(viewModel.heldNotices) { notice in
+                        heldRow(notice)
+                    }
+                }
+
+                if visibleGroups.isEmpty &&
+                    (filter != .all || viewModel.heldNotices.isEmpty) {
 
                     Text("Nothing here yet.")
                         .font(RawdeaTypography.secondary)
@@ -253,6 +261,44 @@ struct NotificationsView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Activity filter")
         .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+        .listRowBackground(RawdeaPalette.canvas)
+    }
+
+    // MARK: - Held post results
+
+    private func heldRow(_ notice: HeldPostNotice) -> some View {
+
+        RawdeaNote(title: notice.title, message: notice.message) {
+
+            // The post itself, so two results can be told apart.
+            RawdeaNoteDetail("“\(notice.content)”")
+                .lineLimit(2)
+
+            if notice.canAskAgain {
+                RawdeaPillButton(
+                    title: "Ask for a second look",
+                    isWorking: viewModel.askingId == notice.id
+                ) {
+                    Task {
+                        await viewModel.askForSecondLook(id: notice.id)
+                    }
+                }
+                .disabled(viewModel.askingId != nil)
+            }
+
+            if notice.isSecondLookRequested {
+                RawdeaNoteDetail("Second look requested.")
+            }
+        }
+        .listRowInsets(
+            EdgeInsets(
+                top: RawdeaSpacing.xs,
+                leading: RawdeaSpacing.screenInset,
+                bottom: RawdeaSpacing.xs,
+                trailing: RawdeaSpacing.screenInset
+            )
+        )
         .listRowSeparator(.hidden)
         .listRowBackground(RawdeaPalette.canvas)
     }

@@ -14,19 +14,25 @@ final class CreatePostViewModel: ObservableObject {
     @Published private(set) var isPublishing = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var publishedPost: Post?
+
+    /// Set when the post was sent to a moderator instead of published.
+    @Published private(set) var heldReason: HoldReason?
     
     /// The post was published, but its Project's stage was not moved.
     @Published private(set) var stageChangeFailed = false
     
     private let postService: PostService
     private let projectService: ProjectService
+    private let heldPostService: HeldPostService
     
     init(
         postService: PostService = PostService(),
-        projectService: ProjectService = ProjectService()
+        projectService: ProjectService = ProjectService(),
+        heldPostService: HeldPostService? = nil
     ) {
         self.postService = postService
         self.projectService = projectService
+        self.heldPostService = heldPostService ?? HeldPostService()
     }
     
     func publish(
@@ -86,9 +92,24 @@ final class CreatePostViewModel: ObservableObject {
             
             return true
         } catch {
-            errorMessage = PublicationErrorMessage.from(error)
+            guard HoldReason.from(error) != nil else {
+                errorMessage = PublicationErrorMessage.from(error)
+                return false
+            }
             
-            return false
+            // The server refused to publish it directly.
+            // Send it to the moderator queue.
+            do {
+                heldReason = try await heldPostService.hold(
+                    content: trimmedContent,
+                    projectId: projectId,
+                    kind: kind
+                )
+                return true
+            } catch {
+                errorMessage = PublicationErrorMessage.from(error)
+                return false
+            }
         }
     }
     
