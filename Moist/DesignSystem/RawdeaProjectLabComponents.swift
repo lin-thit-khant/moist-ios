@@ -61,6 +61,8 @@ struct RawdeaStageTrack: View {
     let stage: ProjectStage
     /// Each change makes the Early segment swell and glow once.
     var earlyPulse = 0
+    /// The Project's posts, to bring the In progress segment to life.
+    var livePostCount: Int? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -91,6 +93,14 @@ struct RawdeaStageTrack: View {
                                 CubicKeyframe(0, duration: 0.29)
                             }
                             .anchorPreference(key: RawdeaEarlyBarKey.self, value: .bounds) { $0 }
+                    } else if stages[index] == .inProgress {
+                        segment(isReached: index <= current, isDone: index < current)
+                            .modifier(RawdeaInProgressGlow(
+                                stage: stage,
+                                postCount: livePostCount
+                            ))
+                            // Its dots pass over the neighbouring segments.
+                            .zIndex(1)
                     } else {
                         segment(isReached: index <= current, isDone: index < current)
                     }

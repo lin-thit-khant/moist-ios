@@ -498,6 +498,7 @@ struct ProjectDetailView: View {
             RawdeaStageProgress(
                 stage: current.stage,
                 summary: stageSummary,
+                postCount: viewModel.posts.count,
                 arrivalCount: arrivalCount,
                 onArrivalEnd: { arrivalCount = nil }
             )

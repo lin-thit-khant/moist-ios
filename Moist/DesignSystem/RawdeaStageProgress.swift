@@ -11,6 +11,8 @@ struct RawdeaStageProgress: View {
 
     let stage: ProjectStage
     let summary: String
+    /// The true number of posts, one In progress dot each.
+    var postCount = 0
     /// The number of posts to play arriving, or nil.
     var arrivalCount: Int? = nil
     var onArrivalEnd: () -> Void = {}
@@ -39,7 +41,11 @@ struct RawdeaStageProgress: View {
 
         VStack(alignment: .leading, spacing: RawdeaSpacing.sm) {
 
-            RawdeaStageTrack(stage: stage, earlyPulse: pulse)
+            RawdeaStageTrack(
+                stage: stage,
+                earlyPulse: pulse,
+                livePostCount: postCount
+            )
                 .opacity(softFade ? 0.3 : 1)
 
             // The count takes the summary's place, so nothing moves.
