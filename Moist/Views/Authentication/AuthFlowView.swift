@@ -56,7 +56,8 @@ struct AuthFlowView: View {
                 if let userId = authViewModel.sessionUserId {
 
                     RawdeaMainTabView(
-                        authViewModel: authViewModel
+                        authViewModel: authViewModel,
+                        userId: userId
                     )
                     .id(userId)
 

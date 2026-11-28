@@ -23,6 +23,7 @@ enum RawdeaTab: Hashable {
 struct RawdeaMainTabView: View {
 
     @ObservedObject var authViewModel: AuthViewModel
+    let userId: UUID
 
     // Shared feed state.
     // Home and successful Compose publication use
@@ -191,7 +192,7 @@ struct RawdeaMainTabView: View {
 
         .sheet(item: $composeRequest, onDismiss: showPublicationConfirmation) { request in
 
-            CreatePostView(initialProject: request.project) { publishedPost in
+            CreatePostView(userId: userId, initialProject: request.project) { publishedPost in
 
                 // The existing CreatePostView calls
                 // this callback only after its

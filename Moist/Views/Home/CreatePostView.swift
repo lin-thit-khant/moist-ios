@@ -29,6 +29,11 @@ struct CreatePostView: View {
 
     /// Project chosen before Compose opened, such as from a Project screen.
     private let initialProject: Project?
+    private let userId: UUID
+    @State private var restoredDraft: SavedPostDraft?
+
+    @State private var needsProjectCheck: Bool
+    @State private var projectCheckMessage: String?
 
     @State private var isShowingProjectPicker = false
     @State private var isShowingDiscardConfirmation = false
@@ -37,14 +42,21 @@ struct CreatePostView: View {
     let onPostCreated: (Post) -> Void
 
     init(
+        userId: UUID,
         initialProject: Project? = nil,
         onPostCreated: @escaping (Post) -> Void
     ) {
         // An archived Project takes no new posts.
         let usable = initialProject?.isArchived == true ? nil : initialProject
+        let saved = SavedPostDraft.load(for: userId)
+        self.userId = userId
+        _restoredDraft = State(initialValue: saved)
         self.initialProject = usable
+        _content = State(initialValue: saved?.content ?? "")
+        _kind = State(initialValue: saved?.kind ?? .note)
+        _needsProjectCheck = State(initialValue: saved != nil)
         self.onPostCreated = onPostCreated
-        _selectedProject = State(initialValue: usable)
+        _selectedProject = State(initialValue: saved == nil ? usable : nil)
     }
 
     // MARK: - Draft state
@@ -55,8 +67,41 @@ struct CreatePostView: View {
 
     private var hasUnsavedDraft: Bool {
 
-        !content.isEmpty ||
+        restoredDraft != nil || !content.isEmpty || kind != .note ||
         selectedProject?.id != initialProject?.id
+    }
+
+    private var draftToSave: SavedPostDraft? {
+        guard hasUnsavedDraft else { return nil }
+        return SavedPostDraft(
+            content: content,
+            projectId: needsProjectCheck ? restoredDraft?.projectId : selectedProject?.id,
+            kind: kind
+        )
+    }
+
+    private func restoreProject() async {
+        guard needsProjectCheck, let restoredDraft else { return }
+
+        do {
+            let projects = try await ProjectService().fetchProjects(userId: userId)
+            guard !Task.isCancelled, needsProjectCheck else { return }
+            let project = projects.first { project in
+                restoredDraft.projectId.map { $0 == project.id } ?? project.isDefault
+            }
+            let unavailable = project?.isArchived == true ||
+                (restoredDraft.projectId != nil && project == nil)
+            if unavailable {
+                projectCheckMessage = "The saved Project is unavailable. Choose a Project to continue."
+                return
+            }
+
+            selectedProject = restoredDraft.projectId == nil ? nil : project
+            needsProjectCheck = false
+        } catch {
+            guard !Task.isCancelled, needsProjectCheck else { return }
+            projectCheckMessage = "Couldn't check the saved Project. Choose a Project to continue."
+        }
     }
 
     /// Only a progress post in a chosen, unshipped Project can move it on.
@@ -83,6 +128,7 @@ struct CreatePostView: View {
     private var canPublish: Bool {
 
         draft.isValid &&
+        !needsProjectCheck &&
         !viewModel.isPublishing &&
         viewModel.publishedPost == nil
     }
@@ -132,6 +178,9 @@ struct CreatePostView: View {
                 postBar
             }
             .task {
+                await restoreProject()
+            }
+            .task {
                 await loadAuthorName()
             }
 
@@ -157,6 +206,12 @@ struct CreatePostView: View {
                     role: .destructive
                 ) {
 
+                    SavedPostDraft.save(nil, for: userId)
+                    dismiss()
+                }
+
+                Button("Save Draft") {
+                    SavedPostDraft.save(draftToSave, for: userId)
                     dismiss()
                 }
 
@@ -168,7 +223,7 @@ struct CreatePostView: View {
             } message: {
 
                 Text(
-                    "Your unpublished text and Project selection will be lost."
+                    "You can save this draft on this device or discard it."
                 )
             }
 
@@ -179,9 +234,21 @@ struct CreatePostView: View {
             ) {
 
                 ProjectPickerView(
-                    selectedProject: $selectedProject
+                    selectedProject: Binding(
+                        get: { selectedProject },
+                        set: { project in
+                            selectedProject = project
+                            needsProjectCheck = false
+                            projectCheckMessage = nil
+                        }
+                    )
                 )
             }
+        }
+
+        .onChange(of: draftToSave) { _, updated in
+            guard viewModel.publishedPost == nil else { return }
+            SavedPostDraft.save(updated, for: userId)
         }
 
         // Remove stale errors when the user
@@ -240,6 +307,12 @@ struct CreatePostView: View {
                 }
 
                 projectChip
+
+                if let projectCheckMessage {
+                    RawdeaInlineError(message: projectCheckMessage)
+                } else if needsProjectCheck {
+                    ProgressView("Checking draft Project…")
+                }
 
                 kindPicker
 
@@ -510,6 +583,8 @@ struct CreatePostView: View {
             // selection on publication failure.
             return
         }
+
+        SavedPostDraft.save(nil, for: userId)
 
         if viewModel.stageChangeFailed {
             isShowingStageFailure = true
