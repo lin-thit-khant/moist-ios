@@ -22,6 +22,7 @@ struct ProjectPickerView: View {
     @State private var newProjectName = ""
     @State private var isShowingCreateAlert = false
     @State private var sessionError: String?
+    @State private var contributing: [Project] = []
 
     // MARK: - Body
 
@@ -69,6 +70,17 @@ struct ProjectPickerView: View {
                     Text(
                         "Every post belongs to a Project. General holds everything else."
                     )
+                }
+
+                if !contributing.isEmpty {
+
+                    Section("You contribute to") {
+
+                        ForEach(contributing) { project in
+
+                            projectOption(project)
+                        }
+                    }
                 }
 
                 Section {
@@ -197,6 +209,10 @@ struct ProjectPickerView: View {
                     await viewModel.loadProjects(
                         userId: user.id
                     )
+
+                    // The list still works without these.
+                    contributing = (try? await CollaborationService()
+                        .fetchContributingProjects()) ?? []
 
                 } catch {
 

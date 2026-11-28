@@ -37,6 +37,7 @@ struct ProjectDetailView: View {
     @State private var stageErrorMessage: String?
     @State private var section = ProjectSection.timeline
     @State private var followers: [PostAuthor]?
+    @State private var contributors: [ProjectMember] = []
     @State private var seenBefore: Date?
     @State private var isEditingDescription = false
 
@@ -77,6 +78,11 @@ struct ProjectDetailView: View {
                 changedProject = updated
                 await onProjectChanged()
             }
+        }
+        .task(id: section) {
+            let members = try? await CollaborationService()
+                .fetchMembers(projectId: project.id)
+            contributors = members?.filter { $0.status == .active } ?? []
         }
         .task(id: followViewModel.followerCount) {
             followers = try? await FollowingService()
@@ -300,6 +306,12 @@ struct ProjectDetailView: View {
             }
 
             if !current.isDefault {
+                Button {
+                    openPostRoute?(.contributors(project.id))
+                } label: {
+                    Label("Contributors", systemImage: "person.2")
+                }
+
                 Button {
                     openPostRoute?(.suggestions(project.id))
                 } label: {
@@ -549,6 +561,14 @@ struct ProjectDetailView: View {
                 followButton
             }
 
+            if current.stage == .shipped, !shippedCredit.isEmpty {
+                shippedByline
+            }
+
+            if !current.isDefault && currentUserId != nil && !isOwner {
+                ProjectContributorSection(project: current)
+            }
+
             if !current.isDefault && currentUserId != nil {
                 ProjectSuggestionSection(
                     project: current,
@@ -574,6 +594,42 @@ struct ProjectDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, RawdeaSpacing.screenInset)
         .padding(.top, RawdeaSpacing.xs)
+    }
+
+    // MARK: - Shipped credit
+
+    /// The people named when the Project last shipped.
+    private var shippedCredit: [String] {
+        stageEvents.first { $0.toStage == .shipped }?.creditNames ?? []
+    }
+
+    private var shippedByline: some View {
+
+        let owner = ownerProfile?.username ?? "the owner"
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xs))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.xs))
+
+        return layout {
+            HStack(spacing: -RawdeaSpacing.xs) {
+                ForEach([owner] + shippedCredit.prefix(5), id: \.self) { name in
+                    RawdeaInitialAvatar(
+                        name: name,
+                        size: RawdeaSpacing.xl,
+                        font: RawdeaTypography.caption.weight(.bold)
+                    )
+                    .overlay {
+                        Circle().strokeBorder(RawdeaPalette.canvas, lineWidth: 2)
+                    }
+                }
+            }
+            .accessibilityHidden(true)
+
+            Text("Shipped by \(owner) with \(CreditNames.sentence(shippedCredit))")
+                .font(RawdeaTypography.secondary)
+                .foregroundStyle(RawdeaPalette.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var followButton: some View {
@@ -655,6 +711,15 @@ struct ProjectDetailView: View {
             .timelineListRow()
         }
 
+        ForEach(contributors) { member in
+            personRow(
+                id: member.userId,
+                name: member.person?.username ?? "Contributor",
+                detail: "Contributor"
+            )
+            .timelineListRow()
+        }
+
         if let followers {
 
             Text(followViewModel.followerCount == 1
@@ -721,7 +786,7 @@ struct ProjectDetailView: View {
             Text("Started \(current.createdAt.formatted(.dateTime.day().month().year()))")
                 .foregroundStyle(RawdeaPalette.secondaryText)
             ForEach(stageEvents) { event in
-                Text("Moved to \(event.toStage.title) on \(event.createdAt.formatted(.dateTime.day().month().year()))")
+                Text("\(event.marker) on \(event.createdAt.formatted(.dateTime.day().month().year()))")
                     .foregroundStyle(RawdeaPalette.secondaryText)
             }
         }
@@ -1051,7 +1116,7 @@ struct ProjectDetailView: View {
 
         case .stageChange(let event):
             RawdeaTimelineRow(date: event.createdAt, isStageChange: true) {
-                Text("\(Image(systemName: "arrow.right.circle")) Moved to \(event.toStage.title)")
+                Text("\(Image(systemName: "arrow.right.circle")) \(event.marker)")
                     .font(RawdeaTypography.metadata.weight(.semibold))
                     .foregroundStyle(RawdeaPalette.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1065,7 +1130,7 @@ struct ProjectDetailView: View {
                             .strokeBorder(RawdeaPalette.primaryText)
                     }
                     .padding(.bottom, RawdeaSpacing.sm)
-                    .accessibilityLabel("Moved to \(event.toStage.title)")
+                    .accessibilityLabel(event.marker)
             }
         }
     }

@@ -310,6 +310,12 @@ struct RawdeaSettingsView: View {
                     value: \.suggestions
                 )
 
+                preferenceToggle(
+                    "Credit and cycles",
+                    detail: "When you're credited, or a Project you helped starts a new cycle",
+                    value: \.collaboration
+                )
+
             } else if preferencesError == nil {
 
                 RawdeaLoadingIndicator("Loading notification settings...")

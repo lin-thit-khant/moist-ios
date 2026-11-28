@@ -17,7 +17,7 @@ struct PostService {
     static let selection = """
         *,
         author: profiles!posts_profile_fkey(id, display_name, username),
-        project: projects!posts_project_owner_fk(id, name, stage),
+        project: projects!posts_project_owner_fk(id, name, stage, user_id),
         likes: post_likes(count),
         replies: post_comments!post_comments_post_id_fkey(count)
         """

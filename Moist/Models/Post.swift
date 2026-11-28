@@ -32,6 +32,8 @@ struct Post: Identifiable, Codable {
     var bestReplyId: UUID? = nil
     /// Set when the post began as an approved suggestion.
     var suggestionId: UUID? = nil
+    /// Set when the Project's owner hid someone else's post.
+    var ownerHidden: Bool? = nil
     var likes: [PostCount]? = nil
     var replies: [PostCount]? = nil
     
@@ -50,6 +52,7 @@ struct Post: Identifiable, Codable {
         case kind
         case bestReplyId = "best_reply_id"
         case suggestionId = "suggestion_id"
+        case ownerHidden = "owner_hidden"
         case likes
         case replies
     }
@@ -72,6 +75,12 @@ struct PostProject:  Codable, Identifiable {
     let id: UUID
     let name: String
     var stage: ProjectStage? = nil
+    var userId: UUID? = nil
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, stage
+        case userId = "user_id"
+    }
 }
 
 /// A row count the database returns beside a post.

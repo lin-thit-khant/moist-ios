@@ -28,6 +28,8 @@ struct RawdeaProfileWorkSections<Chips: View, Posts: View>: View {
                 }
             }
 
+            ContributedToSection(userId: userId)
+
             contentSelector
 
             switch selection {

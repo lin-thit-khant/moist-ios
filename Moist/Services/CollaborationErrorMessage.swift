@@ -16,7 +16,13 @@ enum CollaborationErrorMessage {
         ("rawdea_suggestion_needs_edit",
          "Suggestions can't include text that needs a check. Remove links or reword it."),
         ("rawdea_suggestion_changed",
-         "This suggestion can no longer be answered. Pull to refresh.")
+         "This suggestion can no longer be answered. Pull to refresh."),
+        ("rawdea_contributors_full",
+         "A Project has room for 5 contributors, invitations included."),
+        ("rawdea_invite_unavailable",
+         "This invitation isn't possible right now."),
+        ("rawdea_invite_changed",
+         "This has already changed. Pull to refresh.")
     ]
 
     static func from(_ error: Error) -> String {

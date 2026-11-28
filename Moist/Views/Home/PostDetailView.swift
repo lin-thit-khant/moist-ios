@@ -182,6 +182,23 @@ struct PostDetailView: View {
                viewerId != post.userId {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
+                        if viewerId == post.project?.userId {
+                            Button(
+                                post.ownerHidden == true
+                                    ? "Show in Project"
+                                    : "Hide from Project",
+                                systemImage: "eye.slash"
+                            ) {
+                                Task {
+                                    try? await CollaborationService()
+                                        .setOwnerHidden(
+                                            postId: post.id,
+                                            hidden: post.ownerHidden != true
+                                        )
+                                    await viewModel.loadPost(postId: postId)
+                                }
+                            }
+                        }
                         Button("Report Post", systemImage: "flag") {
                             reportTarget = .post(post.id)
                         }
@@ -1108,6 +1125,12 @@ struct PostDetailView: View {
         .padding(.bottom, RawdeaSpacing.sm)
     }
 
+    /// The asker picks the best answer, and so can the Project owner.
+    private func canChooseAnswer(_ post: Post) -> Bool {
+        guard let viewerId = viewModel.viewerId else { return false }
+        return viewerId == post.userId || viewerId == post.project?.userId
+    }
+
     private func questionStatus(_ post: Post) -> some View {
 
         let isAnswered = viewModel.shownBestReplyId != nil
@@ -1115,9 +1138,15 @@ struct PostDetailView: View {
         let counted = count == 1 ? "1 answer" : "\(count) answers"
         let isAuthor = viewModel.viewerId == post.userId
         let author = post.author?.username ?? "the author"
+        // Either the asker or the owner may have chosen.
+        let isOwnersQuestion = post.project?.userId == post.userId
         let note = isAnswered
-            ? "Best answer chosen by \(isAuthor ? "you" : author)"
-            : isAuthor ? "Pick the best answer" : "Waiting for \(author) to pick one"
+            ? (isOwnersQuestion
+                ? "Best answer chosen by \(isAuthor ? "you" : author)"
+                : "Best answer chosen")
+            : canChooseAnswer(post)
+                ? "Pick the best answer"
+                : "Waiting for \(author) to pick one"
 
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
@@ -1161,7 +1190,7 @@ struct PostDetailView: View {
 
                 Spacer(minLength: 0)
 
-                if viewModel.viewerId == post.userId && viewModel.shownBestReplyId == nil {
+                if canChooseAnswer(post) && viewModel.shownBestReplyId == nil {
                     Button {
                         Task {
                             await viewModel.chooseBestReply(comment.id)
@@ -1224,7 +1253,7 @@ struct PostDetailView: View {
 
         if let post = viewModel.post,
            post.bestReplyId == comment.id,
-           post.userId == viewModel.viewerId {
+           canChooseAnswer(post) {
 
             Button("Remove best answer", systemImage: "xmark.circle") {
                 Task { await viewModel.chooseBestReply(nil) }

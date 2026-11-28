@@ -23,6 +23,7 @@ struct CreatePostView: View {
     @State private var kind = PostKind.note
     @State private var movesStage = false
     @State private var authorName: String?
+    @State private var creditedNames: [String] = []
 
     @Environment(\.dynamicTypeSize)
     private var dynamicTypeSize
@@ -85,7 +86,12 @@ struct CreatePostView: View {
         guard needsProjectCheck, let restoredDraft else { return }
 
         do {
-            let projects = try await ProjectService().fetchProjects(userId: userId)
+            var projects = try await ProjectService().fetchProjects(userId: userId)
+            if let id = restoredDraft.projectId,
+               !projects.contains(where: { $0.id == id }) {
+                projects += try await CollaborationService()
+                    .fetchContributingProjects()
+            }
             guard !Task.isCancelled, needsProjectCheck else { return }
             let project = projects.first { project in
                 restoredDraft.projectId.map { $0 == project.id } ?? project.isDefault
@@ -105,9 +111,21 @@ struct CreatePostView: View {
         }
     }
 
+    /// Posting in someone else's Project as a contributor.
+    private var isContribution: Bool {
+        selectedProject.map { $0.userId != userId } ?? false
+    }
+
+    private var kinds: [PostKind] {
+        isContribution
+            ? PostKind.allCases.filter { $0 != .decision }
+            : PostKind.allCases
+    }
+
     /// Only a progress post in a chosen, unshipped Project can move it on.
     private var nextStage: ProjectStage? {
-        guard kind == .progress, let stage = selectedProject?.stage else {
+        guard !isContribution, kind == .progress,
+              let stage = selectedProject?.stage else {
             return nil
         }
         switch stage {
@@ -194,6 +212,13 @@ struct CreatePostView: View {
             }
             .task {
                 await loadAuthorName()
+            }
+            .task(id: movesStage ? nextStage : nil) {
+                creditedNames = []
+                guard movesStage, let nextStage,
+                      let projectId = selectedProject?.id else { return }
+                creditedNames = (try? await CollaborationService()
+                    .creditPreview(projectId: projectId, stage: nextStage)) ?? []
             }
 
             // Protect unsaved drafts from
@@ -289,6 +314,10 @@ struct CreatePostView: View {
         ) { _, _ in
 
             movesStage = false
+            // Decisions belong to the owner.
+            if isContribution && kind == .decision {
+                kind = .note
+            }
             viewModel.clearError()
         }
     }
@@ -485,7 +514,7 @@ struct CreatePostView: View {
 
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: RawdeaSpacing.xs) {
-                ForEach(PostKind.allCases, id: \.self) { item in
+                ForEach(kinds, id: \.self) { item in
                     RawdeaChip(
                         title: item.title,
                         symbol: item.symbol,
@@ -504,6 +533,11 @@ struct CreatePostView: View {
     @ViewBuilder
     private var kindDetails: some View {
 
+        if isContribution {
+
+            detailText("Need a decision? Post a Question and the owner decides.")
+        }
+
         if let nextStage, let current = selectedProject?.stage {
 
             VStack(alignment: .leading, spacing: RawdeaSpacing.xs) {
@@ -517,6 +551,10 @@ struct CreatePostView: View {
                 detailText(movesStage
                     ? "Followers will see \"\(selectedProject?.name ?? "Project") moved to \(nextStage.title)\" on Home."
                     : "The stage stays the same.")
+
+                if movesStage, !creditedNames.isEmpty {
+                    detailText("\(CreditNames.sentence(creditedNames)) will be named.")
+                }
             }
 
         } else if kind == .question {
@@ -611,7 +649,8 @@ struct CreatePostView: View {
             content: draft.trimmedContent,
             projectId: selectedProject?.id,
             kind: kind,
-            newStage: movesStage ? nextStage : nil
+            newStage: movesStage ? nextStage : nil,
+            isContribution: isContribution
         )
 
         guard success else {

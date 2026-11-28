@@ -123,7 +123,13 @@ struct ProjectService {
     ) async throws -> [ProjectStageEvent] {
         try await client
             .from("project_stage_events")
-            .select()
+            .select("""
+                *,
+                credits: project_stage_credits(
+                    user_id,
+                    person: profiles!project_stage_credits_user_id_fkey(username)
+                )
+                """)
             .eq("project_id", value: projectId)
             .order("created_at", ascending: false)
             .execute()

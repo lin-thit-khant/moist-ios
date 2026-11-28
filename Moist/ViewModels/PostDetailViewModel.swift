@@ -148,10 +148,19 @@ final class PostDetailViewModel: ObservableObject {
         }
 
         do {
-            try await postService.setBestReply(
-                postId: post.id,
-                commentId: commentId
-            )
+            // The asker chooses directly; the Project owner
+            // goes through the server.
+            if viewerId == post.userId {
+                try await postService.setBestReply(
+                    postId: post.id,
+                    commentId: commentId
+                )
+            } else {
+                try await CollaborationService().setBestReplyAsOwner(
+                    postId: post.id,
+                    commentId: commentId
+                )
+            }
             self.post?.bestReplyId = commentId
 
         } catch is CancellationError {

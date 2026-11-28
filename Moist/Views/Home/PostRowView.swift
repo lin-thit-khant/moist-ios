@@ -33,6 +33,10 @@ struct PostRowView: View {
     @State private var likePop = 0
     @State private var isShowingOptions = false
     @State private var pendingOption: PostOption?
+    /// The owner's choice made on this row.
+    @State private var ownerHiddenChange: Bool?
+    @State private var isHidingAsOwner = false
+    @State private var ownerHideError: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -256,6 +260,18 @@ struct PostRowView: View {
                 pendingOption = option
                 isShowingOptions = false
             }
+        }
+
+        .alert(
+            "Couldn't change post visibility",
+            isPresented: Binding(
+                get: { ownerHideError != nil },
+                set: { if !$0 { ownerHideError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(ownerHideError ?? "")
         }
 
         .sheet(item: $reportTarget) { target in
@@ -513,8 +529,46 @@ struct PostRowView: View {
         }
     }
 
+    private var isOwnerHidden: Bool {
+        ownerHiddenChange ?? post.ownerHidden ?? false
+    }
+
+    /// Someone else's post in the viewer's Project.
+    private var isInViewersProject: Bool {
+        guard let viewerId else { return false }
+        return post.project?.userId == viewerId && post.userId != viewerId
+    }
+
+    private func toggleOwnerHidden() {
+        guard !isHidingAsOwner else { return }
+        let hide = !isOwnerHidden
+        isHidingAsOwner = true
+        Task {
+            defer { isHidingAsOwner = false }
+            do {
+                try await CollaborationService()
+                    .setOwnerHidden(postId: post.id, hidden: hide)
+                ownerHiddenChange = hide
+            } catch {
+                ownerHideError = CollaborationErrorMessage.from(error)
+            }
+        }
+    }
+
     @ViewBuilder
     private var hiddenLabel: some View {
+
+        if isOwnerHidden {
+
+            Label(
+                "Hidden by the Project owner",
+                systemImage: "eye.slash"
+            )
+            .font(RawdeaTypography.metadata)
+            .foregroundStyle(
+                RawdeaPalette.secondaryText
+            )
+        }
 
         if post.isHidden,
            viewerId == post.userId {
@@ -893,14 +947,24 @@ struct PostRowView: View {
             return ownerOptions
         }
 
-        return [
-            PostOption(
-                title: "Report Post",
-                symbol: "flag",
-                isDestructive: true,
-                action: { reportTarget = .post(post.id) }
-            )
-        ]
+        var options: [PostOption] = []
+
+        if isInViewersProject {
+            options.append(PostOption(
+                title: isOwnerHidden ? "Show in Project" : "Hide from Project",
+                symbol: isOwnerHidden ? "eye" : "eye.slash",
+                action: toggleOwnerHidden
+            ))
+        }
+
+        options.append(PostOption(
+            title: "Report Post",
+            symbol: "flag",
+            isDestructive: true,
+            action: { reportTarget = .post(post.id) }
+        ))
+
+        return options
     }
 
     private var optionsSymbol: some View {

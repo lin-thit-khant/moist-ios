@@ -134,11 +134,12 @@ struct ProjectRouteView: View {
 
             try Task.checkCancellation()
 
+            // The viewer's own Projects, for moving their posts.
+            // A contributor can move a post out of this one.
             var loadedOwnerProjects: [Project] = []
 
             if let user = try? await SupabaseManager
-                .client.auth.session.user,
-               user.id == loadedProject.userId {
+                .client.auth.session.user {
 
                 loadedOwnerProjects = (
                     try? await projectService.fetchProjects(

@@ -19,6 +19,9 @@ enum RawdeaNotificationKind: String, Decodable {
     case suggestionsWaiting = "suggestions_waiting"
     case suggestionApproved = "suggestion_approved"
     case suggestionDeclined = "suggestion_declined"
+    case contributorInvite = "contributor_invite"
+    case contributorPrompt = "contributor_prompt"
+    case credited
 }
 
 /// The Activity filters.
@@ -108,7 +111,8 @@ struct RawdeaNotification: Identifiable, Decodable {
     /// Rows about a Project are named and drawn by it.
     var isAboutProject: Bool {
         switch kind {
-        case .stageChange, .suggestionsWaiting, .suggestionDeclined:
+        case .stageChange, .suggestionsWaiting, .suggestionDeclined,
+             .credited:
             return true
         default:
             return false
@@ -157,6 +161,15 @@ struct RawdeaNotification: Identifiable, Decodable {
 
         case .suggestionDeclined:
             return "didn't use your suggestion this time"
+
+        case .contributorInvite:
+            return "invited you to contribute to \(project?.name ?? "a Project")"
+
+        case .contributorPrompt:
+            return "has 3 approved suggestions in \(project?.name ?? "your Project")"
+
+        case .credited:
+            return "moved to \(stage?.title ?? "a new stage"). You're credited."
         }
     }
 
@@ -176,6 +189,15 @@ struct RawdeaNotification: Identifiable, Decodable {
 
         case .suggestionDeclined:
             return "Nothing was made public"
+
+        case .contributorInvite:
+            return "Accept or decline"
+
+        case .contributorPrompt:
+            return "Invite as contributor"
+
+        case .credited:
+            return "Thanks for helping"
 
         case .postComment:
             return comment.map { "“\($0.content)”" } ?? post?.content
@@ -200,7 +222,8 @@ struct RawdeaNotification: Identifiable, Decodable {
         case .projects:
             return [
                 .stageChange, .projectFollow, .suggestionsWaiting,
-                .suggestionApproved, .suggestionDeclined
+                .suggestionApproved, .suggestionDeclined,
+                .contributorInvite, .contributorPrompt, .credited
             ].contains(kind)
         case .likes:
             return kind == .postLike || kind == .userFollow

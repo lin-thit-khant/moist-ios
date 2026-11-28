@@ -39,7 +39,8 @@ final class CreatePostViewModel: ObservableObject {
         content: String,
         projectId: UUID? = nil,
         kind: PostKind = .note,
-        newStage: ProjectStage? = nil
+        newStage: ProjectStage? = nil,
+        isContribution: Bool = false
     ) async -> Bool {
         guard !isPublishing else { return false }
         
@@ -100,11 +101,22 @@ final class CreatePostViewModel: ObservableObject {
             // The server refused to publish it directly.
             // Send it to the moderator queue.
             do {
-                heldReason = try await heldPostService.hold(
-                    content: trimmedContent,
-                    projectId: projectId,
-                    kind: kind
-                )
+                // A contributor's post is queued for the Project
+                // they don't own.
+                if isContribution, let projectId {
+                    heldReason = try await CollaborationService()
+                        .holdContribution(
+                            content: trimmedContent,
+                            projectId: projectId,
+                            kind: kind
+                        )
+                } else {
+                    heldReason = try await heldPostService.hold(
+                        content: trimmedContent,
+                        projectId: projectId,
+                        kind: kind
+                    )
+                }
                 return true
             } catch {
                 errorMessage = PublicationErrorMessage.from(error)

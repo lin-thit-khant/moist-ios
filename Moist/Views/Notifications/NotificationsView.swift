@@ -428,7 +428,15 @@ struct NotificationsView: View {
 
             return .mySuggestions(notification.projectId)
 
-        case .projectFollow, .stageChange:
+        case .contributorInvite:
+
+            return notification.projectId.map { .invitation($0) }
+
+        case .contributorPrompt:
+
+            return notification.projectId.map { .contributors($0) }
+
+        case .projectFollow, .stageChange, .credited:
 
             guard let projectId =
                 notification.projectId else {
