@@ -51,6 +51,14 @@ struct Project: Identifiable, Codable {
     var stageChangedAt: Date
     let isDefault: Bool
     var about: String = ""
+    var suggestionsEnabled: Bool? = nil
+    
+    /// The server decides who may suggest. This hides the button
+    /// when nobody can.
+    var takesSuggestions: Bool {
+        (suggestionsEnabled ?? true) &&
+        !isDefault && !isHidden && !isArchived && stage != .shipped
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -64,5 +72,6 @@ struct Project: Identifiable, Codable {
         case stageChangedAt = "stage_changed_at"
         case isDefault = "is_default"
         case about = "description"
+        case suggestionsEnabled = "suggestions_enabled"
     }
 }

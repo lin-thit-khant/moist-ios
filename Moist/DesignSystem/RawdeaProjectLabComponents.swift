@@ -34,8 +34,14 @@ struct RawdeaKindLabel: View {
     let post: Post
 
     private var text: String {
-        guard post.kind == .question else { return post.kind.title }
-        return "\(post.kind.title) · \(post.bestReplyId == nil ? "Open" : "Answered")"
+        var parts = [post.kind.title]
+        if post.kind == .question {
+            parts.append(post.bestReplyId == nil ? "Open" : "Answered")
+        }
+        if post.suggestionId != nil {
+            parts.append("Suggested")
+        }
+        return parts.joined(separator: " · ")
     }
 
     var body: some View {

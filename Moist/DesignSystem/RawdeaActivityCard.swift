@@ -91,8 +91,7 @@ struct RawdeaActivityCard: View {
     @ViewBuilder
     private var avatar: some View {
 
-        if notification.kind == .stageChange,
-           let projectId = notification.projectId {
+        if notification.isAboutProject {
             RawdeaProjectAvatar(name: notification.subject)
         } else {
             RawdeaInitialAvatar(

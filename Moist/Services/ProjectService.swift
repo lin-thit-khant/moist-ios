@@ -171,6 +171,23 @@ struct ProjectService {
             .value
     }
     
+    func setSuggestionsEnabled(
+        projectId: UUID,
+        enabled: Bool
+    ) async throws -> Project {
+        let user = try await client.auth.session.user
+        
+        return try await client
+            .from("projects")
+            .update(["suggestions_enabled": enabled])
+            .eq("id", value: projectId)
+            .eq("user_id", value: user.id)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+    
     func setPinned(
         projectId: UUID,
         pinned: Bool

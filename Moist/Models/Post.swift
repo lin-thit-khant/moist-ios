@@ -30,6 +30,8 @@ struct Post: Identifiable, Codable {
     var isHidden: Bool = false
     var kind: PostKind = .note
     var bestReplyId: UUID? = nil
+    /// Set when the post began as an approved suggestion.
+    var suggestionId: UUID? = nil
     var likes: [PostCount]? = nil
     var replies: [PostCount]? = nil
     
@@ -47,6 +49,7 @@ struct Post: Identifiable, Codable {
         case isHidden = "is_hidden"
         case kind
         case bestReplyId = "best_reply_id"
+        case suggestionId = "suggestion_id"
         case likes
         case replies
     }

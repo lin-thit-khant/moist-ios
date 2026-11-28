@@ -16,6 +16,9 @@ enum RawdeaNotificationKind: String, Decodable {
     case postComment = "post_comment"
     case bestAnswer = "best_answer"
     case stageChange = "stage_change"
+    case suggestionsWaiting = "suggestions_waiting"
+    case suggestionApproved = "suggestion_approved"
+    case suggestionDeclined = "suggestion_declined"
 }
 
 /// The Activity filters.
@@ -67,6 +70,7 @@ struct RawdeaNotification: Identifiable, Decodable {
     var post: NotificationPost? = nil
     var comment: NotificationComment? = nil
     var project: NotificationProject? = nil
+    var itemCount: Int? = nil
 
     enum CodingKeys: String, CodingKey {
 
@@ -88,6 +92,7 @@ struct RawdeaNotification: Identifiable, Decodable {
         case post
         case project
         case comment
+        case itemCount = "item_count"
     }
 
     // MARK: - Display
@@ -100,9 +105,19 @@ struct RawdeaNotification: Identifiable, Decodable {
         kind == .postComment && post?.kind == .question
     }
 
-    /// Who the row is about: the Project for a stage change.
+    /// Rows about a Project are named and drawn by it.
+    var isAboutProject: Bool {
+        switch kind {
+        case .stageChange, .suggestionsWaiting, .suggestionDeclined:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Who the row is about.
     var subject: String {
-        kind == .stageChange ? (project?.name ?? "A Project") : actorName
+        isAboutProject ? (project?.name ?? "A Project") : actorName
     }
 
     /// What happened, following the subject.
@@ -130,6 +145,18 @@ struct RawdeaNotification: Identifiable, Decodable {
 
         case .stageChange:
             return "moved to \(stage?.title ?? "a new stage")"
+
+        case .suggestionsWaiting:
+            let count = itemCount ?? 1
+            return count == 1
+                ? "has 1 new suggestion"
+                : "has \(count) new suggestions"
+
+        case .suggestionApproved:
+            return "approved your suggestion for \(project?.name ?? "a Project")"
+
+        case .suggestionDeclined:
+            return "didn't use your suggestion this time"
         }
     }
 
@@ -143,6 +170,12 @@ struct RawdeaNotification: Identifiable, Decodable {
 
         case .stageChange:
             return "A Project you follow"
+
+        case .suggestionsWaiting:
+            return "Approve or decline them"
+
+        case .suggestionDeclined:
+            return "Nothing was made public"
 
         case .postComment:
             return comment.map { "“\($0.content)”" } ?? post?.content
@@ -165,7 +198,10 @@ struct RawdeaNotification: Identifiable, Decodable {
         case .answers:
             return kind == .bestAnswer || isAnswer
         case .projects:
-            return kind == .stageChange || kind == .projectFollow
+            return [
+                .stageChange, .projectFollow, .suggestionsWaiting,
+                .suggestionApproved, .suggestionDeclined
+            ].contains(kind)
         case .likes:
             return kind == .postLike || kind == .userFollow
         }

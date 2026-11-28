@@ -420,6 +420,14 @@ struct NotificationsView: View {
                 notification.actorId
             )
 
+        case .suggestionsWaiting:
+
+            return notification.projectId.map { .suggestions($0) }
+
+        case .suggestionDeclined:
+
+            return .mySuggestions(notification.projectId)
+
         case .projectFollow, .stageChange:
 
             guard let projectId =
@@ -430,7 +438,7 @@ struct NotificationsView: View {
 
             return .project(projectId)
 
-        case .postLike, .postComment, .bestAnswer:
+        case .postLike, .postComment, .bestAnswer, .suggestionApproved:
 
             guard let postId =
                 notification.postId else {

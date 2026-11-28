@@ -88,6 +88,9 @@ struct ProjectDetailView: View {
         .onChange(of: project.stageChangedAt) { _, _ in
             changedProject = nil
         }
+        .onChange(of: project.suggestionsEnabled) { _, _ in
+            changedProject = nil
+        }
         // Opening a followed Project clears its unread count.
         .task(id: followViewModel.isFollowing) {
             if followViewModel.isFollowing {
@@ -100,7 +103,7 @@ struct ProjectDetailView: View {
             }
         }
         .alert(
-            "Couldn't change the stage",
+            "Couldn't change the Project",
             isPresented: Binding(
                 get: { stageErrorMessage != nil },
                 set: { if !$0 { stageErrorMessage = nil } }
@@ -296,6 +299,27 @@ struct ProjectDetailView: View {
                 Label("Description", systemImage: "text.alignleft")
             }
 
+            if !current.isDefault {
+                Button {
+                    openPostRoute?(.suggestions(project.id))
+                } label: {
+                    Label("Suggestions", systemImage: "tray")
+                }
+
+                Button {
+                    Task { await toggleSuggestions() }
+                } label: {
+                    Label(
+                        current.suggestionsEnabled ?? true
+                            ? "Turn Suggestions Off"
+                            : "Turn Suggestions On",
+                        systemImage: current.suggestionsEnabled ?? true
+                            ? "bell.slash"
+                            : "bell"
+                    )
+                }
+            }
+
             Button {
                 projectToRename = project
             } label: {
@@ -361,6 +385,20 @@ struct ProjectDetailView: View {
             if await action() {
                 await onProjectChanged()
             }
+        }
+    }
+
+    // MARK: - Suggestions
+
+    private func toggleSuggestions() async {
+        do {
+            changedProject = try await projectService.setSuggestionsEnabled(
+                projectId: project.id,
+                enabled: !(current.suggestionsEnabled ?? true)
+            )
+            await onProjectChanged()
+        } catch {
+            stageErrorMessage = PublicationErrorMessage.from(error)
         }
     }
 
@@ -509,6 +547,14 @@ struct ProjectDetailView: View {
                !current.isArchived {
 
                 followButton
+            }
+
+            if !current.isDefault && currentUserId != nil {
+                ProjectSuggestionSection(
+                    project: current,
+                    isOwner: isOwner,
+                    isFollowing: followViewModel.isFollowing
+                )
             }
 
             if let error = followViewModel.errorMessage {

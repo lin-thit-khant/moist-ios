@@ -304,6 +304,12 @@ struct RawdeaSettingsView: View {
                     value: \.likes
                 )
 
+                preferenceToggle(
+                    "Suggestions",
+                    detail: "New suggestions for your Projects, and answers to yours",
+                    value: \.suggestions
+                )
+
             } else if preferencesError == nil {
 
                 RawdeaLoadingIndicator("Loading notification settings...")

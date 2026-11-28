@@ -48,6 +48,7 @@ struct NotificationService {
                 is_read,
                 created_at,
                 stage,
+                item_count,
                 post:posts!notifications_post_id_fkey(
                     kind,
                     content,
@@ -134,11 +135,13 @@ struct NotificationPreferences: Codable, Equatable {
     var answers = true
     var stageChanges = true
     var likes = true
+    var suggestions = true
 
     enum CodingKeys: String, CodingKey {
         case answers
         case stageChanges = "stage_changes"
         case likes
+        case suggestions
     }
 }
 
@@ -151,7 +154,7 @@ extension NotificationService {
         // No row yet means everything is on.
         let rows: [NotificationPreferences] = try await client
             .from("notification_preferences")
-            .select("answers, stage_changes, likes")
+            .select("answers, stage_changes, likes, suggestions")
             .eq("user_id", value: userId)
             .execute()
             .value
@@ -172,7 +175,8 @@ extension NotificationService {
                     userId: userId,
                     answers: preferences.answers,
                     stageChanges: preferences.stageChanges,
-                    likes: preferences.likes
+                    likes: preferences.likes,
+                    suggestions: preferences.suggestions
                 ),
                 onConflict: "user_id",
                 returning: .minimal
@@ -187,11 +191,13 @@ private struct NotificationPreferencesRow: Encodable {
     let answers: Bool
     let stageChanges: Bool
     let likes: Bool
+    let suggestions: Bool
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case answers
         case stageChanges = "stage_changes"
         case likes
+        case suggestions
     }
 }

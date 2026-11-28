@@ -16,6 +16,8 @@ enum RawdeaPostRoute: Hashable {
     case following
     case followers
     case settings
+    case suggestions(UUID)
+    case mySuggestions(UUID?)
 }
 
 private struct RawdeaOpenExploreActionKey: EnvironmentKey {
@@ -132,6 +134,18 @@ struct RawdeaPostNavigationStack<Content: View>: View {
                     case .settings:
 
                         RawdeaSettingsView()
+
+                    case .suggestions(let projectId):
+
+                        SuggestionListView(
+                            scope: .review(projectId: projectId)
+                        )
+
+                    case .mySuggestions(let projectId):
+
+                        SuggestionListView(
+                            scope: .mine(projectId: projectId)
+                        )
                     }
                 }
         }
