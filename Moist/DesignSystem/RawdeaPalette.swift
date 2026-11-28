@@ -113,6 +113,18 @@ enum RawdeaPalette {
         }
     )
 
+    // MARK: - Stage track
+
+    // The current stage stays white in both appearances.
+    static let stageCurrent = Color.white
+
+    static let stageOutline = adaptive(
+        light: 0xCFCFD4,
+        dark: 0xCFCFD4,
+        increasedLight: 0x48484A,
+        increasedDark: 0xCFCFD4
+    )
+
     // MARK: - Semantic status
 
     // Status colors remain distinct from branding.

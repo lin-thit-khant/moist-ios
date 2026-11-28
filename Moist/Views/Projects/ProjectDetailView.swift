@@ -40,6 +40,11 @@ struct ProjectDetailView: View {
     @State private var seenBefore: Date?
     @State private var isEditingDescription = false
 
+    // Early arrival
+    @State private var havePostsLoaded = false
+    @State private var hasCheckedArrival = false
+    @State private var arrivalCount: Int?
+
     private let projectService = ProjectService()
 
     /// The newest copy, including a stage moved on this screen.
@@ -48,6 +53,7 @@ struct ProjectDetailView: View {
     }
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.rawdeaCreatePostInProject) private var createPostInProject
     @Environment(\.rawdeaOpenPostRoute) private var openPostRoute
 
@@ -148,6 +154,13 @@ struct ProjectDetailView: View {
             await viewModel.loadPosts(
                 projectId: project.id
             )
+            havePostsLoaded = !Task.isCancelled && viewModel.errorMessage == nil
+        }
+
+        // MARK: - Early arrival
+
+        .task(id: havePostsLoaded && followViewModel.hasLoaded) {
+            await checkEarlyArrival()
         }
 
         // MARK: - Load follow state
@@ -371,15 +384,51 @@ struct ProjectDetailView: View {
         guard stage != current.stage else { return }
 
         do {
-            changedProject = try await projectService.setStage(
+            let updated = try await projectService.setStage(
                 projectId: project.id,
                 stage: stage
             )
-            await loadStageEvents()
+            let events = try? await projectService
+                .fetchStageEvents(projectId: project.id)
+            // Together, so the track, heading and new row move as one.
+            // Reduce Motion: the list does not slide.
+            withAnimation(reduceMotion ? nil : .snappy(duration: 0.6)) {
+                changedProject = updated
+                stageEvents = events ?? stageEvents
+            }
             await onProjectChanged()
         } catch {
             stageErrorMessage = PublicationErrorMessage.from(error)
         }
+    }
+
+    // MARK: - Early arrival
+
+    // Decided once, on the visit's first complete load.
+    private func checkEarlyArrival() async {
+
+        guard havePostsLoaded,
+              followViewModel.hasLoaded,
+              !hasCheckedArrival,
+              let viewerId = try? await SupabaseManager
+                  .client.auth.session.user.id else {
+            return
+        }
+
+        hasCheckedArrival = true
+        let key = EarlyArrival.seenKey(viewerId: viewerId, projectId: project.id)
+
+        guard EarlyArrival.shouldPlay(
+            stage: current.stage,
+            isFollower: followViewModel.isFollowing,
+            postCount: viewModel.posts.count,
+            wasSeen: UserDefaults.standard.bool(forKey: key)
+        ) else {
+            return
+        }
+
+        UserDefaults.standard.set(true, forKey: key)
+        arrivalCount = viewModel.posts.count
     }
 
     // MARK: - Header
@@ -461,12 +510,12 @@ struct ProjectDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            RawdeaStageTrack(stage: current.stage)
-
-            Text(stageSummary)
-                .font(RawdeaTypography.metadata)
-                .foregroundStyle(RawdeaPalette.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+            RawdeaStageProgress(
+                stage: current.stage,
+                summary: stageSummary,
+                arrivalCount: arrivalCount,
+                onArrivalEnd: { arrivalCount = nil }
+            )
 
             if followViewModel.hasLoaded &&
                !followViewModel.isOwnProject &&

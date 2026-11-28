@@ -54,13 +54,16 @@ struct RawdeaKindLabel: View {
 
 // MARK: - Stage
 
-/// Three segments: finished stages dark, the current one accented.
-/// The stage names carry the meaning without color.
+/// Three segments: finished stages accented, the current one white
+/// with an outline. The stage names carry the meaning without color.
 struct RawdeaStageTrack: View {
 
     let stage: ProjectStage
+    /// Each change makes the Early segment swell and glow once.
+    var earlyPulse = 0
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let stages = ProjectStage.allCases
@@ -70,15 +73,30 @@ struct RawdeaStageTrack: View {
 
             HStack(spacing: RawdeaSpacing.xs) {
                 ForEach(stages.indices, id: \.self) { index in
-                    Capsule()
-                        .fill(index < current
-                            ? RawdeaPalette.primaryText
-                            : index == current
-                                ? RawdeaPalette.accent
-                                : RawdeaPalette.divider)
-                        .frame(height: 4)
+                    if index == 0 {
+                        segment(isReached: true, isDone: index < current)
+                            .keyframeAnimator(
+                                initialValue: 0.0,
+                                trigger: earlyPulse
+                            ) { [isStill = reduceMotion] bar, pulse in
+                                bar
+                                    .scaleEffect(y: isStill ? 1 : 1 + 1.1 * pulse)
+                                    // After the scale, so the glow is not stretched.
+                                    .shadow(
+                                        color: RawdeaPalette.accent.opacity(isStill ? 0 : 0.55 * pulse),
+                                        radius: 10 * pulse
+                                    )
+                            } keyframes: { _ in
+                                CubicKeyframe(1, duration: 0.13)
+                                CubicKeyframe(0, duration: 0.29)
+                            }
+                            .anchorPreference(key: RawdeaEarlyBarKey.self, value: .bounds) { $0 }
+                    } else {
+                        segment(isReached: index <= current, isDone: index < current)
+                    }
                 }
             }
+            .animation(reduceMotion ? nil : .snappy(duration: 0.7), value: stage)
 
             // Large text has no room for three columns; the
             // line under the track already names the stage.
@@ -97,6 +115,25 @@ struct RawdeaStageTrack: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Stage: \(stage.title)")
+    }
+
+    // Both fills stay in place and widen from the leading edge, so a
+    // new stage sweeps white and the finished one sweeps crimson.
+    private func segment(isReached: Bool, isDone: Bool) -> some View {
+        ZStack {
+            Capsule()
+                .fill(RawdeaPalette.divider)
+            Capsule()
+                .fill(RawdeaPalette.stageCurrent)
+                .overlay {
+                    Capsule().strokeBorder(RawdeaPalette.stageOutline, lineWidth: 1)
+                }
+                .scaleEffect(x: isReached ? 1 : 0, anchor: .leading)
+            Capsule()
+                .fill(RawdeaPalette.accent)
+                .scaleEffect(x: isDone ? 1 : 0, anchor: .leading)
+        }
+        .frame(height: 5)
     }
 }
 
