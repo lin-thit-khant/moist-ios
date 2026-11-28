@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Supabase
 import Combine
 
 @MainActor
@@ -69,7 +70,7 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
-    func updateProfile(displayName: String, bio: String) async {
+    func updateProfile(displayName: String, username: String, bio: String) async {
         guard !isSaving else { return }
         
         isSaving = true
@@ -83,12 +84,16 @@ final class ProfileViewModel: ObservableObject {
         do {
             profile = try await profileService.updateCurrentProfiel(
                 displayName: displayName,
+                username: username,
                 bio: bio
             )
             
             statusMessage = "Profile updated successfully."
         } catch {
-            errorMessage = PublicationErrorMessage.from(error)
+            // 23505: the unique username constraint.
+            errorMessage = (error as? PostgrestError)?.code == "23505"
+                ? "That username is taken."
+                : PublicationErrorMessage.from(error)
         }
     }
     

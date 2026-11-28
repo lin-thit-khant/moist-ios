@@ -40,6 +40,7 @@ struct PublicProfileSectionsView: View {
     }
 
     @State private var hasLoaded = false
+    @State private var mayHaveReplies = true
 
     /// Both lists loaded without errors and nothing is public.
     private var hasNothingPublic: Bool {
@@ -47,7 +48,8 @@ struct PublicProfileSectionsView: View {
         postsViewModel.errorMessage == nil &&
         projectsViewModel.errorMessage == nil &&
         publicPosts.isEmpty &&
-        publicProjects.isEmpty
+        publicProjects.isEmpty &&
+        !mayHaveReplies
     }
 
     var body: some View {
@@ -79,6 +81,11 @@ struct PublicProfileSectionsView: View {
             await projectsViewModel.loadProjects(
                 userId: userId
             )
+
+            // A failed check keeps the tabs, where it can be retried.
+            let replies = try? await PostEngagementService()
+                .fetchReplies(userId: userId)
+            mayHaveReplies = replies?.isEmpty != true
 
             hasLoaded = true
         }

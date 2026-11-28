@@ -28,11 +28,12 @@ struct ProfileService {
             .value
     }
     
-    func updateCurrentProfiel(displayName: String, bio: String) async throws -> Profile {
+    func updateCurrentProfiel(displayName: String, username: String, bio: String) async throws -> Profile {
         let user = try await client.auth.session.user
         
         let updatedProfile = ProfileUpdate(
             displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
+            username: username,
             bio: bio.trimmingCharacters(in: .whitespacesAndNewlines),
             updatedAt: Date()
         )
@@ -60,11 +61,13 @@ struct ProfileService {
 
 private struct ProfileUpdate: Encodable {
     let displayName: String
+    let username: String
     let bio: String
     let updatedAt: Date
     
     enum CodingKeys: String, CodingKey {
         case displayName = "display_name"
+        case username
         case bio
         case updatedAt = "updated_at"
     }

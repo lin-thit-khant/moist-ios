@@ -17,6 +17,7 @@ struct ProjectDescriptionSheet: View {
     @State private var text: String
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @FocusState private var isTyping: Bool
 
     init(
         project: Project,
@@ -41,6 +42,8 @@ struct ProjectDescriptionSheet: View {
                     )
                     .lineLimit(3...8)
                     .disabled(isSaving)
+                    .focused($isTyping)
+                    .onAppear { isTyping = true }
                 } footer: {
                     RawdeaCharacterLimitText(
                         count: RawdeaTextLength.count(text),

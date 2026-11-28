@@ -483,19 +483,45 @@ struct ProfileView: View {
     private var followCounts: some View {
 
         let followers = followViewModel.followerCount
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.md))
 
-        return Button {
-            openPostRoute?(.following)
+        return layout {
+            followCount(
+                followers,
+                followers == 1 ? "follower" : "followers",
+                route: .followers,
+                hint: "Opens people who follow you"
+            )
+            followCount(
+                followViewModel.followingCount,
+                "following",
+                route: .following,
+                hint: "Opens people and Projects you follow"
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func followCount(
+        _ count: Int,
+        _ label: String,
+        route: RawdeaPostRoute,
+        hint: String
+    ) -> some View {
+
+        Button {
+            openPostRoute?(route)
         } label: {
-            Text("\(Text(followers.formatted()).fontWeight(.semibold).foregroundStyle(RawdeaPalette.primaryText)) \(followers == 1 ? "follower" : "followers") · \(Text(followViewModel.followingCount.formatted()).fontWeight(.semibold).foregroundStyle(RawdeaPalette.primaryText)) following")
+            Text("\(Text(count.formatted()).fontWeight(.semibold).foregroundStyle(RawdeaPalette.primaryText)) \(label)")
                 .font(RawdeaTypography.secondary)
                 .foregroundStyle(RawdeaPalette.secondaryText)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget, alignment: .leading)
+                .frame(minWidth: RawdeaSpacing.minimumTouchTarget, minHeight: RawdeaSpacing.minimumTouchTarget, alignment: .leading)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityHint("Opens people and Projects you follow")
+        .accessibilityHint(hint)
     }
 
     // MARK: - Profile actions

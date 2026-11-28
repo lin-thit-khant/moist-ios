@@ -56,6 +56,9 @@ struct RawdeaMainTabView: View {
 
     @State private var isKeyboardVisible = false
 
+    // Each increase returns that tab to its first screen.
+    @State private var rootRequests: [RawdeaTab: Int] = [:]
+
     // MARK: - Selection interception
 
     private var tabSelection: Binding<RawdeaTab> {
@@ -76,6 +79,10 @@ struct RawdeaMainTabView: View {
                     return
                 }
 
+                if requestedTab == selectedTab {
+                    rootRequests[requestedTab, default: 0] += 1
+                }
+
                 selectedTab = requestedTab
             }
         )
@@ -91,7 +98,7 @@ struct RawdeaMainTabView: View {
 
             // HOME
 
-            RawdeaPostNavigationStack {
+            RawdeaPostNavigationStack(rootRequest: rootRequests[.home, default: 0]) {
 
                 HomeView(
                     feedViewModel: feedViewModel,
@@ -109,7 +116,7 @@ struct RawdeaMainTabView: View {
 
             // EXPLORE
 
-            RawdeaPostNavigationStack {
+            RawdeaPostNavigationStack(rootRequest: rootRequests[.explore, default: 0]) {
 
                 DiscoveryView()
             }
@@ -130,7 +137,7 @@ struct RawdeaMainTabView: View {
 
             // ACTIVITY
 
-            RawdeaPostNavigationStack {
+            RawdeaPostNavigationStack(rootRequest: rootRequests[.activity, default: 0]) {
 
                 NotificationsView(
                     viewModel: notificationsViewModel
@@ -141,7 +148,7 @@ struct RawdeaMainTabView: View {
             
             // PROFILE
 
-            RawdeaPostNavigationStack {
+            RawdeaPostNavigationStack(rootRequest: rootRequests[.profile, default: 0]) {
 
                 ProfileView(
                     isSelected: selectedTab == .profile
@@ -243,6 +250,7 @@ struct RawdeaMainTabView: View {
         // Required by Specification v1.1:
         // return to Home → All Posts.
         selectedHomeFeed = .all
+        rootRequests[.home, default: 0] += 1
         selectedTab = .home
     }
 

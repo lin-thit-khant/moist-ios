@@ -94,7 +94,7 @@ struct SafetyInformationView: View {
 
                 Text(
                     """
-                    If you believe a moderation decision was incorrect, open Profile, then Settings, and select Safety & Support to submit an appeal.
+                    If you believe a moderation decision was incorrect, open Profile, then Settings, and select Report a problem to submit an appeal.
                     """
                 )
             }

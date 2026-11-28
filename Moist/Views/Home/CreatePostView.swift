@@ -40,9 +40,11 @@ struct CreatePostView: View {
         initialProject: Project? = nil,
         onPostCreated: @escaping (Post) -> Void
     ) {
-        self.initialProject = initialProject
+        // An archived Project takes no new posts.
+        let usable = initialProject?.isArchived == true ? nil : initialProject
+        self.initialProject = usable
         self.onPostCreated = onPostCreated
-        _selectedProject = State(initialValue: initialProject)
+        _selectedProject = State(initialValue: usable)
     }
 
     // MARK: - Draft state
@@ -427,6 +429,8 @@ struct CreatePostView: View {
             stageSegment("Stay in \(current.title)", moves: false)
             stageSegment("Move to \(next.title)", moves: true)
         }
+        // Both halves take the height of the taller title.
+        .fixedSize(horizontal: false, vertical: true)
         .clipShape(RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius))
         .overlay {
             RoundedRectangle(cornerRadius: RawdeaSpacing.buttonRadius)
@@ -449,8 +453,9 @@ struct CreatePostView: View {
                     ? RawdeaPalette.primaryText
                     : RawdeaPalette.secondaryText)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(RawdeaSpacing.xs)
-                .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget)
+                .frame(maxWidth: .infinity, minHeight: RawdeaSpacing.minimumTouchTarget, maxHeight: .infinity)
                 .background(isSelected ? RawdeaPalette.surface : RawdeaPalette.canvas)
                 .contentShape(Rectangle())
         }

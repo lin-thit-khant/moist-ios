@@ -31,7 +31,7 @@ private final class ExploreHomeViewModel: ObservableObject {
         do {
             let viewer = try await following.currentUserId()
             let active = try await discovery.fetchActiveProjects(stage: stage)
-            let open = try await discovery.fetchOpenQuestions()
+            let open = try await discovery.fetchOpenQuestions(stage: stage)
             let followed = try await following.fetchFollowingProjects()
 
             guard requestID == ticket, !Task.isCancelled else { return }

@@ -27,6 +27,10 @@ struct PostDetailView: View {
 
     @State private var pendingDeletionId: UUID?
     @State private var reportTarget: ReportTarget?
+    @StateObject private var ownerActions = FeedViewModel()
+    @State private var postBeingEdited: Post?
+    @State private var isConfirmingPostDeletion = false
+    @Environment(\.dismiss) private var dismiss
 
     @FocusState private var isCommentFocused: Bool
 
@@ -155,6 +159,24 @@ struct PostDetailView: View {
         }
         .toolbar {
             if let post = viewModel.post,
+               viewModel.viewerId == post.userId {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Edit Post", systemImage: "pencil") {
+                            postBeingEdited = post
+                        }
+                        Button("Delete Post", systemImage: "trash", role: .destructive) {
+                            isConfirmingPostDeletion = true
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .disabled(ownerActions.deletingPostId != nil)
+                    .accessibilityLabel("Post options")
+                }
+            }
+
+            if let post = viewModel.post,
                post.kind == .question,
                let viewerId = viewModel.viewerId,
                viewerId != post.userId {
@@ -223,6 +245,41 @@ struct PostDetailView: View {
                     postId: postId
                 )
             }
+        }
+
+        // MARK: - Own post
+
+        .sheet(item: $postBeingEdited, onDismiss: {
+            Task { await viewModel.loadPost(postId: postId) }
+        }) { post in
+            EditPostView(post: post, viewModel: ownerActions)
+        }
+        .confirmationDialog(
+            "Delete this post?",
+            isPresented: $isConfirmingPostDeletion,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Post", role: .destructive) {
+                Task {
+                    await ownerActions.deletePost(postId: postId)
+                    if ownerActions.deletionErrorMessage == nil {
+                        dismiss()
+                    }
+                }
+            }
+        } message: {
+            Text("This cannot be undone.")
+        }
+        .alert(
+            "Couldn't delete post",
+            isPresented: Binding(
+                get: { ownerActions.deletionErrorMessage != nil },
+                set: { if !$0 { ownerActions.clearDeletionError() } }
+            )
+        ) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(ownerActions.deletionErrorMessage ?? "")
         }
 
         // MARK: - Reporting
@@ -1053,7 +1110,7 @@ struct PostDetailView: View {
 
     private func questionStatus(_ post: Post) -> some View {
 
-        let isAnswered = post.bestReplyId != nil
+        let isAnswered = viewModel.shownBestReplyId != nil
         let count = max(post.replyCount, viewModel.comments.count)
         let counted = count == 1 ? "1 answer" : "\(count) answers"
         let isAuthor = viewModel.viewerId == post.userId
@@ -1104,7 +1161,7 @@ struct PostDetailView: View {
 
                 Spacer(minLength: 0)
 
-                if viewModel.viewerId == post.userId && post.bestReplyId == nil {
+                if viewModel.viewerId == post.userId && viewModel.shownBestReplyId == nil {
                     Button {
                         Task {
                             await viewModel.chooseBestReply(comment.id)
@@ -1281,6 +1338,11 @@ struct PostDetailView: View {
             )
             .lineLimit(2...5)
             .font(RawdeaTypography.body)
+            .padding(RawdeaSpacing.xs)
+            .background(
+                RawdeaPalette.surface,
+                in: RoundedRectangle(cornerRadius: RawdeaSpacing.xs)
+            )
             .disabled(
                 viewModel.isEditingComment
             )

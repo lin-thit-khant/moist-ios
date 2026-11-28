@@ -40,7 +40,7 @@ struct MovePostToProjectView: View {
                         }
                     }
                     
-                    ForEach(projects.filter { !$0.isDefault }) { project in
+                    ForEach(projects.filter { !$0.isDefault && !$0.isArchived }) { project in
                         Button {
                             Task {
                                 await move(to: project.id)

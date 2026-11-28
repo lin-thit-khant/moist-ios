@@ -941,7 +941,12 @@ struct ProjectDetailView: View {
 
     private func groupHeader(_ stage: ProjectStage, range: String) -> some View {
 
-        HStack(spacing: RawdeaSpacing.xs) {
+        // Large text stacks the two so neither splits mid-word.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: RawdeaSpacing.xxs))
+            : AnyLayout(HStackLayout(spacing: RawdeaSpacing.xs))
+
+        return layout {
             Text(stage.title)
                 .font(RawdeaTypography.metadata.weight(.semibold))
                 .foregroundStyle(RawdeaPalette.primaryText)
@@ -954,6 +959,7 @@ struct ProjectDetailView: View {
                 .frame(height: 1)
                 .accessibilityHidden(true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, RawdeaSpacing.screenInset)
         .padding(.top, RawdeaSpacing.sm)
         .padding(.bottom, RawdeaSpacing.xxs)
@@ -1006,7 +1012,11 @@ struct ProjectDetailView: View {
                     .padding(.horizontal, RawdeaSpacing.sm)
                     .padding(.vertical, RawdeaSpacing.xxs)
                     .overlay {
-                        Capsule().strokeBorder(RawdeaPalette.primaryText)
+                        // A tall capsule would cut into wrapped text.
+                        RoundedRectangle(cornerRadius: dynamicTypeSize.isAccessibilitySize
+                            ? RawdeaSpacing.cardRadius
+                            : 100)
+                            .strokeBorder(RawdeaPalette.primaryText)
                     }
                     .padding(.bottom, RawdeaSpacing.sm)
                     .accessibilityLabel("Moved to \(event.toStage.title)")

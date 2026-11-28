@@ -468,6 +468,28 @@ final class RawdeaProjectLabDataTests: XCTestCase {
         XCTAssertTrue(open.contains { $0.id == question.id })
     }
 
+    func testFollowingAgainDoesNotRepeatActivity() async throws {
+
+        let owner = try await makeUser()
+        let reader = try await makeUser()
+        let project = try await owner.projects.createProject(name: "Followed twice")
+
+        for _ in 1...2 {
+            try await reader.following.followUser(userId: owner.id)
+            try await reader.following.followProject(projectId: project.id)
+            try await reader.following.unfollowUser(userId: owner.id)
+            try await reader.following.unfollowProject(projectId: project.id)
+        }
+
+        let received = try await owner.activity.fetchNotifications()
+        XCTAssertEqual(received.count, 2)
+
+        try await reader.following.followUser(userId: owner.id)
+
+        let followers = try await owner.following.fetchFollowers()
+        XCTAssertEqual(followers.map(\.id), [reader.id])
+    }
+
     // MARK: - Description, People and Counts
 
     func testDescriptionIsOwnerOnlyAndFiltered() async throws {

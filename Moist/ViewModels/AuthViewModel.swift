@@ -52,6 +52,9 @@ final class AuthViewModel: ObservableObject {
         observeAuthState()
     }
 
+    private static let connectionMessage =
+        "Couldn't reach Rawdea. Check your connection and try again."
+
     // MARK: - Sign up
 
     func signUp(
@@ -101,8 +104,9 @@ final class AuthViewModel: ObservableObject {
 
         } catch {
 
-            errorMessage =
-                "Sign-up failed. Please check your details and try again."
+            errorMessage = error is URLError
+                ? Self.connectionMessage
+                : "Sign-up failed. Please check your details and try again."
         }
     }
 
@@ -140,8 +144,9 @@ final class AuthViewModel: ObservableObject {
 
         } catch {
 
-            errorMessage =
-                "Login failed. Check your email and password, then try again."
+            errorMessage = error is URLError
+                ? Self.connectionMessage
+                : "Login failed. Check your email and password, then try again."
         }
     }
 

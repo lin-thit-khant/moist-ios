@@ -103,9 +103,12 @@ struct DiscoveryService {
         }
     }
 
-    func fetchOpenQuestions(limit: Int = 10) async throws -> [Post] {
+    func fetchOpenQuestions(
+        stage: ProjectStage? = nil,
+        limit: Int = 10
+    ) async throws -> [Post] {
 
-        try await client
+        var query = client
             .from("posts")
             .select(Self.visiblePostSelection)
             .eq("kind", value: PostKind.question.rawValue)
@@ -113,6 +116,12 @@ struct DiscoveryService {
             .eq("is_hidden", value: false)
             .eq("project.is_hidden", value: false)
             .eq("project.is_archived", value: false)
+
+        if let stage {
+            query = query.eq("project.stage", value: stage.rawValue)
+        }
+
+        return try await query
             .order("created_at", ascending: false)
             .limit(limit)
             .execute()

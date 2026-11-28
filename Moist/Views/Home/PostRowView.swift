@@ -492,7 +492,10 @@ struct PostRowView: View {
                 .foregroundStyle(linkedProject == nil
                     ? RawdeaPalette.primaryText
                     : RawdeaPalette.secondaryText)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                // A username has no spaces, so wrapping splits it.
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.7 : 1)
                 .padding(.vertical, RawdeaSpacing.xxs)
                 .contentShape(Rectangle())
                 .padding(.vertical, -RawdeaSpacing.xxs)

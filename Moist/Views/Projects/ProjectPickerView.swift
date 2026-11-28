@@ -35,7 +35,7 @@ struct ProjectPickerView: View {
 
                     noProjectOption
 
-                    ForEach(viewModel.projects.filter { !$0.isDefault }) { project in
+                    ForEach(viewModel.projects.filter { !$0.isDefault && !$0.isArchived }) { project in
 
                         projectOption(project)
                     }

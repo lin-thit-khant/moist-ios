@@ -62,7 +62,7 @@ enum RawdeaAuthFormMode {
 
         case .signUp:
 
-            return "Use your email. You can change your username later."
+            return "Use your email. You can change your username later in Edit profile."
 
         case .forgotPassword:
 
@@ -406,6 +406,17 @@ struct RawdeaAuthFormView: View {
                 .foregroundStyle(
                     RawdeaPalette.secondaryText
                 )
+
+                // Waits for the password so it does not
+                // appear while the address is being typed.
+                if mode == .signUp,
+                   !password.isEmpty,
+                   !isEmailValid {
+
+                    RawdeaInlineError(
+                        message: "Enter a valid email address."
+                    )
+                }
 
                 if !password.isEmpty &&
                    !isNewPasswordValid {

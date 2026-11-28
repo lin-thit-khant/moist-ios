@@ -226,6 +226,28 @@ struct FollowingService {
         return records.compactMap(\.profile)
     }
     
+    func fetchFollowers() async throws -> [PostAuthor] {
+
+        let viewerId = try await currentUserId()
+
+        let records: [ProjectFollowerRecord] = try await client
+            .from("user_follows")
+            .select("""
+                profile:profiles!user_follows_follower_id_fkey(
+                    id,
+                    display_name,
+                    username
+                )
+                """)
+            .eq("followed_user_id", value: viewerId)
+            .order("created_at", ascending: false)
+            .limit(100)
+            .execute()
+            .value
+
+        return records.compactMap(\.profile)
+    }
+
     func fetchFollowingProjects() async throws -> [Project] {
         
         let viewerId = try await currentUserId()

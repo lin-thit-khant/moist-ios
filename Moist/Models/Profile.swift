@@ -25,3 +25,11 @@ struct Profile: Codable, Identifiable {
         case updatedAt = "updated_at"
     }
 }
+
+extension Profile {
+
+    /// Matches the `profiles_username_check` database constraint.
+    static func isValidUsername(_ username: String) -> Bool {
+        username.range(of: "^[a-z0-9_]{3,24}$", options: .regularExpression) != nil
+    }
+}

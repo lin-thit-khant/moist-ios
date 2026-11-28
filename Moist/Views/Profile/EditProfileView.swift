@@ -19,6 +19,7 @@ struct EditProfileView: View {
     private var dismiss
 
     @State private var displayName: String
+    @State private var username: String
     @State private var bio: String
 
     @State private var showDiscardConfirmation = false
@@ -32,6 +33,10 @@ struct EditProfileView: View {
 
         _displayName = State(
             initialValue: profile.displayname
+        )
+
+        _username = State(
+            initialValue: profile.username
         )
 
         _bio = State(
@@ -60,12 +65,14 @@ struct EditProfileView: View {
     private var isValid: Bool {
 
         displayNameCharacterCount <= 80 &&
+        Profile.isValidUsername(username) &&
         bioCharacterCount <= 160
     }
 
     private var hasUnsavedChanges: Bool {
 
         displayName != profile.displayname ||
+        username != profile.username ||
         bio != profile.bio
     }
 
@@ -75,6 +82,7 @@ struct EditProfileView: View {
             .trimmingCharacters(
                 in: .whitespacesAndNewlines
             ) ||
+        username != profile.username ||
         bio.trimmingCharacters(
             in: .whitespacesAndNewlines
         ) != profile.bio.trimmingCharacters(
@@ -133,8 +141,42 @@ struct EditProfileView: View {
             } footer: {
 
                 Text(
-                    "This is the name people see on your posts and profile. Up to 80 characters."
+                    "The name on your profile. Up to 80 characters."
                 )
+            }
+
+            Section {
+
+                TextField(
+                    "username",
+                    text: $username
+                )
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(.asciiCapable)
+                .font(RawdeaTypography.body)
+                .accessibilityLabel("Username")
+                .disabled(viewModel.isSaving)
+                .onChange(of: username) { _, newValue in
+                    if newValue != newValue.lowercased() {
+                        username = newValue.lowercased()
+                    }
+                    viewModel.clearMessages()
+                }
+
+                if !Profile.isValidUsername(username) {
+                    RawdeaInlineError(
+                        message: "Use 3 to 24 letters, numbers or underscores."
+                    )
+                }
+
+            } header: {
+
+                Text("Username")
+
+            } footer: {
+
+                Text("Shown on your posts. Each username belongs to one person.")
             }
 
             Section {
@@ -308,6 +350,7 @@ struct EditProfileView: View {
 
         await viewModel.updateProfile(
             displayName: trimmedName,
+            username: username,
             bio: bio
         )
 

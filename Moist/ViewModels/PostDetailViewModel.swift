@@ -60,6 +60,26 @@ final class PostDetailViewModel: ObservableObject {
         self.postService = postService
     }
 
+    /// A chosen answer can be invisible, for example after a block.
+    /// The question then reads as open and can be answered again.
+    /// With more pages to load, the answer may still be coming.
+    nonisolated static func shownBestReply(
+        _ best: UUID?,
+        loaded: [UUID],
+        hasMore: Bool
+    ) -> UUID? {
+        guard let best, hasMore || loaded.contains(best) else { return nil }
+        return best
+    }
+
+    var shownBestReplyId: UUID? {
+        Self.shownBestReply(
+            post?.bestReplyId,
+            loaded: comments.map(\.id),
+            hasMore: hasMoreComments
+        )
+    }
+
     /// The best answer first, when it has been loaded.
     var orderedComments: [PostComment] {
         guard let bestId = post?.bestReplyId,

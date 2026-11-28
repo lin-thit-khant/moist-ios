@@ -316,7 +316,7 @@ struct RawdeaStageFeedRow: View {
 
                 VStack(alignment: .leading, spacing: RawdeaSpacing.xs) {
 
-                    Text("\(Text(row.project.name).font(RawdeaTypography.authorName).foregroundStyle(RawdeaPalette.primaryText))  \(row.project.owner?.username ?? "")  \(PostRowView.shortAge(of: row.createdAt, at: .now))")
+                    header
                         .font(RawdeaTypography.secondary)
                         .foregroundStyle(RawdeaPalette.secondaryText)
 
@@ -326,7 +326,11 @@ struct RawdeaStageFeedRow: View {
                         .padding(.horizontal, RawdeaSpacing.sm)
                         .padding(.vertical, RawdeaSpacing.xxs)
                         .overlay {
-                            Capsule().strokeBorder(RawdeaPalette.primaryText)
+                            // A tall capsule would cut into wrapped text.
+                            RoundedRectangle(cornerRadius: dynamicTypeSize.isAccessibilitySize
+                                ? RawdeaSpacing.cardRadius
+                                : 100)
+                                .strokeBorder(RawdeaPalette.primaryText)
                         }
 
                     RawdeaStageTrack(stage: row.toStage)
@@ -344,5 +348,30 @@ struct RawdeaStageFeedRow: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("\(row.project.name) moved to \(row.toStage.title)")
         .accessibilityHint("Opens Project")
+    }
+
+    /// "Project  author  time". Large text gives the username its
+    /// own line, because it has no spaces and wrapping splits it.
+    @ViewBuilder
+    private var header: some View {
+
+        let name = Text(row.project.name)
+            .font(RawdeaTypography.authorName)
+            .foregroundStyle(RawdeaPalette.primaryText)
+        let owner = row.project.owner?.username ?? ""
+        let age = PostRowView.shortAge(of: row.createdAt, at: .now)
+
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 0) {
+                name
+                Text(owner)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .minimumScaleFactor(0.7)
+                Text(age)
+            }
+        } else {
+            Text("\(name)  \(owner)  \(age)")
+        }
     }
 }

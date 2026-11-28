@@ -14,6 +14,7 @@ enum RawdeaPostRoute: Hashable {
     case project(UUID)
     case savedPosts
     case following
+    case followers
     case settings
 }
 
@@ -77,10 +78,13 @@ struct RawdeaPostNavigationStack<Content: View>: View {
     @State private var path: [RawdeaPostRoute] = []
 
     private let rootContent: Content
+    private let rootRequest: Int
 
     init(
+        rootRequest: Int = 0,
         @ViewBuilder content: () -> Content
     ) {
+        self.rootRequest = rootRequest
         self.rootContent = content()
     }
 
@@ -120,12 +124,19 @@ struct RawdeaPostNavigationStack<Content: View>: View {
                     case .following:
 
                         FollowingView()
+
+                    case .followers:
+
+                        FollowersView()
                         
                     case .settings:
 
                         RawdeaSettingsView()
                     }
                 }
+        }
+        .onChange(of: rootRequest) { _, _ in
+            path.removeAll()
         }
         .environment(
             \.rawdeaOpenPostRoute,
