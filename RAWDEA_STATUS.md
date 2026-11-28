@@ -6,7 +6,7 @@ Keep this file under 60 lines.
 ## Repository
 - Branch: feature/rawdea-migration. Graphify ignored 57e4c03; tool rules: AGENTS.md, Tools.
 - Lin approved pushing after every batch (2026-11-26). No force-push.
-- Latest code commit: c7f1229. Latest confirmed pushed commit: c7f1229.
+- Latest code commit: 2baadee. Latest confirmed pushed commit: 2baadee.
 - Review data: seed_project_lab.sql.
 - Review seed data (supabase/review/) is loaded locally. Never commit .cursor/.
 
@@ -38,6 +38,8 @@ Keep this file under 60 lines.
   by simulator recordings; dark and largest text predate the last Reduce Motion/count edit.
 - Stage sweep and Early dots e1980d5: 49 XCTest pass on the committed files; dots and sweep
   recorded in the simulator, partly in dark, largest text and Reduce Motion.
+- Audit fixes 2baadee (follow-once migration, local only; Followers list; usernames):
+  56 XCTest pass; main fixes checked on the simulator, light default and light largest text.
 
 ## Standing decisions
 - 1:1 with prototype Gkq2TXsyMs7N37rMVunFHx (2026-11-27): show counts; system font; darker
@@ -53,7 +55,8 @@ Keep this file under 60 lines.
 - Early dots: no growing stage dot (removed by Lin); haptics are not capped for many posts.
 - Early dots replay when returning to a Home-opened Project (ProjectRouteView rebuilds).
 - Welcome hides the Apple and Google stubs.
-- Before release: add Terms and a privacy URL.
+- Release blockers: contact email and privacy URL are placeholders; add Terms. Lin sets
+  these last, before release.
 
 ## Unverified
 - Prototype parity: VoiceOver, device, largest text in light, Following stage rows.
@@ -69,7 +72,8 @@ Keep this file under 60 lines.
 - App icon dark and tinted variants not supplied. Not checked on a device.
 - Auth screens: VoiceOver, Contrast, iOS 17, small phone, device, sign-up submit,
   error/loading states. Some default-dark and scrolled shots predate final tweaks.
-- Public "Nothing shared yet" and all-pinned Project states.
+- All-pinned Project state. Audit fixes: Move to Project list and appeals wording not seen.
+- Home and Timeline can still say Answered when the best answerer is blocked.
 - Early dots on every open (4d7192b, 48 XCTest pass): Reduce Motion, dark and large text not
   rechecked.
 - In progress glow and snake c7f1229 (54 XCTest pass; simulator 1/8/50 posts): device, VoiceOver,
@@ -77,8 +81,7 @@ Keep this file under 60 lines.
 - Shipped stage animation: prototype only (Motion Lab); not approved to build.
 - Stage motion: haptics, VoiceOver, device, Contrast, large counts, sweep in dark or largest
   text, final Reduce Motion list change. White current stage is faint in light.
-- Largest text: heart briefly touches the count; stage pill overflows; username wraps
-  mid-word. Post detail Like count stays grey while the feed count turns crimson.
+- Largest text: heart briefly touches the count. Post detail Like count stays grey while the feed count turns crimson.
 
 ## Open observations
 - Explore looks at the newest 100 posts; Home makes one request per followed Project.
