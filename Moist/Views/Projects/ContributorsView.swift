@@ -20,7 +20,17 @@ struct ContributorsView: View {
         var name: String { member.person?.username ?? "this person" }
     }
 
-    init(projectId: UUID) {
+    private let title: String
+    /// Said above the list, such as after starting a cycle.
+    private let intro: String?
+
+    init(
+        projectId: UUID,
+        title: String = "Contributors",
+        intro: String? = nil
+    ) {
+        self.title = title
+        self.intro = intro
         _viewModel = StateObject(
             wrappedValue: ContributorsViewModel(projectId: projectId)
         )
@@ -51,6 +61,10 @@ struct ContributorsView: View {
 
             } else {
 
+                if let intro {
+                    note(intro)
+                }
+
                 heading("Contributors · \(viewModel.places.count) of \(ProjectMember.limit)")
 
                 if viewModel.places.isEmpty {
@@ -77,7 +91,7 @@ struct ContributorsView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(RawdeaPalette.canvas.ignoresSafeArea())
-        .navigationTitle("Contributors")
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load() }
         .rawdeaRefreshable { await viewModel.load() }

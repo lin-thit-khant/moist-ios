@@ -162,6 +162,9 @@ struct ProjectService {
                 id,
                 to_stage,
                 created_at,
+                cycle,
+                starts_cycle,
+                cycle_name,
                 project: projects!inner(
                     id,
                     name,
@@ -173,6 +176,30 @@ struct ProjectService {
             .eq("project.is_archived", value: false)
             .order("created_at", ascending: false)
             .limit(limit)
+            .execute()
+            .value
+    }
+    
+    func startCycle(
+        projectId: UUID,
+        note: String,
+        name: String,
+        stage: ProjectStage
+    ) async throws -> Project {
+        try await client
+            .rpc("rawdea_start_cycle", params: [
+                "p_project_id": projectId.uuidString,
+                "p_note": note,
+                "p_name": name,
+                "p_stage": stage.rawValue
+            ])
+            .execute()
+            .value
+    }
+    
+    func undoCycle(projectId: UUID) async throws -> Project {
+        try await client
+            .rpc("rawdea_undo_cycle", params: ["p_project_id": projectId.uuidString])
             .execute()
             .value
     }

@@ -58,7 +58,9 @@ struct NotificationService {
                     content
                 ),
                 project:projects!notifications_project_id_fkey(
-                    name
+                    name,
+                    cycle,
+                    cycle_name
                 ),
                 actor:profiles!notifications_actor_id_fkey(
                     id,

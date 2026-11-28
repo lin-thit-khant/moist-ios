@@ -34,6 +34,9 @@ struct Post: Identifiable, Codable {
     var suggestionId: UUID? = nil
     /// Set when the Project's owner hid someone else's post.
     var ownerHidden: Bool? = nil
+    var cycle: Int? = nil
+    
+    var cycleNumber: Int { cycle ?? 1 }
     var likes: [PostCount]? = nil
     var replies: [PostCount]? = nil
     
@@ -53,6 +56,7 @@ struct Post: Identifiable, Codable {
         case bestReplyId = "best_reply_id"
         case suggestionId = "suggestion_id"
         case ownerHidden = "owner_hidden"
+        case cycle
         case likes
         case replies
     }

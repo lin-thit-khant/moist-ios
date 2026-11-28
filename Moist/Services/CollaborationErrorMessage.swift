@@ -22,7 +22,15 @@ enum CollaborationErrorMessage {
         ("rawdea_invite_unavailable",
          "This invitation isn't possible right now."),
         ("rawdea_invite_changed",
-         "This has already changed. Pull to refresh.")
+         "This has already changed. Pull to refresh."),
+        ("rawdea_cycle_too_soon",
+         "A Project can start one new cycle every 30 days."),
+        ("rawdea_cycle_unavailable",
+         "Only a public, shipped Project can start its next cycle."),
+        ("rawdea_cycle_undo_closed",
+         "This cycle can't be undone now. Undo works for a day, before anything else is posted or anyone joins."),
+        ("rawdea_filter_held:",
+         "The opening note needs a check first. Remove links or reword it.")
     ]
 
     static func from(_ error: Error) -> String {

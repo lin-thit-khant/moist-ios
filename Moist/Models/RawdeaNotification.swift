@@ -22,6 +22,7 @@ enum RawdeaNotificationKind: String, Decodable {
     case contributorInvite = "contributor_invite"
     case contributorPrompt = "contributor_prompt"
     case credited
+    case cycleStarted = "cycle_started"
 }
 
 /// The Activity filters.
@@ -50,6 +51,14 @@ struct NotificationComment: Decodable {
 
 struct NotificationProject: Decodable {
     let name: String
+    var cycleName: String? = nil
+    var cycle: Int? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case cycleName = "cycle_name"
+        case cycle
+    }
 }
 
 struct RawdeaNotification: Identifiable, Decodable {
@@ -112,7 +121,7 @@ struct RawdeaNotification: Identifiable, Decodable {
     var isAboutProject: Bool {
         switch kind {
         case .stageChange, .suggestionsWaiting, .suggestionDeclined,
-             .credited:
+             .credited, .cycleStarted:
             return true
         default:
             return false
@@ -170,6 +179,12 @@ struct RawdeaNotification: Identifiable, Decodable {
 
         case .credited:
             return "moved to \(stage?.title ?? "a new stage"). You're credited."
+
+        case .cycleStarted:
+            let number = itemCount ?? 2
+            // The name belongs to the current cycle only.
+            let name = project?.cycle == number ? project?.cycleName : nil
+            return "started \(ProjectCycle.title(number, name: name))"
         }
     }
 
@@ -199,6 +214,9 @@ struct RawdeaNotification: Identifiable, Decodable {
         case .credited:
             return "Thanks for helping"
 
+        case .cycleStarted:
+            return "You helped before"
+
         case .postComment:
             return comment.map { "“\($0.content)”" } ?? post?.content
 
@@ -223,7 +241,8 @@ struct RawdeaNotification: Identifiable, Decodable {
             return [
                 .stageChange, .projectFollow, .suggestionsWaiting,
                 .suggestionApproved, .suggestionDeclined,
-                .contributorInvite, .contributorPrompt, .credited
+                .contributorInvite, .contributorPrompt, .credited,
+                .cycleStarted
             ].contains(kind)
         case .likes:
             return kind == .postLike || kind == .userFollow

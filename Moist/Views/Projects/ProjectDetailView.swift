@@ -41,6 +41,12 @@ struct ProjectDetailView: View {
     @State private var seenBefore: Date?
     @State private var isEditingDescription = false
 
+    // Cycles
+    @State private var cycleChoice = CycleChoice.current
+    @State private var isStartingCycle = false
+    @State private var isConfirmingUndoCycle = false
+    @State private var recap: CycleRecap?
+
     // Early arrival
     @State private var hasCheckedArrival = false
     @State private var arrivalCount: Int?
@@ -73,6 +79,36 @@ struct ProjectDetailView: View {
                 .ignoresSafeArea()
         )
         .navigationTitle("")
+        .sheet(isPresented: $isStartingCycle) {
+            StartCycleSheet(project: current) { started in
+                changedProject = started
+                cycleChoice = .current
+                await reloadTimeline()
+                await onProjectChanged()
+            }
+        }
+        .sheet(item: $recap) { shown in
+            CycleRecapSheet(recap: shown) {
+                cycleChoice = .past(shown.number)
+            }
+        }
+        .confirmationDialog(
+            "Undo Cycle \(current.cycleNumber)?",
+            isPresented: $isConfirmingUndoCycle,
+            titleVisibility: .visible
+        ) {
+            Button("Undo cycle", role: .destructive) {
+                Task { await undoCycle() }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("The opening note is deleted and the Project returns to Shipped.")
+        }
+        .onChange(of: project.cycle) { _, _ in
+            changedProject = nil
+            cycleChoice = .current
+            Task { await loadStageEvents() }
+        }
         .sheet(isPresented: $isEditingDescription) {
             ProjectDescriptionSheet(project: current) { updated in
                 changedProject = updated
@@ -458,12 +494,12 @@ struct ProjectDetailView: View {
 
         guard EarlyArrival.shouldPlay(
             stage: current.stage,
-            postCount: viewModel.posts.count
+            postCount: currentCyclePosts.count
         ) else {
             return
         }
 
-        arrivalCount = viewModel.posts.count
+        arrivalCount = currentCyclePosts.count
     }
 
     // MARK: - Header
@@ -480,8 +516,8 @@ struct ProjectDetailView: View {
 
     private var stageSummary: String {
         let since = current.stageChangedAt.formatted(.dateTime.day().month(.abbreviated))
-        let posts = viewModel.posts.count
-        let open = viewModel.posts.filter {
+        let posts = currentCyclePosts.count
+        let open = currentCyclePosts.filter {
             $0.kind == .question && $0.bestReplyId == nil && !$0.isHidden
         }.count
         let questions = open == 0
@@ -517,6 +553,13 @@ struct ProjectDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Opens profile")
+
+                    if current.cycleNumber > 1 {
+                        Text(ProjectCycle.title(current.cycleNumber, name: current.cycleName))
+                            .font(RawdeaTypography.secondary.weight(.semibold))
+                            .foregroundStyle(RawdeaPalette.primaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -548,7 +591,7 @@ struct ProjectDetailView: View {
             RawdeaStageProgress(
                 stage: current.stage,
                 summary: stageSummary,
-                postCount: viewModel.posts.count,
+                postCount: currentCyclePosts.count,
                 arrivalCount: arrivalCount,
                 onArrivalEnd: { arrivalCount = nil }
             )
@@ -563,6 +606,10 @@ struct ProjectDetailView: View {
 
             if current.stage == .shipped, !shippedCredit.isEmpty {
                 shippedByline
+            }
+
+            if isOwner && !current.isDefault && !current.isHidden && !current.isArchived {
+                cycleControls
             }
 
             if !current.isDefault && currentUserId != nil && !isOwner {
@@ -600,7 +647,7 @@ struct ProjectDetailView: View {
 
     /// The people named when the Project last shipped.
     private var shippedCredit: [String] {
-        stageEvents.first { $0.toStage == .shipped }?.creditNames ?? []
+        currentCycleEvents.first { $0.toStage == .shipped }?.creditNames ?? []
     }
 
     private var shippedByline: some View {
@@ -630,6 +677,48 @@ struct ProjectDetailView: View {
                 .foregroundStyle(RawdeaPalette.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: - Cycles
+
+    private var currentCyclePosts: [Post] {
+        viewModel.posts.filter { $0.cycleNumber == current.cycleNumber }
+    }
+
+    private var currentCycleEvents: [ProjectStageEvent] {
+        stageEvents.filter { $0.cycleNumber == current.cycleNumber }
+    }
+
+    @ViewBuilder
+    private var cycleControls: some View {
+
+        if current.stage == .shipped {
+            RawdeaPillButton(title: "Start next cycle", isPrimary: true) {
+                isStartingCycle = true
+            }
+            .frame(maxWidth: .infinity)
+        } else if current.canOfferUndoCycle() {
+            RawdeaPillButton(title: "Undo Cycle \(current.cycleNumber)") {
+                isConfirmingUndoCycle = true
+            }
+        }
+    }
+
+    private func undoCycle() async {
+        do {
+            let updated = try await projectService.undoCycle(projectId: project.id)
+            changedProject = updated
+            cycleChoice = .current
+            await reloadTimeline()
+            await onProjectChanged()
+        } catch {
+            stageErrorMessage = CollaborationErrorMessage.from(error)
+        }
+    }
+
+    private func reloadTimeline() async {
+        await loadStageEvents()
+        await viewModel.loadPosts(projectId: project.id)
     }
 
     private var followButton: some View {
@@ -893,10 +982,15 @@ struct ProjectDetailView: View {
 
             } else {
 
+                if current.cycleNumber > 1 {
+                    cycleSwitcher
+                        .timelineListRow()
+                }
+
                 filterChips
                     .timelineListRow()
 
-                if timelineGroups.isEmpty {
+                if shownSections.allSatisfy(\.groups.isEmpty) {
 
                     Text("Nothing here yet.")
                         .font(RawdeaTypography.secondary)
@@ -906,19 +1000,33 @@ struct ProjectDetailView: View {
                         .timelineListRow()
                 }
 
-                ForEach(timelineGroups) { group in
+                ForEach(shownSections) { cycle in
 
-                    // A filtered list is not a history, so it
-                    // drops the stage headings.
-                    if kindFilter == nil {
-                        groupHeader(group.stage, range: range(of: group))
+                    // Where an earlier cycle ended.
+                    if cycle.number < current.cycleNumber && cycleChoice == .all {
+                        cycleDivider(cycle.number)
                             .timelineListRow()
                     }
 
-                    ForEach(group.items) { item in
-                        timelineRow(item)
-                            .timelineListRow()
+                    ForEach(cycle.groups) { group in
+
+                        // A filtered list is not a history, so it
+                        // drops the stage headings.
+                        if kindFilter == nil {
+                            groupHeader(group.stage, range: range(of: group, in: cycle))
+                                .timelineListRow()
+                        }
+
+                        ForEach(group.items) { item in
+                            timelineRow(item)
+                                .timelineListRow()
+                        }
                     }
+                }
+
+                if cycleChoice == .current && current.cycleNumber > 1 {
+                    cycleDivider(current.cycleNumber - 1)
+                        .timelineListRow()
                 }
 
                 if let error = viewModel.errorMessage {
@@ -969,18 +1077,95 @@ struct ProjectDetailView: View {
 
     // MARK: - Timeline
 
-    private var timelineGroups: [ProjectTimeline.Group] {
-        ProjectTimeline.groups(
-            posts: viewModel.posts.filter {
-                kindFilter == nil || $0.kind == kindFilter
-            },
-            events: kindFilter == nil ? stageEvents : [],
-            currentStage: current.stage
+    private var shownSections: [CycleSection] {
+        cycleChoice.numbers(current: current.cycleNumber).map { number in
+            let events = stageEvents.filter { $0.cycleNumber == number }
+            // A finished cycle ended where its last move left it.
+            let endStage = number == current.cycleNumber
+                ? current.stage
+                : events.max { $0.createdAt < $1.createdAt }?.toStage ?? .shipped
+            return CycleSection(
+                number: number,
+                startedAt: events.first { $0.startsCycle == true }?.createdAt
+                    ?? current.createdAt,
+                groups: ProjectTimeline.groups(
+                    posts: viewModel.posts.filter {
+                        $0.cycleNumber == number &&
+                        (kindFilter == nil || $0.kind == kindFilter)
+                    },
+                    events: kindFilter == nil ? events : [],
+                    currentStage: endStage
+                )
+            )
+        }
+    }
+
+    private var cycleSwitcher: some View {
+
+        let choices: [CycleChoice] = [.all, .current] +
+            (1..<current.cycleNumber).reversed().map { .past($0) }
+
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: RawdeaSpacing.xs) {
+                ForEach(choices, id: \.self) { choice in
+                    RawdeaChip(
+                        title: choice.title(current: current.cycleNumber),
+                        isSelected: cycleChoice == choice
+                    ) {
+                        cycleChoice = choice
+                    }
+                }
+            }
+            .padding(.horizontal, RawdeaSpacing.screenInset)
+        }
+        .padding(.top, RawdeaSpacing.xs)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Cycle")
+    }
+
+    private func recap(of number: Int) -> CycleRecap {
+        CycleRecap(
+            number: number,
+            projectStartedAt: current.createdAt,
+            posts: viewModel.posts,
+            events: stageEvents
         )
     }
 
+    private func cycleDivider(_ number: Int) -> some View {
+
+        let shipped = recap(of: number).shippedAt.map {
+            " shipped \($0.formatted(.dateTime.day().month(.abbreviated).year()))"
+        } ?? ""
+
+        return Button {
+            recap = recap(of: number)
+        } label: {
+            Text("Cycle \(number)\(shipped) · View recap")
+                .font(RawdeaTypography.metadata.weight(.semibold))
+                .foregroundStyle(RawdeaPalette.primaryText)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: RawdeaSpacing.minimumTouchTarget,
+                    alignment: .leading
+                )
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(RawdeaPalette.divider)
+                        .frame(height: 1)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, RawdeaSpacing.screenInset)
+        .padding(.top, RawdeaSpacing.sm)
+    }
+
     private var openQuestion: Post? {
-        viewModel.posts.first {
+        currentCyclePosts.first {
             $0.kind == .question && $0.bestReplyId == nil && !$0.isHidden
         }
     }
@@ -1034,19 +1219,25 @@ struct ProjectDetailView: View {
     }
 
     /// "since 3 Nov" for the current stage, "Sep 2026 to 3 Nov" before.
-    private func range(of group: ProjectTimeline.Group) -> String {
-        let all = timelineGroups
+    private func range(
+        of group: ProjectTimeline.Group,
+        in cycle: CycleSection
+    ) -> String {
+        let all = cycle.groups
         guard let index = all.firstIndex(where: { $0.id == group.id }) else {
             return ""
         }
         func day(_ date: Date) -> String {
             date.formatted(.dateTime.day().month(.abbreviated))
         }
-        let start = group.startedAt ?? current.createdAt
-        if index == 0 {
+        let start = group.startedAt ?? cycle.startedAt
+        if index == 0 && cycle.number == current.cycleNumber {
             return "since \(day(start))"
         }
-        guard let end = all[index - 1].startedAt else { return "" }
+        // A finished cycle's newest group has no later move.
+        guard index > 0, let end = all[index - 1].startedAt else {
+            return day(start)
+        }
         return "\(day(start)) to \(day(end))"
     }
 
@@ -1213,6 +1404,13 @@ private struct RawdeaTimelineRow<Content: View>: View {
         .padding(.bottom, -RawdeaSpacing.xs)
         .accessibilityHidden(true)
     }
+}
+
+private struct CycleSection: Identifiable {
+    let number: Int
+    let startedAt: Date
+    let groups: [ProjectTimeline.Group]
+    var id: Int { number }
 }
 
 private enum ProjectSection: String, CaseIterable {

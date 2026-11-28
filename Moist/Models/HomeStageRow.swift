@@ -30,12 +30,24 @@ struct HomeStageRow: Identifiable, Decodable {
     let toStage: ProjectStage
     let createdAt: Date
     let project: Source
+    var cycle: Int? = nil
+    var startsCycle: Bool? = nil
+    var cycleName: String? = nil
+
+    var marker: String {
+        startsCycle == true
+            ? "Started \(ProjectCycle.title(cycle ?? 1, name: cycleName))"
+            : "Moved to \(toStage.title)"
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
         case toStage = "to_stage"
         case createdAt = "created_at"
         case project
+        case cycle
+        case startsCycle = "starts_cycle"
+        case cycleName = "cycle_name"
     }
 }
 

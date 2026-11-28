@@ -436,7 +436,7 @@ struct NotificationsView: View {
 
             return notification.projectId.map { .contributors($0) }
 
-        case .projectFollow, .stageChange, .credited:
+        case .projectFollow, .stageChange, .credited, .cycleStarted:
 
             guard let projectId =
                 notification.projectId else {

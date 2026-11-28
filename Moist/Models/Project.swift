@@ -44,6 +44,11 @@ struct ProjectStageEvent: Identifiable, Codable {
     let postId: UUID?
     let createdAt: Date
     var credits: [StageCredit]? = nil
+    var cycle: Int? = nil
+    var startsCycle: Bool? = nil
+    var cycleName: String? = nil
+    
+    var cycleNumber: Int { cycle ?? 1 }
     
     var creditNames: [String] {
         (credits ?? []).compactMap(\.person?.username).sorted()
@@ -51,6 +56,9 @@ struct ProjectStageEvent: Identifiable, Codable {
     
     /// "Moved to In progress · with maya and ravi".
     var marker: String {
+        if startsCycle == true {
+            return "Started \(ProjectCycle.title(cycleNumber, name: cycleName))"
+        }
         let move = "Moved to \(toStage.title)"
         let names = creditNames
         return names.isEmpty
@@ -60,6 +68,9 @@ struct ProjectStageEvent: Identifiable, Codable {
     
     enum CodingKeys: String, CodingKey {
         case credits
+        case cycle
+        case startsCycle = "starts_cycle"
+        case cycleName = "cycle_name"
         case id
         case projectId = "project_id"
         case fromStage = "from_stage"
@@ -82,6 +93,18 @@ struct Project: Identifiable, Codable {
     let isDefault: Bool
     var about: String = ""
     var suggestionsEnabled: Bool? = nil
+    var cycle: Int? = nil
+    var cycleName: String? = nil
+    var cycleStartedAt: Date? = nil
+    
+    var cycleNumber: Int { cycle ?? 1 }
+    
+    /// Undo is offered for a day. The server also checks that
+    /// nothing else was posted and nobody joined.
+    func canOfferUndoCycle(at now: Date = .now) -> Bool {
+        guard cycleNumber > 1, let cycleStartedAt else { return false }
+        return now.timeIntervalSince(cycleStartedAt) < 86_400
+    }
     
     /// Contributors pause at Shipped and while out of sight.
     var takesContributions: Bool {
@@ -108,5 +131,8 @@ struct Project: Identifiable, Codable {
         case isDefault = "is_default"
         case about = "description"
         case suggestionsEnabled = "suggestions_enabled"
+        case cycle
+        case cycleName = "cycle_name"
+        case cycleStartedAt = "cycle_started_at"
     }
 }

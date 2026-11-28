@@ -70,13 +70,18 @@ struct ContributedProject: Identifiable, Decodable {
     let projectName: String
     let ownerUsername: String
     let isContributor: Bool
+    var cycles: [Int]? = nil
 
     var id: UUID { projectId }
 
     var role: String { isContributor ? "contributor" : "suggested" }
 
     var detail: String {
-        "by \(ownerUsername) · \(role)"
+        let list = cycles ?? []
+        let when = list.isEmpty
+            ? ""
+            : " · \(list.count == 1 ? "Cycle" : "Cycles") \(list.map(String.init).joined(separator: ", "))"
+        return "by \(ownerUsername)\(when) · \(role)"
     }
 
     enum CodingKeys: String, CodingKey {
@@ -84,6 +89,7 @@ struct ContributedProject: Identifiable, Decodable {
         case projectName = "project_name"
         case ownerUsername = "owner_username"
         case isContributor = "is_contributor"
+        case cycles
     }
 }
 

@@ -320,7 +320,7 @@ struct RawdeaStageFeedRow: View {
                         .font(RawdeaTypography.secondary)
                         .foregroundStyle(RawdeaPalette.secondaryText)
 
-                    Text("\(Image(systemName: "arrow.right.circle")) Moved to \(row.toStage.title)")
+                    Text("\(Image(systemName: "arrow.right.circle")) \(row.marker)")
                         .font(RawdeaTypography.metadata.weight(.semibold))
                         .foregroundStyle(RawdeaPalette.primaryText)
                         .padding(.horizontal, RawdeaSpacing.sm)
